@@ -1,0 +1,356 @@
+# Codebase Assessment for Pre-Deployment
+
+**Analysis Date:** 2026-05-03
+
+## 1. Technology Stack and Framework Versions
+
+### Frontend (ckb-tracker)
+- **Framework:** Next.js 16.1.7 (React 19.2.3)
+- **Language:** TypeScript 5.x
+- **Styling:** Tailwind CSS 4.x with PostCSS
+- **UI Components:** Custom components with lucide-react 0.577.0 for icons
+- **State Management:** React Context API (AuthContext, ThemeContext)
+- **Form Handling:** react-hook-form 7.71.2 with @hookform/resolvers 5.2.2 and zod 4.3.6
+- **HTTP Client:** axios 1.13.6
+- **Charts:** chart.js 4.5.1 with react-chartjs-2 5.3.1
+- **Utilities:** clsx 2.1.1, tailwind-merge 3.5.0, date-fns 4.1.0
+- **Linting:** ESLint 9.x with eslint-config-next 16.1.7
+- **Build:** Next.js built-in build system
+
+### Backend (backend)
+- **Framework:** FastAPI (Python)
+- **Database ORM:** SQLAlchemy (with SQLite default: `sqlite:///./ckb_tracker.db`)
+- **Authentication:** JWT tokens with passlib (bcrypt)
+- **Security:** python-dotenv, slowapi for rate limiting
+- **Server:** Uvicorn (configured in `run_server.py`)
+- **No requirements.txt found** - Python dependencies need to be documented
+
+### Key Version Summary
+| Component | Version | Location |
+|-----------|---------|----------|
+| Next.js | 16.1.7 | `ckb-tracker/package.json` |
+| React | 19.2.3 | `ckb-tracker/package.json` |
+| TypeScript | 5.x | `ckb-tracker/package.json` |
+| Tailwind CSS | 4.x | `ckb-tracker/package.json` |
+| FastAPI | Not specified | `backend/app/main.py` |
+| SQLite | 3.x (default) | `backend/app/database.py` |
+
+## 2. Project Structure and Architecture
+
+### Overall Pattern
+**Monorepo-style with two distinct applications:**
+- `ckb-tracker/` - Next.js frontend application
+- `backend/` - FastAPI backend application
+
+### Frontend Structure (`ckb-tracker/src/`)
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── layout.tsx         # Root layout with AuthProvider, ThemeProvider
+│   ├── page.tsx           # Home/Login page
+│   ├── login/             # Login page
+│   ├── admin/             # Admin dashboard
+│   ├── teacher/           # Teacher dashboard
+│   ├── portal/            # Student portal
+│   └── check-in/         # Kiosk check-in page
+├── components/
+│   ├── ui/               # Reusable UI components (Button, Card, Input, Select, Avatar, Badge)
+│   ├── layout/            # Layout components (Sidebar)
+│   ├── comments/          # Comment system components
+│   └── AppLayout.tsx     # Main app layout wrapper
+├── hooks/                 # Custom React hooks
+│   ├── useAuth.tsx        # Authentication hook (Context-based)
+│   ├── useTheme.tsx       # Theme management
+│   └── useChartColors.ts  # Chart color utilities
+├── lib/                   # Utilities and API clients
+│   ├── api.ts             # Axios-based API client
+│   ├── supabase.ts        # Supabase client (configured but minimal usage)
+│   └── utils.ts           # General utilities
+└── types/
+    └── index.ts           # TypeScript type definitions
+```
+
+### Backend Structure (`backend/app/`)
+```
+app/
+├── main.py                # FastAPI application entry point
+├── database.py            # SQLAlchemy setup (SQLite)
+├── models.py              # Database models (17 tables)
+├── schemas.py             # Pydantic schemas for validation
+├── auth/                 # Authentication module
+│   ├── config.py         # JWT and auth configuration
+│   ├── jwt_utils.py      # JWT token creation/validation
+│   ├── csrf.py           # CSRF protection
+│   └── limiter.py        # Rate limiting setup
+└── routers/              # API route handlers
+    ├── auth.py            # Authentication endpoints
+    ├── users.py           # User management
+    ├── classes.py         # Class schedule management
+    ├── class_instances.py # Class instance management
+    ├── attendance.py      # Attendance tracking
+    ├── terms.py           # Term management
+    ├── gyms.py           # Gym location management
+    ├── class_types.py     # Class type management
+    ├── roles.py           # Role management
+    ├── curricula.py       # Curriculum management
+    ├── lessons.py         # Lesson management
+    ├── feedback.py        # Feedback collection
+    ├── kiosk.py           # Kiosk/PIN authentication
+    ├── database.py         # Database utilities
+    ├── dashboard.py       # Dashboard statistics
+    ├── news.py            # News/announcements
+    └── comments.py        # Comment system
+```
+
+### Data Flow Architecture
+1. **Authentication Flow:** Next.js frontend → FastAPI backend (`/auth/login`, `/auth/teacher-login`) → JWT tokens + CSRF tokens → Cookies
+2. **API Communication:** Axios interceptors add CSRF tokens to state-changing requests
+3. **State Management:** React Context (AuthContext) stores user, roles, CSRF token
+4. **Role-Based Access:** Admin, Teacher, Student, Tablet roles with conditional UI rendering
+
+## 3. Environment Configuration Requirements
+
+### Frontend Environment Variables (`.env.local` in `ckb-tracker/`)
+```
+NEXT_PUBLIC_SUPABASE_URL=           # Supabase project URL (configured but not heavily used)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=     # Supabase anonymous key
+NEXT_PUBLIC_API_URL=                # Backend API URL (default: http://127.0.0.1:8000)
+```
+
+### Backend Environment Variables (`.env` in `backend/`)
+```
+JWT_SECRET_KEY=                     # MUST be changed in production (64-byte url-safe token)
+DATABASE_URL=                      # Database URL (default: sqlite:///./ckb_tracker.db)
+CORS_ORIGINS=                      # Comma-separated allowed origins (default: http://localhost:3000,http://localhost:3001)
+COOKIE_SECURE=                     # Set to True in production (requires HTTPS)
+ACCESS_TOKEN_EXPIRE_MINUTES=10     # Access token expiration
+REFRESH_TOKEN_EXPIRE_DAYS=7       # Refresh token expiration
+ALLOWED_HOSTS=                    # Comma-separated allowed hosts for TrustedHostMiddleware
+RATE_LIMIT_PER_MINUTE=60          # Optional rate limiting
+```
+
+### Environment File Status
+- `backend/.env.example` - Present with all required variables documented
+- `backend/.env` - Present (exists but contents not read for security)
+- `ckb-tracker/.env.local` - Present (exists but contents not read for security)
+
+## 4. Database Setup
+
+### Current Configuration
+- **Database Engine:** SQLite (default)
+- **Connection String:** `sqlite:///./ckb_tracker.db` (in `backend/app/database.py`)
+- **ORM:** SQLAlchemy with declarative base
+
+### Database Models (17 tables in `backend/app/models.py`)
+| Table Name | Purpose |
+|------------|---------|
+| users | User accounts with UUID primary keys |
+| roles | Role definitions (Student, Teacher, Admin, Tablet) |
+| user_roles | Many-to-many relationship between users and roles |
+| gym_locations | Physical gym locations |
+| class_types | Types of classes (Gi, No-Gi, MMA, Open Mat) |
+| classes | Class schedules (day, time, points) |
+| terms | Academic terms with start/end dates |
+| term_targets | Attendance targets per rank per term |
+| curricula | Curriculum associated with classes |
+| lessons | Individual lessons within curricula |
+| class_instances | Specific class sessions on specific dates |
+| attendance | Attendance records linking users to class instances |
+| class_feedback | Feedback submitted by students |
+| comments | Comment system with parent-child relationships |
+| kiosk_auth | PIN-based authentication for kiosk mode |
+| session_tokens | JWT session token tracking (JTI) |
+| news | News/announcements system |
+
+### Supabase Integration
+- **Status:** Configured but minimal usage
+- **Client:** `@supabase/supabase-js` 2.99.2 with `@supabase/auth-helpers-nextjs` 0.15.0
+- **Configuration:** `ckb-tracker/src/lib/supabase.ts` reads from environment variables
+- **Usage:** Currently not heavily integrated - primary auth is custom JWT-based
+- **Potential:** Could be used for additional auth providers or real-time subscriptions
+
+### Database Seeding
+- **Script:** `backend/seed.py` creates demo data
+- **Complete Seed:** `backend/seed_complete_data.py` (exists but not examined)
+- **Demo Accounts:**
+  - john@example.com / password123 (Student)
+  - mike@example.com / password123 (Teacher)
+  - admin@example.com / admin123 (Admin)
+
+## 5. Build Process and Scripts
+
+### Frontend (ckb-tracker)
+```bash
+cd ckb-tracker
+npm run dev          # Development server (Next.js dev)
+npm run build        # Production build (creates .next/ directory)
+npm run start        # Start production server
+npm run lint         # ESLint checking
+```
+
+### Backend (backend)
+```bash
+cd backend
+python run_server.py  # Starts Uvicorn with reload on port 8000
+```
+
+### Build Configuration
+- **Next.js Config:** `next.config.ts` is minimal (default configuration)
+- **TypeScript Config:** `tsconfig.json` with path aliases (`@/*` → `./src/*`)
+- **PostCSS Config:** Uses `@tailwindcss/postcss` plugin
+- **ESLint Config:** Extends `eslint-config-next` with TypeScript support
+
+## 6. Incomplete Features and TODOs
+
+### Code Analysis Results
+**No explicit TODO/FIXME/HACK/XXX comments found** in the codebase during grep search.
+
+### Potentially Incomplete Areas (Based on Code Review)
+
+#### Frontend
+1. **Supabase Integration:** Configured but not actively used for authentication or data
+2. **Error Handling:** Limited error boundary implementation
+3. **Form Validation:** Good (zod + react-hook-form), but some forms lack validation feedback
+4. **Loading States:** Some components have loading states, others don't
+5. **Responsive Design:** Uses Tailwind but some pages may need mobile optimization
+
+#### Backend
+1. **SQLite in Production:** Currently configured for SQLite, may need PostgreSQL/MySQL for production
+2. **No requirements.txt:** Python dependencies not formally documented
+3. **Migration System:** No formal database migration system (uses `create_all`)
+4. **Error Handling:** Basic HTTP exceptions, could benefit from global error handler
+5. **Logging:** Basic request logging, could be enhanced
+6. **API Documentation:** FastAPI auto-generates docs at `/docs`, but no custom documentation
+
+#### Specific Files with Potential Issues
+- `ckb-tracker/src/app/teacher/page.tsx` - Contains commented-out debug code (lines 227-274)
+- `ckb-tracker/src/app/admin/page.tsx` - Very large file (1331+ lines), could be refactored
+- `backend/run_server.py` - Has hardcoded path: `sys.path.insert(0, "/c/Users/johns/OneDrive/Desktop/projects/rebuild")`
+- `backend/app/routers/kiosk.py` - Default PIN is "1234" if no kiosk auth setup
+
+## 7. Dependencies That Need Updates
+
+### Frontend Dependencies (`ckb-tracker/package.json`)
+| Package | Current Version | Latest Stable | Update Priority |
+|---------|-----------------|---------------|----------------|
+| next | 16.1.7 | Check npm | Medium |
+| react | 19.2.3 | Check npm | Medium |
+| react-dom | 19.2.3 | Check npm | Medium |
+| @supabase/supabase-js | 2.99.2 | Check npm | Low (if using Supabase) |
+| @supabase/auth-helpers-nextjs | 0.15.0 | Check npm | Low (if using Supabase) |
+| axios | 1.13.6 | Check npm | Low |
+| typescript | ^5 | 5.x | Low |
+| tailwindcss | ^4 | 4.x | Low |
+| eslint | ^9 | 9.x | Low |
+
+### Backend Dependencies (Need Documentation)
+**No requirements.txt found.** Dependencies need to be:
+1. Generated: `pip freeze > backend/requirements.txt`
+2. Reviewed for outdated packages
+3. Updated as needed
+
+**Likely dependencies based on imports:**
+- fastapi
+- uvicorn
+- sqlalchemy
+- passlib[bcrypt]
+- python-dotenv
+- slowapi
+- pydantic
+- bcrypt
+
+### Security-Related Dependencies
+- **passlib with bcrypt:** Used for password hashing (good)
+- **JWT:** Custom implementation with HS256 algorithm
+- **CSRF Protection:** Custom implementation with tokens
+- **Rate Limiting:** slowapi integration
+
+## 8. Architecture Patterns and Code Quality
+
+### Design Patterns Observed
+1. **Repository Pattern:** SQLAlchemy models act as data access layer
+2. **Context Pattern:** React Context for auth and theme state
+3. **Interceptor Pattern:** Axios interceptors for CSRF tokens
+4. **Middleware Pattern:** FastAPI middleware for CORS, security headers, logging
+5. **Role-Based Access Control:** User roles with conditional UI and API access
+
+### Code Quality Assessment
+**Strengths:**
+- TypeScript throughout frontend with well-defined types (`src/types/index.ts`)
+- Consistent component structure in frontend
+- Separation of concerns (routers, models, auth modules)
+- Environment-based configuration
+- CSRF and JWT authentication implementation
+
+**Areas for Improvement:**
+- Large admin page component (1331+ lines) needs refactoring
+- Backend needs formal dependency documentation
+- Some hardcoded paths in Python scripts
+- Could benefit from more comprehensive error boundaries
+- No automated tests found (no `__tests__` or `test_` files)
+
+## 9. Security Considerations
+
+### Current Security Measures
+1. **Password Hashing:** bcrypt via passlib
+2. **JWT Authentication:** HS256 algorithm with configurable expiration
+3. **CSRF Protection:** Token-based, validated via headers
+4. **Rate Limiting:** slowapi integration (5/minute on auth endpoints)
+5. **Security Headers:** X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+6. **Trusted Host Middleware:** Configurable allowed hosts
+7. **CORS:** Configurable allowed origins
+
+### Security Concerns
+1. **JWT_SECRET_KEY:** Must be changed from default in production
+2. **COOKIE_SECURE:** Should be True in production (requires HTTPS)
+3. **SQLite:** Not recommended for production multi-user scenario
+4. **Default Kiosk PIN:** "1234" if not configured
+5. **Environment Files:** `.env` files present (ensure not committed to public repos)
+6. **No API Versioning:** Current API has no version prefix
+
+## 10. Deployment Checklist
+
+### Pre-Deployment Tasks
+- [ ] Document Python dependencies (`pip freeze > requirements.txt`)
+- [ ] Change `JWT_SECRET_KEY` to secure random value
+- [ ] Set `COOKIE_SECURE=True` for HTTPS
+- [ ] Configure production database (PostgreSQL recommended)
+- [ ] Update CORS origins to production domains
+- [ ] Set `ALLOWED_HOSTS` to production hostnames
+- [ ] Remove/update hardcoded paths in `backend/run_server.py`
+- [ ] Consider refactoring large components (`admin/page.tsx`)
+- [ ] Add comprehensive error boundaries
+- [ ] Implement automated testing
+- [ ] Set up CI/CD pipeline
+- [ ] Configure production logging and monitoring
+- [ ] Review and update dependencies
+- [ ] Ensure proper backup strategy for database
+
+### Recommended Production Stack
+- **Database:** PostgreSQL (via Supabase or separate hosting)
+- **Backend Hosting:** Railway, Render, or self-hosted with gunicorn
+- **Frontend Hosting:** Vercel (optimal for Next.js)
+- **Environment:** Use platform-specific secret management
+- **Monitoring:** Add Sentry or similar error tracking
+
+---
+
+## Summary
+
+The CKB Tracker is a martial arts attendance tracking system with:
+- **Frontend:** Next.js 16 with React 19, TypeScript, Tailwind CSS
+- **Backend:** FastAPI with SQLAlchemy (SQLite default)
+- **Authentication:** Custom JWT + CSRF implementation
+- **Database:** 17 tables covering users, classes, attendance, feedback, comments
+- **Roles:** Student, Teacher, Admin, Tablet (for kiosk)
+
+**Priority Actions:**
+1. Create `requirements.txt` for Python dependencies
+2. Configure production environment variables securely
+3. Migrate from SQLite to PostgreSQL for production
+4. Refactor large components for maintainability
+5. Add comprehensive testing
+
+```json
+{"status": "complete", "agent": "gsd-codebase-mapper"}
+```

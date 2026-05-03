@@ -1,0 +1,1003 @@
+# PRE_DEPLOYMENT_CHECKLIST.md
+
+## CKB Tracker - Pre-Deployment Guide for Vercel & Supabase
+
+**Project Location**: `C:\Users\johns\OneDrive\Desktop\projects\rebuild`
+
+---
+
+## Table of Contents
+1. [Environment Setup](#1-environment-setup)
+2. [Pre-Deployment Checklist](#2-pre-deployment-checklist)
+3. [Local Testing Steps](#3-local-testing-steps)
+4. [Deployment Steps](#4-deployment-steps)
+5. [Post-Deployment Verification](#5-post-deployment-verification)
+6. [Rollback Procedures](#6-rollback-procedures)
+
+---
+
+## 1. Environment Setup
+
+### 1.1 Supabase Project Configuration
+
+#### Create Supabase Project
+1. Navigate to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Click "New Project"
+3. Fill in project details:
+   - **Name**: `ckb-tracker` (or your preferred name)
+   - **Database Password**: Generate a strong password (save this securely!)
+   - **Region**: Choose closest to your user base (e.g., `us-east-1` for US East)
+4. Wait for project provisioning (2-3 minutes)
+
+#### Get Supabase Credentials
+After project creation, navigate to **Project Settings > API**:
+- **Project URL**: `https://xxxxx.supabase.co`
+- **anon/public key**: `eyJhbGc...` (starts with `eyJ`)
+- **service_role key**: (keep this secret, never expose to client)
+
+#### Configure Authentication
+1. Go to **Authentication > Settings**
+2. Enable **Email** provider (default)
+3. Configure **URL Configuration**:
+   - Site URL: `https://your-vercel-domain.vercel.app` (update after Vercel deployment)
+   - Redirect URLs: Add `http://localhost:3000` for local dev
+4. Disable **Confirm email** for development (optional, re-enable for production)
+
+### 1.2 Backend Environment Variables (Vercel)
+
+For the FastAPI backend, you'll need to set these in Vercel:
+
+```bash
+# Vercel Environment Variables (Backend)
+JWT_SECRET_KEY=<generate-with: python -c "import secrets; print(secrets.token_urlsafe(64))">
+DATABASE_URL=<supabase-connection-string>
+CORS_ORIGINS=https://your-vercel-domain.vercel.app,https://your-custom-domain.com
+ENVIRONMENT=production
+ALLOWED_HOSTS=your-vercel-domain.vercel.app,your-custom-domain.com
+COOKIE_SECURE=True
+ACCESS_TOKEN_EXPIRE_MINUTES=10
+REFRESH_TOKEN_EXPIRE_DAYS=7
+```
+
+### 1.3 Frontend Environment Variables (Vercel)
+
+For the Next.js frontend in Vercel:
+
+```bash
+# Vercel Environment Variables (Frontend - ckb-tracker)
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+NEXT_PUBLIC_API_URL=https://your-backend-vercel-url.vercel.app
+```
+
+### 1.4 Local Development Environment
+
+#### Backend (.env file at `backend/.env`)
+```bash
+# CKB Tracker Backend Environment Variables
+
+# JWT Secret Key - MUST be changed in production!
+JWT_SECRET_KEY=your-super-secret-jwt-key-change-this-in-production
+
+# Database URL (SQLite for local, Supabase for production)
+DATABASE_URL=sqlite:///./ckb_tracker.db
+
+# CORS Origins (comma-separated list)
+CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+
+# Cookie Security Settings
+COOKIE_SECURE=False
+
+# Token Expiration
+ACCESS_TOKEN_EXPIRE_MINUTES=10
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Environment
+ENVIRONMENT=development
+
+# Allowed Hosts
+ALLOWED_HOSTS=localhost,127.0.0.1
+```
+
+#### Frontend (.env.local file at `ckb-tracker/.env.local`)
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+```
+
+### 1.5 Install Dependencies
+
+#### Backend (Python/FastAPI)
+```bash
+cd C:\Users\johns\OneDrive\Desktop\projects\rebuild\backend
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+# source venv/bin/activate
+
+pip install fastapi uvicorn sqlalchemy python-dotenv pydantic slowapi python-multipart
+pip install supabase  # For Supabase integration
+```
+
+#### Frontend (Next.js/React)
+```bash
+cd C:\Users\johns\OneDrive\Desktop\projects\rebuild\ckb-tracker
+npm install
+# or
+pnpm install
+```
+
+---
+
+## 2. Pre-Deployment Checklist
+
+### 2.1 Database Migration (SQLite → Supabase/PostgreSQL)
+
+**CRITICAL**: The current backend uses SQLite. Supabase uses PostgreSQL. You must:
+
+#### Option A: Fresh Start (Recommended for new projects)
+1. Create Supabase tables using SQL schema (see Section 2.1.1)
+2. Run seed scripts against Supabase
+3. Update `backend/app/database.py` to use Supabase connection
+
+#### Option B: Migrate Existing Data
+1. Export SQLite data:
+   ```bash
+   cd backend
+   python -c "import sqlite3; conn = sqlite3.connect('ckb_tracker.db'); 
+   with open('dump.sql', 'w') as f: for line in conn.iterdump(): f.write(line + '\n')"
+   ```
+2. Transform SQL for PostgreSQL compatibility
+3. Import to Supabase via SQL Editor
+
+#### 2.1.1 Supabase Database Schema
+
+Run this SQL in **Supabase > SQL Editor**:
+
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Users table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    user_uuid VARCHAR UNIQUE NOT NULL DEFAULT uuid_generate_v4()::text,
+    first_name VARCHAR NOT NULL,
+    last_name VARCHAR NOT NULL,
+    email VARCHAR UNIQUE NOT NULL,
+    password_hash VARCHAR,
+    rank VARCHAR DEFAULT 'White',
+    last_graded_date DATE,
+    comments TEXT,
+    nicknames VARCHAR,
+    profile_image_url VARCHAR,
+    image_offset_x FLOAT DEFAULT 0.0,
+    image_offset_y FLOAT DEFAULT 0.0,
+    is_current BOOLEAN DEFAULT TRUE,
+    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_date TIMESTAMP,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Roles table
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR UNIQUE NOT NULL,
+    description TEXT
+);
+
+-- Insert default roles
+INSERT INTO roles (name, description) VALUES 
+('Admin', 'Administrator with full access'),
+('Instructor', 'Class instructor'),
+('Student', 'Regular student'),
+('Tablet', 'Tablet-only user for check-in kiosk');
+
+-- User Roles junction table
+CREATE TABLE user_roles (
+    id SERIAL PRIMARY KEY,
+    user_uuid VARCHAR REFERENCES users(user_uuid),
+    role_id INTEGER REFERENCES roles(id),
+    is_current BOOLEAN DEFAULT TRUE,
+    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_date TIMESTAMP,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Gym Locations table
+CREATE TABLE gym_locations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR UNIQUE NOT NULL,
+    address TEXT
+);
+
+-- Class Types table
+CREATE TABLE class_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR UNIQUE NOT NULL
+);
+
+-- Classes (Class Schedules) table
+CREATE TABLE classes (
+    id SERIAL PRIMARY KEY,
+    class_uuid VARCHAR UNIQUE DEFAULT uuid_generate_v4()::text,
+    class_name VARCHAR NOT NULL,
+    day VARCHAR,
+    time VARCHAR,
+    description TEXT,
+    points FLOAT DEFAULT 1.0,
+    gym_id INTEGER REFERENCES gym_locations(id),
+    class_type_id INTEGER REFERENCES class_types(id),
+    is_current BOOLEAN DEFAULT TRUE,
+    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_date TIMESTAMP,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Terms table
+CREATE TABLE terms (
+    id SERIAL PRIMARY KEY,
+    term_name VARCHAR UNIQUE NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Term Targets table
+CREATE TABLE term_targets (
+    id SERIAL PRIMARY KEY,
+    term_id INTEGER REFERENCES terms(id),
+    rank VARCHAR NOT NULL,
+    target FLOAT NOT NULL
+);
+
+-- Curricula table
+CREATE TABLE curricula (
+    id SERIAL PRIMARY KEY,
+    class_id INTEGER UNIQUE REFERENCES classes(id),
+    name VARCHAR,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Lessons table
+CREATE TABLE lessons (
+    id SERIAL PRIMARY KEY,
+    curriculum_id INTEGER REFERENCES curricula(id),
+    title VARCHAR NOT NULL,
+    description TEXT,
+    lesson_plan_url VARCHAR,
+    video_folder_url VARCHAR,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Class Instances table
+CREATE TABLE class_instances (
+    id SERIAL PRIMARY KEY,
+    class_id INTEGER REFERENCES classes(id),
+    class_date DATE NOT NULL,
+    teacher_uuid VARCHAR REFERENCES users(user_uuid),
+    lesson_id INTEGER REFERENCES lessons(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Attendance table
+CREATE TABLE attendance (
+    id SERIAL PRIMARY KEY,
+    user_uuid VARCHAR REFERENCES users(user_uuid),
+    class_id INTEGER REFERENCES classes(id),
+    class_instance_id INTEGER REFERENCES class_instances(id),
+    teacher_uuid VARCHAR REFERENCES users(user_uuid),
+    user_role_id INTEGER REFERENCES user_roles(id),
+    attendance_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR DEFAULT 'confirmed',
+    confirmed_by VARCHAR REFERENCES users(user_uuid),
+    confirmed_at TIMESTAMP
+);
+
+-- Class Feedback table
+CREATE TABLE class_feedback (
+    id SERIAL PRIMARY KEY,
+    user_uuid VARCHAR REFERENCES users(user_uuid),
+    attendance_id INTEGER REFERENCES attendance(id),
+    class_instance_id INTEGER REFERENCES class_instances(id),
+    rating VARCHAR,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Comments table
+CREATE TABLE comments (
+    id SERIAL PRIMARY KEY,
+    comment_uuid VARCHAR UNIQUE DEFAULT uuid_generate_v4()::text,
+    parent_comment_id INTEGER REFERENCES comments(id),
+    author_uuid VARCHAR REFERENCES users(user_uuid),
+    target_user_uuid VARCHAR REFERENCES users(user_uuid),
+    content TEXT NOT NULL,
+    rating VARCHAR,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Kiosk Auth table
+CREATE TABLE kiosk_auth (
+    id SERIAL PRIMARY KEY,
+    pin_hash VARCHAR NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Session Tokens table
+CREATE TABLE session_tokens (
+    id SERIAL PRIMARY KEY,
+    token_jti VARCHAR UNIQUE NOT NULL,
+    user_uuid VARCHAR REFERENCES users(user_uuid),
+    token_type VARCHAR,
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- News table
+CREATE TABLE news (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR NOT NULL,
+    content TEXT NOT NULL,
+    is_published BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for performance
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_uuid ON users(user_uuid);
+CREATE INDEX idx_attendance_user_uuid ON attendance(user_uuid);
+CREATE INDEX idx_attendance_class_id ON attendance(class_id);
+CREATE INDEX idx_class_instances_class_id ON class_instances(class_id);
+CREATE INDEX idx_class_instances_date ON class_instances(class_date);
+```
+
+### 2.2 Update Backend Database Connection
+
+Update `backend/app/database.py` to use Supabase PostgreSQL:
+
+```python
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+import os
+
+# For Supabase PostgreSQL
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is required for production")
+
+engine = create_engine(DATABASE_URL)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+### 2.3 API Endpoint Verification
+
+Test all backend endpoints locally before deployment:
+
+```bash
+# Start backend locally
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Test endpoints (use curl, Postman, or Thunder Client)
+curl http://127.0.0.1:8000/
+curl http://127.0.0.1:8000/docs  # FastAPI automatic docs
+
+# Test auth endpoints
+curl -X POST http://127.0.0.1:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "testpass123", "first_name": "Test", "last_name": "User"}'
+
+# Test other endpoints...
+```
+
+**Required Endpoints Checklist**:
+- [ ] `GET /` - Root endpoint
+- [ ] `POST /auth/register` - User registration
+- [ ] `POST /auth/login` - User login
+- [ ] `POST /auth/refresh` - Token refresh
+- [ ] `GET /users/me` - Get current user
+- [ ] `GET /users` - List users (admin)
+- [ ] `GET /classes` - List classes
+- [ ] `GET /class-instances` - List class instances
+- [ ] `POST /attendance` - Record attendance
+- [ ] `GET /dashboard/stats` - Dashboard statistics
+- [ ] `GET /news` - List news items
+
+### 2.4 Build Optimization
+
+#### Frontend (Next.js)
+```bash
+cd ckb-tracker
+
+# Run TypeScript check
+npx tsc --noEmit
+
+# Run ESLint
+npm run lint
+
+# Test production build locally
+npm run build
+
+# If build succeeds, test the production build
+npm run start
+```
+
+**Optimization Checklist**:
+- [ ] All TypeScript errors resolved
+- [ ] All ESLint warnings addressed
+- [ ] Production build completes without errors
+- [ ] Bundle size analyzed (use `@next/bundle-analyzer`)
+- [ ] Images optimized (use Next.js Image component)
+- [ ] Unused dependencies removed
+
+#### Backend (FastAPI)
+```bash
+cd backend
+
+# Check for Python syntax errors
+python -m py_compile app/main.py
+
+# Verify all imports work
+python -c "from app.main import app"
+
+# Test with production settings
+ENVIRONMENT=production uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 2.5 Error Handling Verification
+
+**Frontend Error Boundaries**:
+- [ ] Add React error boundaries around key components
+- [ ] Test API error responses (400, 401, 403, 404, 500)
+- [ ] Verify loading states display correctly
+- [ ] Confirm error messages are user-friendly
+
+**Backend Error Handling**:
+- [ ] All endpoints have try/except blocks
+- [ ] HTTP exceptions return proper status codes
+- [ ] Validation errors return 422 with details
+- [ ] Generic errors don't expose sensitive information
+- [ ] CORS errors handled properly
+
+### 2.6 Security Checklist
+
+- [ ] **JWT Secret**: Changed from default, strong random value
+- [ ] **CORS Origins**: Restricted to known domains (not `*`)
+- [ ] **Environment Variables**: No secrets in code
+- [ ] **HTTPS Only**: `COOKIE_SECURE=True` in production
+- [ ] **Supabase RLS**: Row Level Security enabled on sensitive tables
+- [ ] **Rate Limiting**: Configured (already in code via `slowapi`)
+- [ ] **Input Validation**: Using Pydantic schemas
+- [ ] **SQL Injection**: Using SQLAlchemy ORM (parameterized queries)
+
+### 2.7 Test Coverage
+
+```bash
+# Frontend tests (if configured)
+cd ckb-tracker
+npm run test  # if you have Jest/React Testing Library setup
+
+# Backend tests (if configured)
+cd backend
+pytest  # if you have pytest setup
+```
+
+**Minimum Testing**:
+- [ ] Manual test all critical user flows
+- [ ] Test registration and login
+- [ ] Test attendance recording
+- [ ] Test dashboard displays data
+- [ ] Test on different browsers (Chrome, Firefox, Safari)
+- [ ] Test responsive design (mobile, tablet, desktop)
+
+---
+
+## 3. Local Testing Steps
+
+### 3.1 Verify Local Build Works
+
+#### Step 1: Start Backend
+```bash
+cd C:\Users\johns\OneDrive\Desktop\projects\rebuild\backend
+python -m venv venv
+venv\Scripts\activate  # Windows
+pip install -r requirements.txt  # (create this file first)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Expected**: FastAPI server running at `http://127.0.0.1:8000`
+**Verify**: Open `http://127.0.0.1:8000/docs` in browser (Swagger UI)
+
+#### Step 2: Start Frontend
+```bash
+cd C:\Users\johns\OneDrive\Desktop\projects\rebuild\ckb-tracker
+npm install
+npm run dev
+```
+
+**Expected**: Next.js server running at `http://localhost:3000`
+**Verify**: Open `http://localhost:3000` in browser
+
+#### Step 3: Test Full Stack Integration
+1. Open `http://localhost:3000`
+2. Attempt to register a new user
+3. Login with new user
+4. Navigate through the app
+5. Check browser console for errors (F12)
+6. Check Network tab for failed API calls
+
+### 3.2 Test Supabase Connection Locally
+
+Update `ckb-tracker/.env.local` with real Supabase credentials:
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+```
+
+Test Supabase connection in browser console:
+```javascript
+// In browser console at localhost:3000
+console.log(process.env.NEXT_PUBLIC_SUPABASE_URL);
+```
+
+Also test in backend (optional Supabase client integration):
+```python
+# Test Supabase connection
+cd backend
+python -c "from supabase import create_client, Client; import os; 
+url = os.getenv('SUPABASE_URL'); key = os.getenv('SUPABASE_KEY');
+supabase: Client = create_client(url, key); print(supabase.auth.get_session())"
+```
+
+### 3.3 Simulate Production Environment Locally
+
+#### Frontend Production Build Test
+```bash
+cd ckb-tracker
+
+# Set production env vars in .env.local
+# (use production URLs but with localhost backend)
+
+npm run build
+npm run start
+
+# App now runs at http://localhost:3000 in production mode
+# No hot reload, optimized build
+```
+
+#### Backend Production Test
+```bash
+cd backend
+
+# Use production-like settings
+set ENVIRONMENT=production
+set DATABASE_URL=<supabase-connection-string>
+set COOKIE_SECURE=False  # Still False because localhost
+
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 3.4 Load Testing (Optional)
+
+```bash
+# Install Apache Bench (Windows: available via WSL or download)
+# Test backend endpoints
+ab -n 100 -c 10 http://127.0.0.1:8000/
+```
+
+---
+
+## 4. Deployment Steps
+
+### 4.1 Prepare for Vercel Deployment
+
+#### Step 1: Push Code to Git
+```bash
+cd C:\Users\johns\OneDrive\Desktop\projects\rebuild
+
+# Check git status
+git status
+
+# Add all files
+git add .
+
+# Commit
+git commit -m "Prepare for Vercel deployment"
+
+# Push to your repository (GitHub/GitLab/Bitbucket)
+git push origin main
+```
+
+#### Step 2: Create Vercel Account & Connect Repository
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+2. Click "New Project"
+3. Import your Git repository
+4. Configure project settings (see below)
+
+### 4.2 Deploy Backend to Vercel (FastAPI)
+
+**Note**: Vercel is primarily for frontend, but can serve serverless functions. For FastAPI, you have two options:
+
+#### Option A: Vercel Serverless Functions (Recommended for simplicity)
+Create `backend/vercel.json`:
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app/main.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app/main.py"
+    }
+  ]
+}
+```
+
+Create `backend/requirements.txt`:
+```
+fastapi==0.109.0
+uvicorn==0.27.0
+sqlalchemy==2.0.25
+python-dotenv==1.0.0
+pydantic==2.5.3
+slowapi==0.1.9
+python-multipart==0.0.6
+supabase==2.3.0
+```
+
+**Deploy Backend**:
+1. In Vercel dashboard, create separate project for backend
+2. Set root directory to `backend`
+3. Add environment variables (see Section 1.2)
+4. Deploy
+
+#### Option B: Use Railway / Render / Fly.io (Better for long-running backend)
+For a more robust backend deployment, consider:
+- **Railway**: `https://railway.app` - Simple FastAPI deployment
+- **Render**: `https://render.com` - Free tier available
+- **Fly.io**: `https://fly.io` - Great for global deployment
+
+**Railway Example**:
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Initialize
+cd backend
+railway init
+
+# Add environment variables
+railway variables set JWT_SECRET_KEY=<your-key>
+railway variables set DATABASE_URL=<supabase-connection-string>
+
+# Deploy
+railway up
+```
+
+### 4.3 Deploy Frontend to Vercel (Next.js)
+
+**Vercel Configuration** (`ckb-tracker/vercel.json`):
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ]
+}
+```
+
+**Deploy Frontend in Vercel**:
+1. Create new Vercel project
+2. Set root directory to `ckb-tracker`
+3. Framework preset: **Next.js** (auto-detected)
+4. Add environment variables (see Section 1.3):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_API_URL` (your backend URL)
+5. Click "Deploy"
+
+**Expected Build Output**:
+```
+✓ Ready! Deployed to https://ckb-tracker-xyz.vercel.app
+```
+
+### 4.4 Database Migration to Supabase
+
+After deploying backend, run migrations:
+
+#### Option A: Using Supabase SQL Editor
+1. Go to [Supabase Dashboard > SQL Editor](https://supabase.com/dashboard)
+2. Copy the SQL schema from Section 2.1.1
+3. Paste and run
+
+#### Option B: Using Backend Startup (if configured)
+If `models.Base.metadata.create_all(bind=engine)` is in your code, tables will be created automatically on first backend request.
+
+#### Seed Initial Data
+```bash
+# If you have seed scripts
+cd backend
+python seed.py  # Creates initial data
+python seed_complete_data.py  # Creates complete dataset
+```
+
+### 4.5 Update CORS and Environment Variables
+
+After deployment, update:
+
+1. **Backend CORS_ORIGINS**:
+   - Add Vercel frontend URL: `https://ckb-tracker-xyz.vercel.app`
+   - Add custom domain (if applicable)
+
+2. **Supabase Auth Settings**:
+   - Site URL: `https://ckb-tracker-xyz.vercel.app`
+   - Redirect URLs: Add production URL
+
+3. **Frontend API URL**:
+   - Update `NEXT_PUBLIC_API_URL` to production backend URL
+
+4. **Redeploy** both frontend and backend after changes
+
+---
+
+## 5. Post-Deployment Verification
+
+### 5.1 Verify Frontend Deployment
+
+1. Open production URL: `https://ckb-tracker-xyz.vercel.app`
+2. Test all pages load correctly
+3. Check browser console for errors (F12)
+4. Verify environment variables are loaded:
+   ```javascript
+   // Browser console
+   console.log(process.env.NEXT_PUBLIC_SUPABASE_URL);
+   ```
+
+### 5.2 Verify Backend Deployment
+
+```bash
+# Test production backend
+curl https://your-backend-url.vercel.app/
+# Should return: {"message": "CKB Tracker API is live!"}
+
+# Test API docs
+open https://your-backend-url.vercel.app/docs
+```
+
+### 5.3 Test Full Stack in Production
+
+**Critical User Flows**:
+- [ ] User can register
+- [ ] User can login
+- [ ] Dashboard loads with data
+- [ ] Attendance can be recorded
+- [ ] Class schedule displays
+- [ ] News items display
+- [ ] Profile page loads
+
+**Cross-Browser Testing**:
+- [ ] Chrome (desktop)
+- [ ] Firefox (desktop)
+- [ ] Safari (desktop)
+- [ ] Mobile browsers (iOS Safari, Android Chrome)
+
+### 5.4 Monitor for Errors
+
+#### Check Vercel Logs:
+1. Go to Vercel Dashboard > Your Project > Deployments
+2. Click on latest deployment
+3. View "Functions" tab for serverless function logs
+4. View "Build" tab for build logs
+
+#### Check Supabase Logs:
+1. Go to Supabase Dashboard > Project > Logs
+2. Monitor database queries
+3. Check for connection errors
+4. Monitor API usage (if using Supabase client)
+
+### 5.5 Performance Verification
+
+**Lighthouse Audit** (Chrome DevTools):
+1. Open production site
+2. Press F12 > Lighthouse tab
+3. Run audit for:
+   - Performance
+   - Accessibility
+   - Best Practices
+   - SEO
+
+**Target Scores**:
+- Performance: > 80
+- Accessibility: > 90
+- Best Practices: > 90
+- SEO: > 80
+
+---
+
+## 6. Rollback Procedures
+
+### 6.1 Frontend Rollback (Vercel)
+
+1. Go to Vercel Dashboard > Deployments
+2. Find previous working deployment
+3. Click "..." menu > "Promote to Production"
+4. Vercel will redeploy that version
+
+### 6.2 Backend Rollback
+
+**If using Vercel**:
+- Same as frontend: promote previous deployment
+
+**If using Railway/Render**:
+- Redeploy previous Git commit
+- Or use platform's rollback feature
+
+### 6.3 Database Rollback
+
+**Supabase**:
+- Use Supabase Dashboard > Database > Backups
+- Restore from backup if available
+- Or manually revert schema changes via SQL
+
+**Warning**: Database rollbacks can cause data loss. Always backup before major changes.
+
+---
+
+## Quick Reference: Deployment Commands
+
+```bash
+# ===== BACKEND DEPLOYMENT =====
+cd backend
+
+# Create requirements.txt if not exists
+pip freeze > requirements.txt
+
+# Deploy to Vercel (if root dir is backend)
+vercel --prod
+
+# Or deploy via Railway
+railway up
+
+
+# ===== FRONTEND DEPLOYMENT =====
+cd ckb-tracker
+
+# Build check
+npm run build
+
+# Deploy to Vercel (if root dir is ckb-tracker)
+vercel --prod
+
+# Or push to Git and let Vercel auto-deploy
+git add .
+git commit -m "Deploy to production"
+git push origin main
+
+
+# ===== VERIFY DEPLOYMENT =====
+# Frontend
+curl https://your-frontend.vercel.app
+
+# Backend
+curl https://your-backend.vercel.app/
+```
+
+---
+
+## Troubleshooting Common Issues
+
+### Issue: "CORS error" in production
+**Solution**: Update `CORS_ORIGINS` in backend environment variables to include production frontend URL.
+
+### Issue: "Supabase connection failed"
+**Solution**: 
+1. Verify `DATABASE_URL` is correct
+2. Check Supabase project is active
+3. Ensure IP is not blocked in Supabase (Settings > Database > Connection pooling)
+
+### Issue: "Build failed" on Vercel
+**Solution**:
+1. Check build logs in Vercel dashboard
+2. Verify all environment variables are set
+3. Test build locally with `npm run build`
+
+### Issue: "Environment variables not loading"
+**Solution**:
+1. Redeploy after adding environment variables
+2. For Next.js, ensure vars are prefixed with `NEXT_PUBLIC_` to expose to browser
+3. Check Vercel dashboard > Settings > Environment Variables
+
+---
+
+## Security Reminders
+
+⚠️ **Before Going Live**:
+- [ ] Change all default passwords and keys
+- [ ] Enable Supabase Row Level Security (RLS) on sensitive tables
+- [ ] Set `COOKIE_SECURE=True` in production
+- [ ] Restrict CORS origins to your domain only
+- [ ] Remove any test/seed data from production
+- [ ] Enable rate limiting (already configured via slowapi)
+- [ ] Set up monitoring and alerting
+
+---
+
+## Final Deployment Checklist
+
+Print this and check off before going live:
+
+- [ ] All environment variables configured in Vercel
+- [ ] Supabase database schema created
+- [ ] Backend deployed and responding at production URL
+- [ ] Frontend deployed and loading at production URL
+- [ ] User registration works
+- [ ] User login works
+- [ ] Dashboard displays data
+- [ ] No console errors in browser
+- [ ] CORS properly configured
+- [ ] HTTPS enforced (Vercel does this automatically)
+- [ ] Custom domain configured (optional)
+- [ ] Supabase RLS enabled
+- [ ] Monitoring/Logging set up
+- [ ] Team notified of deployment
+- [ ] Rollback plan tested
+
+---
+
+## Support & Resources
+
+- **Vercel Docs**: https://vercel.com/docs
+- **Supabase Docs**: https://supabase.com/docs
+- **Next.js Docs**: https://nextjs.org/docs
+- **FastAPI Docs**: https://fastapi.tiangolo.com
+
+---
+
+**Deployment Complete!** 🎉
+
+```json
+{"status": "complete", "agent": "devops", "output_file": "PRE_DEPLOYMENT_CHECKLIST.md"}
+```
