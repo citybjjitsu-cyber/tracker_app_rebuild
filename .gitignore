@@ -54,3 +54,6 @@ fix_*.py
 verify_*.py
 temp.json
 *.bat
+
+# Handoff and task management
+handoff/

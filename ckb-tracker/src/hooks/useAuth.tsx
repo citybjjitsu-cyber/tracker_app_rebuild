@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSession = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('${API_BASE_URL}/auth/me', {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('csrf_token', data.csrf_token);
         }
       } else {
-        const refreshResponse = await fetch('${API_BASE_URL}/auth/refresh', {
+        const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
         });
