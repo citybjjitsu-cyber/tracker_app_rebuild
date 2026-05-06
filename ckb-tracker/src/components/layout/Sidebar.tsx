@@ -59,6 +59,11 @@ function SidebarContent({
 }) {
   const pathname = usePathname();
   const isTablet = roles?.some((r: string) => r === 'Tablet');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const shouldShowItem = (item: NavItem) => {
     const isTeacher = roles?.some((r: string) => r === 'Teacher');
@@ -100,23 +105,24 @@ function SidebarContent({
       </div>
 
       <div className="px-3 py-2">
-        <button
-          onClick={toggleTheme}
-          className={cn(
-            "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
-            "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50",
-            isCollapsed && "justify-center px-2"
-          )}
-          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          suppressHydrationWarning={true}
-        >
-          {theme === 'light' ? (
-            <Moon className="w-5 h-5" />
-          ) : (
-            <Sun className="w-5 h-5" />
-          )}
-          {!isCollapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
-        </button>
+        {mounted && (
+          <button
+            onClick={toggleTheme}
+            className={cn(
+              "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
+              "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50",
+              isCollapsed && "justify-center px-2"
+            )}
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-5 h-5" />
+            ) : (
+              <Sun className="w-5 h-5" />
+            )}
+            {!isCollapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 py-4 space-y-1">

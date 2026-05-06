@@ -11,6 +11,7 @@ from typing import List, Optional
 import uuid
 import os
 import shutil
+from app.routers.auth import get_current_user
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -78,6 +79,171 @@ def search_users(query: str, db: Session = Depends(get_db)):
         )
         .all()
     )
+
+
+@router.get("/export-csv")
+def export_users_csv(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    users = db.query(models.User).filter(models.User.is_current == True).all()
+
+    output = io.StringIO()
+    fieldnames = [
+        "user_uuid",
+        "first_name",
+        "last_name",
+        "email",
+        "rank",
+        "nicknames",
+        "comments",
+        "last_graded_date",
+        "created_date",
+        "profile_image_url",
+    ]
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+
+    for user in users:
+        writer.writerow(
+            {
+                "user_uuid": user.user_uuid,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "rank": user.rank,
+                "nicknames": user.nicknames or "",
+                "comments": user.comments or "",
+                "last_graded_date": user.last_graded_date.isoformat()
+                if user.last_graded_date
+                else "",
+                "created_date": user.created_date.isoformat()
+                if user.created_date
+                else "",
+                "profile_image_url": user.profile_image_url or "",
+            }
+        )
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=users_export.csv"},
+    )
+
+
+@router.post("/import-csv")
+async def import_users_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+
+    contents = await file.read()
+    csv_data = io.StringIO(contents.decode("utf-8"))
+    reader = csv.DictReader(csv_data)
+
+    created = 0
+    updated = 0
+    skipped = 0
+    errors = []
+
+    for row_num, row in enumerate(reader, start=2):
+        try:
+            first_name = row.get("first_name", "").strip()
+            last_name = row.get("last_name", "").strip()
+            email = row.get("email", "").strip()
+
+            if not first_name or not last_name or not email:
+                errors.append(
+                    f"Row {row_num}: Missing required fields (first_name, last_name, email)"
+                )
+                skipped += 1
+                continue
+
+            existing_user = (
+                db.query(models.User)
+                .filter(models.User.email == email, models.User.is_current == True)
+                .first()
+            )
+
+            rank = row.get("rank", "White").strip() or "White"
+            if rank not in ["White", "Blue", "Purple", "Brown", "Black"]:
+                rank = "White"
+
+            nicknames = row.get("nicknames", "").strip() or None
+            comments = row.get("comments", "").strip() or None
+
+            last_graded_date = None
+            if row.get("last_graded_date", "").strip():
+                try:
+                    last_graded_date = date.fromisoformat(
+                        row["last_graded_date"].strip()
+                    )
+                except ValueError:
+                    pass
+
+            if existing_user:
+                existing_user.first_name = first_name
+                existing_user.last_name = last_name
+                existing_user.rank = rank
+                existing_user.nicknames = nicknames
+                existing_user.comments = comments
+                existing_user.last_graded_date = last_graded_date
+                updated += 1
+            else:
+                user_uuid = row.get("user_uuid", "").strip()
+                if (
+                    not user_uuid
+                    or db.query(models.User)
+                    .filter(models.User.user_uuid == user_uuid)
+                    .first()
+                ):
+                    user_uuid = str(uuid.uuid4())
+
+                password_hash = None
+                if row.get("password", "").strip():
+                    password_hash = pwd_context.hash(row["password"].strip())
+
+                new_user = models.User(
+                    user_uuid=user_uuid,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    password_hash=password_hash,
+                    rank=rank,
+                    nicknames=nicknames,
+                    comments=comments,
+                    last_graded_date=last_graded_date,
+                )
+                db.add(new_user)
+                db.flush()
+
+                student_role = (
+                    db.query(models.Role).filter(models.Role.name == "Student").first()
+                )
+                if student_role:
+                    user_role = models.UserRole(
+                        user_uuid=user_uuid, role_id=student_role.id
+                    )
+                    db.add(user_role)
+
+                created += 1
+
+        except Exception as e:
+            errors.append(f"Row {row_num}: {str(e)}")
+            skipped += 1
+
+    db.commit()
+    return {
+        "message": "CSV import completed",
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "errors": errors,
+    }
 
 
 @router.get("/{user_uuid}", response_model=schemas.UserResponse)
@@ -241,161 +407,3 @@ def update_photo_position(
         "image_offset_x": user.image_offset_x,
         "image_offset_y": user.image_offset_y,
     }
-
-
-@router.post("/import-csv")
-async def import_users_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(status_code=400, detail="File must be a CSV")
-
-    contents = await file.read()
-    csv_data = io.StringIO(contents.decode("utf-8"))
-    reader = csv.DictReader(csv_data)
-
-    created = 0
-    updated = 0
-    skipped = 0
-    errors = []
-
-    for row_num, row in enumerate(reader, start=2):
-        try:
-            first_name = row.get("first_name", "").strip()
-            last_name = row.get("last_name", "").strip()
-            email = row.get("email", "").strip()
-
-            if not first_name or not last_name or not email:
-                errors.append(
-                    f"Row {row_num}: Missing required fields (first_name, last_name, email)"
-                )
-                skipped += 1
-                continue
-
-            existing_user = (
-                db.query(models.User)
-                .filter(models.User.email == email, models.User.is_current == True)
-                .first()
-            )
-
-            rank = row.get("rank", "White").strip() or "White"
-            if rank not in ["White", "Blue", "Purple", "Brown", "Black"]:
-                rank = "White"
-
-            nicknames = row.get("nicknames", "").strip() or None
-            comments = row.get("comments", "").strip() or None
-
-            last_graded_date = None
-            if row.get("last_graded_date", "").strip():
-                try:
-                    last_graded_date = date.fromisoformat(
-                        row["last_graded_date"].strip()
-                    )
-                except ValueError:
-                    pass
-
-            if existing_user:
-                existing_user.first_name = first_name
-                existing_user.last_name = last_name
-                existing_user.rank = rank
-                existing_user.nicknames = nicknames
-                existing_user.comments = comments
-                existing_user.last_graded_date = last_graded_date
-                updated += 1
-            else:
-                user_uuid = row.get("user_uuid", "").strip()
-                if (
-                    not user_uuid
-                    or db.query(models.User)
-                    .filter(models.User.user_uuid == user_uuid)
-                    .first()
-                ):
-                    user_uuid = str(uuid.uuid4())
-
-                password_hash = None
-                if row.get("password", "").strip():
-                    password_hash = pwd_context.hash(row["password"].strip())
-
-                new_user = models.User(
-                    user_uuid=user_uuid,
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    password_hash=password_hash,
-                    rank=rank,
-                    nicknames=nicknames,
-                    comments=comments,
-                    last_graded_date=last_graded_date,
-                )
-                db.add(new_user)
-                db.flush()
-
-                student_role = (
-                    db.query(models.Role).filter(models.Role.name == "Student").first()
-                )
-                if student_role:
-                    user_role = models.UserRole(
-                        user_uuid=user_uuid, role_id=student_role.id
-                    )
-                    db.add(user_role)
-
-                created += 1
-
-        except Exception as e:
-            errors.append(f"Row {row_num}: {str(e)}")
-            skipped += 1
-
-    db.commit()
-    return {
-        "message": "CSV import completed",
-        "created": created,
-        "updated": updated,
-        "skipped": skipped,
-        "errors": errors,
-    }
-
-
-@router.get("/export-csv")
-def export_users_csv(db: Session = Depends(get_db)):
-    users = db.query(models.User).filter(models.User.is_current == True).all()
-
-    output = io.StringIO()
-    fieldnames = [
-        "user_uuid",
-        "first_name",
-        "last_name",
-        "email",
-        "rank",
-        "nicknames",
-        "comments",
-        "last_graded_date",
-        "created_date",
-        "profile_image_url",
-    ]
-    writer = csv.DictWriter(output, fieldnames=fieldnames)
-    writer.writeheader()
-
-    for user in users:
-        writer.writerow(
-            {
-                "user_uuid": user.user_uuid,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "email": user.email,
-                "rank": user.rank,
-                "nicknames": user.nicknames or "",
-                "comments": user.comments or "",
-                "last_graded_date": user.last_graded_date.isoformat()
-                if user.last_graded_date
-                else "",
-                "created_date": user.created_date.isoformat()
-                if user.created_date
-                else "",
-                "profile_image_url": user.profile_image_url or "",
-            }
-        )
-
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=users_export.csv"},
-    )
