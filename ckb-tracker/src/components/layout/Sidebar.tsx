@@ -17,7 +17,7 @@ import {
   Moon,
   CheckCircle
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface NavItem {
   href: string;
