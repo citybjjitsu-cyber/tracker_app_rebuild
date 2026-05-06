@@ -2148,12 +2148,248 @@ git check-ignore ckb-tracker/node_modules
 
 ---
 
+## 12. Mobile Access & Kiosk Mode Implementation
+
+### 12.1 Mobile Access Architecture
+
+The CKB Tracker needs to support multiple mobile access patterns:
+- **Student Mobile**: View attendance, check schedules, update profile
+- **Teacher Mobile**: Take attendance, view class rosters, add feedback
+- **Admin Mobile**: Full admin access on mobile browsers
+- **Kiosk/Tablet Mode**: Dedicated check-in interface using the existing "Tablet" role
+
+#### Current State Analysis
+
+From the codebase:
+- **Tablet Role Exists**: `backend/app/models.py` defines a "Tablet" role for kiosk auth
+- **Kiosk Auth Table**: `backend/app/models.py` has `kiosk_auth` table with PIN-based auth
+- **CORS Config**: Currently configured for localhost development, needs production mobile URLs
+- **Responsive Design**: Next.js App Router supports responsive layouts via Tailwind CSS
+
+### 12.2 Mobile CORS Configuration
+
+**Critical**: Mobile devices access via different URLs than desktop. Update CORS for mobile access:
+
+#### Update Backend CORS for Mobile/Production
+
+Edit `backend/.env` (production):
+```bash
+# Production CORS - include mobile access points
+CORS_ORIGINS=https://your-vercel-domain.vercel.app,https://your-custom-domain.com,http://192.168.68.118:3000,http://172.20.64.1:3000
+```
+
+Update `backend/app/main.py` to support dynamic CORS:
+```python
+import os
+
+# CORS middleware - configurable via environment
+cors_origins = os.getenv(
+    "CORS_ORIGINS", 
+    "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+).split(",")
+
+# Add mobile-specific origins if needed
+mobile_origins = os.getenv("MOBILE_ORIGINS", "").split(",")
+if mobile_origins and mobile_origins[0]:
+    cors_origins.extend(mobile_origins)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+```
+
+### 12.3 Mobile Access Strategy: Tablet Role + Check-In Page
+
+**Current Implementation** (Use This):
+The system already has a working mobile solution:
+
+1. **Tablet Role**: Users with the "Tablet" role (`backend/app/models.py:158`)
+2. **Check-In Page**: `ckb-tracker/src/app/check-in/page.tsx` is the mobile-optimized interface
+3. **Authentication**: Standard JWT + CSRF (not PIN-based kiosk)
+4. **Features Unlocked by Tablet Role**:
+   - Search for students (line 426: `canSearch = isTablet || isAdmin`)
+   - Add new members (line 571: `showNewMemberForm`)
+   - View all students for check-in
+   - 120-second session timeout (line 40: `sessionTimeLeft`)
+
+**Kiosk Auth (Legacy - DO NOT USE)**:
+The `kiosk_auth` table and PIN-based system in `backend/app/routers/kiosk.py` is a legacy implementation. The current check-in system uses standard JWT authentication instead. **Do not invest time in kiosk mode** - it's been superseded by the tablet role.
+
+#### Using Tablet Mode for Mobile/Tablet Access
+
+**Setup for Tablet Devices**:
+1. Create a user with "Tablet" role in the admin panel
+2. Log into `https://your-app.vercel.app/check-in` on the tablet
+3. The interface automatically shows tablet mode (line 441: `isTablet ? 'Tablet Mode' : 'Check-In'`)
+4. Session expires after 120 seconds of inactivity (auto-logout for security)
+
+**No additional development needed** - the system is already mobile-ready.
+
+### 12.4 Mobile Responsive Design Checklist
+
+**Tailwind CSS Mobile Optimization**:
+- [ ] Test all pages at 375px width (iPhone SE) and 414px (iPhone Plus)
+- [ ] Ensure touch targets are ≥44px (Tailwind: `min-h-[44px] min-w-[44px]`)
+- [ ] Use responsive classes: `md:`, `lg:` prefixes for desktop layouts
+- [ ] Navigation: Convert sidebar to bottom tab bar on mobile
+- [ ] Forms: Use `inputmode` attribute for mobile keyboards (`tel`, `email`, `numeric`)
+
+**Key Pages to Test on Mobile**:
+- [ ] **Login Page** (`/login`) - Large input fields, easy to tap
+- [ ] **Dashboard** (`/dashboard`) - Stack panels vertically on mobile
+- [ ] **Check-In** (`/check-in`) - Quick tap-to-check-in interface
+- [ ] **Class Schedule** (`/classes`) - Swipeable schedule cards
+- [ ] **Kiosk Mode** (`/kiosk`) - Full-screen, no browser UI
+
+### 12.5 Progressive Web App (PWA) Setup (Optional but Recommended)
+
+Convert Next.js app to PWA for mobile app-like experience:
+
+```bash
+cd ckb-tracker
+npm install next-pwa
+```
+
+Create `ckb-tracker/next.config.js`:
+```javascript
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+});
+
+module.exports = withPWA({
+  // Your existing Next.js config
+});
+```
+
+Create `ckb-tracker/public/manifest.json`:
+```json
+{
+  "name": "CKB Tracker",
+  "short_name": "CKB",
+  "description": "Martial Arts Attendance Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+```
+
+### 12.6 Mobile Authentication Strategy
+
+#### JWT Token Storage for Mobile
+
+**Problem**: Mobile browsers handle cookies differently than desktop.
+
+**Solution**: Use a hybrid approach:
+1. **Web App (PWA)**: Continue using HTTP-only cookies (existing JWT + CSRF)
+2. **Mobile Browser**: Same as desktop - cookies work fine
+3. **Kiosk Mode**: Use short-lived PIN-based sessions (existing `kiosk_auth` table)
+
+Update `backend/app/auth/jwt_utils.py` to support mobile token refresh:
+```python
+# Ensure refresh token endpoint works without CSRF for mobile
+@app.post("/auth/refresh")
+async def refresh_token(request: Request, db: Session = Depends(get_db)):
+    # Allow both cookie and header-based auth for mobile
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        # Fallback to Authorization header for mobile apps
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            refresh_token = auth_header.split(" ")[1]
+    
+    # Rest of refresh logic...
+```
+
+### 12.7 Mobile Network Considerations
+
+**Offline Support** (Future Enhancement):
+- Use Service Workers (via `next-pwa`) for offline caching
+- Cache class schedules and user data locally
+- Queue attendance records when offline, sync when online
+
+**Mobile API Performance**:
+- [ ] Implement pagination on all list endpoints (`/users`, `/attendance`, `/classes`)
+- [ ] Use compression middleware on FastAPI: `uvicorn` with `--proxy-headers` flag
+- [ ] Optimize images: Use Next.js `Image` component with `quality={75}`
+
+### 12.8 Mobile Access Testing Checklist
+
+**CORS & Network**:
+- [ ] Test access from mobile device on same WiFi (use `http://192.168.x.x:3000`)
+- [ ] Test access from mobile cellular network (production URL only)
+- [ ] Verify CORS headers allow mobile-origin requests
+- [ ] Test API calls from mobile browser console
+
+**Functionality**:
+- [ ] Login works on mobile browsers (iOS Safari, Android Chrome)
+- [ ] Check-in flow works on mobile
+- [ ] Kiosk mode works on tablet devices
+- [ ] Touch targets are large enough (≥44px)
+- [ ] Forms are easy to fill on mobile (correct input types)
+
+**Tablet-Specific**:
+- [ ] Login with "Tablet" role works on mobile/tablet
+- [ ] Check-in records attendance correctly  
+- [ ] Search functionality works (tablet-only feature)
+- [ ] Add new member works (tablet-only feature)
+- [ ] Session expires after 120 seconds of inactivity
+- [ ] Cannot access admin/teacher routes from tablet view
+- [ ] Logout button visible and functional (line 444-449)
+
+**PWA (if implemented)**:
+- [ ] App can be "installed" on mobile home screen
+- [ ] Opens in standalone mode (no browser UI)
+- [ ] Offline page shows when no internet
+- [ ] Service worker caches critical assets
+
+### 12.9 Mobile Deployment Configuration
+
+**Environment Variables for Mobile**:
+
+Frontend (`ckb-tracker/.env.local` or Vercel dashboard):
+```bash
+NEXT_PUBLIC_API_URL=https://your-backend.vercel.app
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+```
+
+Backend (Vercel dashboard or `.env`):
+```bash
+CORS_ORIGINS=https://your-frontend.vercel.app,https://your-custom-domain.com
+DATABASE_URL=postgresql://postgres:xxx@db.xxx.supabase.co:5432/postgres
+JWT_SECRET_KEY=your-production-secret
+COOKIE_SECURE=True
+ENVIRONMENT=production
+```
+
+---
+
 ## Support & Resources
 
 - **Vercel Docs**: https://vercel.com/docs
 - **Supabase Docs**: https://supabase.com/docs
 - **Next.js Docs**: https://nextjs.org/docs
 - **FastAPI Docs**: https://fastapi.tiangolo.com
+- **Mobile PWA Guide**: https://web.dev/progressive-web-apps/
+- **Tailwind Responsive Design**: https://tailwindcss.com/docs/responsive-design
 
 ---
 
@@ -2162,3 +2398,4 @@ git check-ignore ckb-tracker/node_modules
 ---
 
 *Document generated by Global Orchestrator using gsd-codebase-mapper and devops agents on 2026-05-03*
+*Updated with Mobile Access & Kiosk Mode section on 2026-05-05*
