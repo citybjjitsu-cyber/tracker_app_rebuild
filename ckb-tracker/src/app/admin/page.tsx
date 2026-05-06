@@ -107,6 +107,9 @@ export default function AdminPage() {
   const [newsItems, setNewsItems] = useState<News[]>([]);
   const [newsForm, setNewsForm] = useState({ title: '', content: '', is_published: false });
   const [editingNews, setEditingNews] = useState<News | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvImportResult, setCsvImportResult] = useState<any | null>(null);
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -754,6 +757,7 @@ export default function AdminPage() {
     { id: 'feedback', label: 'Feedback Analytics' },
     { id: 'kiosk', label: 'Kiosk' },
     { id: 'database', label: 'Database' },
+    { id: 'csv', label: 'CSV Import/Export' },
   ];
 
   if (isLoading || !isAuthenticated || !isAdmin) {
@@ -2394,8 +2398,108 @@ export default function AdminPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      )}
+      </div>
+        )}
+
+        {activeTab === 'csv' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>CSV Import</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Import users from a CSV file. Only <strong>first_name</strong>, <strong>last_name</strong>, and <strong>email</strong> are required.
+                  Existing users (matched by email) will be updated in place.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-slate-100 dark:file:bg-slate-700 dark:file:text-white hover:file:bg-slate-200 dark:hover:file:bg-slate-600"
+                  />
+                  <Button
+                    onClick={() => {
+                      const template = 'first_name,last_name,email,rank,nicknames,comments,last_graded_date\nJohn,Doe,john@example.com,White,"Sensei John",Beginner student,2024-01-15';
+                      const blob = new Blob([template], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'users_template.csv';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    variant="outline"
+                  >
+                    Download Template
+                  </Button>
+                </div>
+                <Button
+                  onClick={async () => {
+                    if (!csvFile) {
+                      alert('Please select a CSV file');
+                      return;
+                    }
+                    setIsImportingCsv(true);
+                    setCsvImportResult(null);
+                    try {
+                      const result = await usersApi.importCsv(csvFile);
+                      setCsvImportResult(result);
+                      loadAllData();
+                    } catch (error) {
+                      console.error('CSV import error:', error);
+                      alert('Failed to import CSV');
+                    } finally {
+                      setIsImportingCsv(false);
+                    }
+                  }}
+                  disabled={!csvFile || isImportingCsv}
+                  isLoading={isImportingCsv}
+                  className="w-full"
+                >
+                  Import Users
+                </Button>
+                {csvImportResult && (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Import Results:</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Created: {csvImportResult.created}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Updated: {csvImportResult.updated}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Skipped: {csvImportResult.skipped}</p>
+                    {csvImportResult.errors.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium text-red-600 dark:text-red-400 mt-2">Errors:</p>
+                        <ul className="text-xs text-slate-600 dark:text-slate-300 list-disc pl-5">
+                          {csvImportResult.errors.map((err: string, i: number) => (
+                            <li key={i}>{err}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>CSV Export</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                  Export all current users to a CSV file. This includes user_uuid, names, email, rank, and other details.
+                </p>
+                <Button
+                  onClick={() => usersApi.exportCsv()}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Export Users to CSV
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
       <canvas ref={canvasRef} className="hidden" />
       <canvas ref={newUserCanvasRef} className="hidden" />
