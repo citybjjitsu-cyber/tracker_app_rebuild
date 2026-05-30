@@ -352,6 +352,31 @@ class CommentResponse(CommentBase):
 CommentResponse.model_rebuild()
 
 
+class ThemeBase(BaseModel):
+    name: str
+    config: str
+    is_active: bool = False
+
+
+class ThemeCreate(ThemeBase):
+    pass
+
+
+class ThemeUpdate(BaseModel):
+    name: Optional[str] = None
+    config: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class ThemeResponse(ThemeBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class NewsBase(BaseModel):
     title: str
     content: str

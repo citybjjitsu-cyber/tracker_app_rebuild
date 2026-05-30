@@ -17,6 +17,7 @@ import type {
   FeedbackStats,
   News,
   Comment,
+  WebsiteTheme,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -364,6 +365,37 @@ export const newsApi = {
   },
   delete: async (id: number) => {
     const response = await api.delete(`/news/${id}`);
+    return response.data;
+  },
+};
+
+export const themesApi = {
+  list: async () => {
+    const response = await api.get<WebsiteTheme[]>('/themes/');
+    return response.data;
+  },
+  getActive: async () => {
+    const response = await api.get<WebsiteTheme>('/themes/active');
+    return response.data;
+  },
+  get: async (id: number) => {
+    const response = await api.get<WebsiteTheme>(`/themes/${id}`);
+    return response.data;
+  },
+  create: async (data: { name: string; config: string; is_active?: boolean }) => {
+    const response = await api.post<WebsiteTheme>('/themes/', data);
+    return response.data;
+  },
+  update: async (id: number, data: { name?: string; config?: string; is_active?: boolean }) => {
+    const response = await api.put<WebsiteTheme>(`/themes/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: number) => {
+    const response = await api.delete(`/themes/${id}`);
+    return response.data;
+  },
+  apply: async (id: number) => {
+    const response = await api.post<WebsiteTheme>(`/themes/${id}/apply`);
     return response.data;
   },
 };

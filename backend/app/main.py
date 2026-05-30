@@ -16,6 +16,7 @@ import os
 from app.database import engine, SessionLocal
 from app import models
 from app.routers import (
+    themes,
     users,
     classes,
     class_instances,
@@ -132,6 +133,7 @@ app.include_router(database.router, prefix="/database", tags=["Database"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(news.router, tags=["News"])
 app.include_router(comments.router, prefix="/comments", tags=["Comments"])
+app.include_router(themes.router, prefix="/themes", tags=["Themes"])
 
 # Serve uploaded photos statically
 import os

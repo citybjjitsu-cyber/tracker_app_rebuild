@@ -102,26 +102,26 @@ export default function HomePage() {
   const todayDayName = DAYS_OF_WEEK[today.getDay()];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen bg-[var(--background)] p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Shield className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-[var(--primary)] to-[var(--primary)] rounded-2xl flex items-center justify-center shadow-lg">
+            <Shield className="w-10 h-10 text-[var(--primary-foreground)]" />
           </div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">CKB Tracker</h1>
-          <p className="text-slate-500 dark:text-slate-400">Welcome to our martial arts school</p>
+          <h1 className="text-4xl font-bold text-[var(--foreground)] mb-2">CKB Tracker</h1>
+          <p className="text-[var(--muted-foreground)]">Welcome to our martial arts school</p>
         </div>
 
-        <Card className="backdrop-blur">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
-              <Calendar className="w-5 h-5 text-blue-400" />
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-[var(--primary)]" />
               Class Schedule
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">This Week&apos;s Schedule</h3>
+              <h3 className="text-lg font-semibold text-[var(--foreground)]">This Week&apos;s Schedule</h3>
             </div>
 
             <div className="grid grid-cols-7 gap-2">
@@ -135,13 +135,13 @@ export default function HomePage() {
                     className={`
                       min-h-[180px] rounded-lg p-2 border
                       ${isTodayDay 
-                        ? 'bg-blue-500/10 border-blue-500/50' 
-                        : 'bg-slate-100 dark:bg-slate-700/30 border-slate-200 dark:border-slate-600/30'}
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/50' 
+                        : 'bg-[var(--muted)] border-[var(--border)]'}
                     `}
                   >
                     <div className={`
                       text-center font-semibold text-sm mb-2 pb-2 border-b 
-                      ${isTodayDay ? 'text-blue-400 border-blue-500/30' : 'text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-600/30'}
+                      ${isTodayDay ? 'text-[var(--primary)] border-[var(--primary)]/30' : 'text-[var(--muted-foreground)] border-[var(--border)]'}
                     `}>
                       {day}
                     </div>
@@ -150,15 +150,15 @@ export default function HomePage() {
                         dayClasses.map((cls) => (
                           <div
                             key={cls.id}
-                            className="p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600/50 opacity-75"
+                            className="p-2 bg-[var(--muted)] rounded-lg border border-[var(--border)] opacity-75"
                           >
-                            <p className="font-medium text-xs text-slate-900 dark:text-white truncate">{cls.class_name}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">{cls.time}</p>
-                            <p className="text-xs font-medium text-blue-400">{cls.points} pts</p>
+                            <p className="font-medium text-xs text-[var(--foreground)] truncate">{cls.class_name}</p>
+                            <p className="text-xs text-[var(--muted-foreground)]">{cls.time}</p>
+                            <p className="text-xs font-medium text-[var(--primary)]">{cls.points} pts</p>
                           </div>
                         ))
                       ) : (
-                        <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-2">No classes</p>
+                        <p className="text-xs text-[var(--muted-foreground)] text-center py-2">No classes</p>
                       )}
                     </div>
                   </div>
@@ -169,26 +169,26 @@ export default function HomePage() {
         </Card>
 
         <div className="max-w-md mx-auto">
-          <Card className="backdrop-blur">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
-                <LogIn className="w-5 h-5 text-blue-400" />
+              <CardTitle className="flex items-center gap-2">
+                <LogIn className="w-5 h-5 text-[var(--primary)]" />
                 Sign In
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
                 {error && (
-                  <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400 text-sm">
+                  <div className="flex items-center gap-2 p-3 bg-[var(--destructive)]/10 border border-[var(--destructive)]/20 rounded-lg text-[var(--destructive)] text-sm">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {error}
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+                  <label className="text-sm font-medium text-[var(--foreground)]">Email</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-400" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)]" />
                     <Input
                       type="email"
                       placeholder="you@example.com"
@@ -201,9 +201,9 @@ export default function HomePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+                  <label className="text-sm font-medium text-[var(--foreground)]">Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-400" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--muted-foreground)]" />
                     <Input
                       type="password"
                       placeholder="Enter your password"
@@ -227,18 +227,18 @@ export default function HomePage() {
           </Card>
 
           {news.length > 0 && (
-            <Card className="backdrop-blur">
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
-                  <Newspaper className="w-5 h-5 text-blue-400" />
+                <CardTitle className="flex items-center gap-2">
+                  <Newspaper className="w-5 h-5 text-[var(--primary)]" />
                   News & Updates
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {news.slice(0, 3).map(item => (
-                  <div key={item.id} className="pb-4 border-b border-slate-200 dark:border-slate-700/50 last:border-0 last:pb-0">
-                    <h4 className="font-medium text-slate-900 dark:text-white mb-1">{item.title}</h4>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">{item.content}</p>
+                  <div key={item.id} className="pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
+                    <h4 className="font-medium text-[var(--foreground)] mb-1">{item.title}</h4>
+                    <p className="text-sm text-[var(--muted-foreground)] line-clamp-2">{item.content}</p>
                   </div>
                 ))}
               </CardContent>
@@ -247,7 +247,7 @@ export default function HomePage() {
         </div>
 
         <div className="text-center">
-          <p className="text-slate-500 dark:text-slate-500 text-sm">
+          <p className="text-[var(--muted-foreground)] text-sm">
             Need help? Contact us at info@ckbtracker.com
           </p>
         </div>

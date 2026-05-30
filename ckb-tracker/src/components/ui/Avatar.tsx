@@ -43,7 +43,7 @@ export function Avatar({ src, firstName = '', lastName = '', size = 'md', offset
         src={imageSrc}
         alt={fullName || 'Avatar'}
         className={cn(
-          'rounded-full object-cover ring-2 ring-white dark:ring-slate-700',
+          'rounded-full object-cover ring-2 ring-[var(--card)]',
           'shadow-sm',
           sizeClasses[size],
           className
@@ -57,8 +57,8 @@ export function Avatar({ src, firstName = '', lastName = '', size = 'md', offset
     <div
       className={cn(
         'rounded-full flex items-center justify-center font-semibold',
-        'bg-gradient-to-br from-blue-500 to-blue-600 text-white',
-        'shadow-sm ring-2 ring-white dark:ring-slate-700',
+        'bg-gradient-to-br from-[var(--primary)] to-[var(--primary)] text-[var(--primary-foreground)]',
+        'shadow-sm ring-2 ring-[var(--card)]',
         sizeClasses[size],
         className
       )}

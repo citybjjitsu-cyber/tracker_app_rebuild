@@ -271,6 +271,17 @@ class SessionToken(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class WebsiteTheme(Base):
+    __tablename__ = "website_themes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    is_active = Column(Boolean, default=False)
+    config = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class News(Base):
     __tablename__ = "news"
 

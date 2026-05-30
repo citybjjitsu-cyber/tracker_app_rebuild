@@ -12,18 +12,17 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
             {label}
           </label>
         )}
         <select
           ref={ref}
           className={cn(
-            'flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500',
+            'flex h-10 w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)] border-[var(--input)]',
+            'focus:outline-none focus:ring-2 focus:ring-[var(--ring)]',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            'dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-400',
-            error && 'border-red-500 dark:border-red-500 focus:ring-red-500/20',
+            error && 'border-[var(--destructive)] focus:ring-[var(--destructive)]',
             className
           )}
           {...props}

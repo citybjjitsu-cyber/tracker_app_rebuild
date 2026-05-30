@@ -14,11 +14,11 @@ export function Badge({ children, variant = 'default', size = 'md', className }:
       className={cn(
         'inline-flex items-center gap-1 rounded-full font-medium',
         {
-          'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300': variant === 'default',
-          'border border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-300': variant === 'outline',
+          'bg-[var(--muted)] text-[var(--foreground)]': variant === 'default',
+          'border border-[var(--border)] text-[var(--foreground)]': variant === 'outline',
           'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400': variant === 'success',
           'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': variant === 'warning',
-          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': variant === 'error',
+          'bg-[var(--destructive)]/10 text-[var(--destructive)]': variant === 'error',
         },
         {
           'px-2 py-0.5 text-xs': size === 'sm',

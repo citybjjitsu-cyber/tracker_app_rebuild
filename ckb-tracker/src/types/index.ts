@@ -182,6 +182,41 @@ export interface News {
   updated_at: string;
 }
 
+export interface ThemeConfig {
+  [key: string]: unknown
+  "--background": string
+  "--foreground": string
+  "--card": string
+  "--card-foreground": string
+  "--primary": string
+  "--primary-foreground": string
+  "--secondary": string
+  "--secondary-foreground": string
+  "--muted": string
+  "--muted-foreground": string
+  "--accent": string
+  "--accent-foreground": string
+  "--destructive": string
+  "--destructive-foreground": string
+  "--border": string
+  "--input": string
+  "--ring": string
+  "--radius": string
+  headline_font: string
+  body_font: string
+  logo_url?: string
+  dark?: Partial<ThemeConfig>
+}
+
+export interface WebsiteTheme {
+  id: number
+  name: string
+  is_active: boolean
+  config: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Comment {
   id: number;
   comment_uuid: string;

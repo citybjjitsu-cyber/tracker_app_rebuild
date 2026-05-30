@@ -1,4 +1,5 @@
 from . import (
+    themes,
     users,
     classes,
     class_instances,
