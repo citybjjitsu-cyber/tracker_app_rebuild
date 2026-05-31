@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e6]
+      - heading "CKB Tracker" [level=1] [ref=e8]
+      - paragraph [ref=e9]: Welcome to our martial arts school
+    - generic [ref=e10]:
+      - heading "Class Schedule" [level=3] [ref=e13]:
+        - img [ref=e14]
+        - text: Class Schedule
+      - generic [ref=e16]:
+        - heading "This Week's Schedule" [level=3] [ref=e18]
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]: Monday
+            - paragraph [ref=e23]: No classes
+          - generic [ref=e24]:
+            - generic [ref=e25]: Tuesday
+            - paragraph [ref=e27]: No classes
+          - generic [ref=e28]:
+            - generic [ref=e29]: Wednesday
+            - paragraph [ref=e31]: No classes
+          - generic [ref=e32]:
+            - generic [ref=e33]: Thursday
+            - paragraph [ref=e35]: No classes
+          - generic [ref=e36]:
+            - generic [ref=e37]: Friday
+            - paragraph [ref=e39]: No classes
+          - generic [ref=e40]:
+            - generic [ref=e41]: Saturday
+            - paragraph [ref=e43]: No classes
+          - generic [ref=e44]:
+            - generic [ref=e45]: Sunday
+            - paragraph [ref=e47]: No classes
+    - generic [ref=e49]:
+      - heading "Sign In" [level=3] [ref=e52]:
+        - img [ref=e53]
+        - text: Sign In
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - text: Email
+          - generic [ref=e59]:
+            - img [ref=e60]
+            - textbox "you@example.com" [ref=e65]
+        - generic [ref=e66]:
+          - text: Password
+          - generic [ref=e67]:
+            - img [ref=e68]
+            - textbox "Enter your password" [ref=e73]
+        - button "Sign In" [ref=e74]
+    - paragraph [ref=e76]: Need help? Contact us at info@ckbtracker.com
+  - alert [ref=e77]

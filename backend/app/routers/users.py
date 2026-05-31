@@ -11,7 +11,7 @@ from typing import List, Optional
 import uuid
 import os
 import shutil
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, get_admin_user
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -26,7 +26,11 @@ def get_db():
 
 
 @router.post("/", response_model=schemas.UserResponse)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_admin_user),
+):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -36,12 +40,17 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if user.password:
         password_hash = pwd_context.hash(user.password)
 
+    pin_hash = None
+    if user.pin:
+        pin_hash = pwd_context.hash(user.pin)
+
     db_user = models.User(
         user_uuid=user_uuid,
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
         password_hash=password_hash,
+        pin_hash=pin_hash,
         rank=user.rank,
         nicknames=user.nicknames,
         comments=user.comments,
@@ -260,7 +269,10 @@ def get_user(user_uuid: str, db: Session = Depends(get_db)):
 
 @router.put("/{user_uuid}", response_model=schemas.UserResponse)
 def update_user(
-    user_uuid: str, user: schemas.UserUpdate, db: Session = Depends(get_db)
+    user_uuid: str,
+    user: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_admin_user),
 ):
     db_user = (
         db.query(models.User)
@@ -270,20 +282,44 @@ def update_user(
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # If only password/pin is being reset, just update in place
+    if (
+        user.first_name is None
+        and user.last_name is None
+        and user.email is None
+        and (user.password is not None or user.pin is not None)
+    ):
+        if user.password:
+            db_user.password_hash = pwd_context.hash(user.password)
+        if user.pin:
+            db_user.pin_hash = pwd_context.hash(user.pin)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+
     # Archive old record
     db_user.end_date = datetime.utcnow()
     db_user.is_current = False
 
-    # Create new record
+    password_hash = db_user.password_hash
+    if user.password:
+        password_hash = pwd_context.hash(user.password)
+
+    # Create new record (use old values as fallback)
     new_user = models.User(
         user_uuid=user_uuid,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        rank=user.rank,
-        nicknames=user.nicknames,
-        comments=user.comments,
-        last_graded_date=user.last_graded_date,
+        first_name=user.first_name
+        if user.first_name is not None
+        else db_user.first_name,
+        last_name=user.last_name if user.last_name is not None else db_user.last_name,
+        email=user.email if user.email is not None else db_user.email,
+        password_hash=password_hash,
+        rank=user.rank if user.rank is not None else db_user.rank,
+        nicknames=user.nicknames if user.nicknames is not None else db_user.nicknames,
+        comments=user.comments if user.comments is not None else db_user.comments,
+        last_graded_date=user.last_graded_date
+        if user.last_graded_date is not None
+        else db_user.last_graded_date,
         profile_image_url=db_user.profile_image_url,
     )
     db.add(new_user)
@@ -299,6 +335,7 @@ async def upload_photo(
     offset_x: Optional[float] = Form(0.0),
     offset_y: Optional[float] = Form(0.0),
     db: Session = Depends(get_db),
+    admin: models.User = Depends(get_admin_user),
 ):
     user = (
         db.query(models.User)
@@ -350,7 +387,11 @@ async def upload_photo(
 
 
 @router.delete("/{user_uuid}/photo")
-def delete_photo(user_uuid: str, db: Session = Depends(get_db)):
+def delete_photo(
+    user_uuid: str,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_admin_user),
+):
     user = (
         db.query(models.User)
         .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
@@ -384,6 +425,7 @@ def update_photo_position(
     offset_x: float = 0.0,
     offset_y: float = 0.0,
     db: Session = Depends(get_db),
+    admin: models.User = Depends(get_admin_user),
 ):
     """Update just the photo position offsets without uploading a new photo."""
     user = (

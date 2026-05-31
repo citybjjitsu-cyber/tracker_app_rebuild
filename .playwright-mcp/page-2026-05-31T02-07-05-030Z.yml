@@ -1,0 +1,94 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e38] [cursor=pointer]:
+    - img [ref=e39]
+  - alert [ref=e42]
+  - button [ref=e43]:
+    - img [ref=e44]
+  - complementary [ref=e45]:
+    - button [ref=e47]:
+      - img [ref=e48]
+    - generic [ref=e51]:
+      - generic [ref=e53]:
+        - img [ref=e55]
+        - generic [ref=e57]: CKB Tracker
+      - button "Dark Mode" [ref=e59]:
+        - img [ref=e60]
+        - generic [ref=e62]: Dark Mode
+      - navigation [ref=e63]:
+        - link "Check In" [ref=e84] [cursor=pointer]:
+          - /url: /check-in
+          - img [ref=e85]
+          - generic [ref=e88]: Check In
+        - link "Student Portal" [ref=e89] [cursor=pointer]:
+          - /url: /portal
+          - img [ref=e90]
+          - generic [ref=e102]: Student Portal
+        - link "Admin" [ref=e103] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e104]
+          - generic [ref=e106]: Admin
+      - generic [ref=e107]:
+        - generic "Admin User" [ref=e108]: AU
+        - generic [ref=e109]:
+          - paragraph [ref=e110]: Admin User
+          - paragraph [ref=e111]: admin@example.com
+        - button "Logout" [ref=e112]:
+          - img [ref=e113]
+  - main [ref=e66]:
+    - generic [ref=e68]:
+      - generic [ref=e116]:
+        - heading "Admin Settings" [level=1] [ref=e117]
+        - generic [ref=e118]:
+          - generic [ref=e119]: admin@example.com
+          - button "Logout" [ref=e120]:
+            - img [ref=e121]
+            - text: Logout
+      - generic [ref=e124]:
+        - button "User Admin" [ref=e125]
+        - button "Class Schedule" [ref=e126]
+        - button "Gyms & Types" [ref=e127]
+        - button "Terms" [ref=e128]
+        - button "Targets" [ref=e129]
+        - button "Lessons" [ref=e130]
+        - button "News" [ref=e131]
+        - button "Student Passwords" [ref=e132]
+        - button "Performance Analytics" [ref=e133]
+        - button "Feedback Analytics" [ref=e134]
+        - button "Kiosk" [ref=e135]
+        - button "Database" [active] [ref=e136]
+        - button "CSV Import/Export" [ref=e137]
+        - button "Themes" [ref=e138]
+      - generic [ref=e296]:
+        - generic [ref=e297]:
+          - heading "Database Statistics" [level=3] [ref=e300]
+          - generic [ref=e302]:
+            - generic [ref=e303]:
+              - paragraph [ref=e304]: N/A
+              - paragraph [ref=e305]: Size
+            - generic [ref=e306]:
+              - paragraph [ref=e307]: "0"
+              - paragraph [ref=e308]: Users
+            - generic [ref=e309]:
+              - paragraph [ref=e310]: "0"
+              - paragraph [ref=e311]: Attendance
+            - generic [ref=e312]:
+              - paragraph [ref=e313]: "0"
+              - paragraph [ref=e314]: Classes
+        - generic [ref=e315]:
+          - generic [ref=e316]:
+            - heading "Export" [level=3] [ref=e319]
+            - generic [ref=e320]:
+              - button "📦 Create Seed File" [ref=e321]
+              - button "💾 Create Backup" [ref=e322]
+          - generic [ref=e323]:
+            - heading "Restore" [level=3] [ref=e326]
+            - generic [ref=e328]:
+              - generic [ref=e329]: Upload Backup File
+              - button "Choose File" [ref=e330]
+        - generic [ref=e331]:
+          - heading "Reset Database" [level=3] [ref=e334]
+          - generic [ref=e336]:
+            - paragraph [ref=e337]: "Warning: These actions cannot be undone!"
+            - generic [ref=e338]:
+              - button "🗑️ Empty (Keep Roles)" [ref=e339]
+              - button "🌱 Load from Seed" [ref=e340]

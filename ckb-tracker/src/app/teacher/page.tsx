@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { LogOut } from 'lucide-react';
+import { LogOut, GraduationCap } from 'lucide-react';
 import type { ClassSchedule, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
@@ -224,108 +224,59 @@ export default function TeacherPage() {
     }
   };
 
-  // DEBUG: Commenting out conditional returns to find the error
-  /*
-  const pendingCount = attendance.filter(a => a.status === 'pending').length;
-  const confirmedCount = attendance.filter(a => a.status === 'confirmed').length;
 
-  if (!isLoaded) {
-    return <div className="p-8 text-center">Loading...</div>;
-  }
-
-  if (!user || (!isTeacher && !isAdmin)) {
-    return (
-      <>
-        
-        <div className="max-w-md mx-auto pt-20">
-          <Card>
-            <CardHeader>
-              <CardTitle>Teacher Login</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                  <Input
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginForm({ ...loginForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                  <Input
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    required
-                  />
-                </div>
-                {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-                <Button type="submit" className="w-full">Login</Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </>
-    );
-  }
-  */
   const pendingCount = attendance.filter(a => a.status === 'pending').length;
   const confirmedCount = attendance.filter(a => a.status === 'confirmed').length;
 
   if (isLoading) {
-    return <div className="p-8 text-center">Loading...</div>;
+    return <div className="p-8 text-center text-on-surface-variant">Loading...</div>;
   }
 
   if (!user || (!isTeacher && !isAdmin)) {
     return (
-      <>
-        
-        <div className="max-w-md mx-auto pt-20">
-          <Card>
-            <CardHeader>
-              <CardTitle>Teacher Login</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                  <Input
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginForm({ ...loginForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                  <Input
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    required
-                  />
-                </div>
-                {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-                <Button type="submit" className="w-full">Login</Button>
-              </form>
-            </CardContent>
-          </Card>
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <div className="w-full max-w-md glass-panel rounded-xl p-8">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-container flex items-center justify-center">
+              <GraduationCap className="w-8 h-8 text-on-primary-container" />
+            </div>
+            <h1 className="text-2xl font-headline font-bold text-on-surface">Teacher <span className="text-primary-container">Login</span></h1>
+            <p className="text-on-surface-variant text-sm mt-1">Sign in with teacher credentials</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-label text-on-surface-variant mb-1">Email</label>
+              <Input
+                type="email"
+                value={loginForm.email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginForm({ ...loginForm, email: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-label text-on-surface-variant mb-1">Password</label>
+              <Input
+                type="password"
+                value={loginForm.password}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLoginForm({ ...loginForm, password: e.target.value })}
+                required
+              />
+            </div>
+            {loginError && <p className="text-error text-sm">{loginError}</p>}
+            <Button type="submit" className="w-full">Login</Button>
+          </form>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
     <>
-      
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Teacher Dashboard</h1>
+          <h1 className="text-2xl font-headline font-bold text-on-surface">Teacher Dashboard</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</span>
+            <span className="text-sm text-on-surface-variant">{user?.email}</span>
             <Button variant="outline" size="sm" onClick={() => logout()}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -333,81 +284,68 @@ export default function TeacherPage() {
           </div>
         </div>
 
-      <div className="flex gap-2 mb-6">
-        <Button
-          variant={activeTab === 'attendance' ? 'primary' : 'outline'}
-          onClick={() => setActiveTab('attendance')}
-        >
-          ✅ Confirm Attendance
-        </Button>
-        <Button
-          variant={activeTab === 'roster' ? 'primary' : 'outline'}
-          onClick={() => setActiveTab('roster')}
-        >
-          📋 Class Roster
-        </Button>
-        <Button
-          variant={activeTab === 'feedback' ? 'primary' : 'outline'}
-          onClick={() => { setActiveTab('feedback'); loadFeedback(); }}
-        >
-          💬 Feedback
-        </Button>
-        <Button
-          variant={activeTab === 'comments' ? 'primary' : 'outline'}
-          onClick={() => { setActiveTab('comments'); loadComments(); }}
-        >
-          📝 Comments
-        </Button>
+      <div className="flex gap-6 mb-6 border-b border-outline-variant/20">
+        {(['attendance', 'roster', 'feedback', 'comments'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { setActiveTab(tab); if (tab === 'feedback') loadFeedback(); if (tab === 'comments') loadComments(); }}
+            className={`text-xs font-bold font-label tracking-wider uppercase pb-3 transition-colors ${
+              activeTab === tab
+                ? 'text-primary-container border-b-2 border-primary-container'
+                : 'text-on-surface-variant/70 hover:text-on-surface'
+            }`}
+          >
+            {tab === 'attendance' ? 'Confirm Attendance' : tab === 'roster' ? 'Class Roster' : tab === 'feedback' ? 'Feedback' : 'Comments'}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'attendance' && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Confirm Attendance</CardTitle>
-              <div className="flex gap-4">
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-auto"
+        <div className="glass-panel rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-headline font-bold text-on-surface">Confirm Attendance</h2>
+            <div className="flex gap-4 items-center">
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-auto"
+              />
+              <select
+                className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(Number(e.target.value))}
+              >
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>{cls.class_name}</option>
+                ))}
+              </select>
+              <label className="flex items-center gap-2 text-sm text-on-surface-variant">
+                <input
+                  type="checkbox"
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  className="accent-primary-container"
                 />
-                <select
-                  className="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md px-3 py-2"
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(Number(e.target.value))}
-                >
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>{cls.class_name}</option>
-                  ))}
-                </select>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={autoRefresh}
-                    onChange={(e) => setAutoRefresh(e.target.checked)}
-                  />
-                  Auto-refresh (5s)
-                </label>
-                <Button variant="outline" size="sm" onClick={loadAttendance}>
-                  🔄 Refresh
-                </Button>
-              </div>
+                Auto-refresh (5s)
+              </label>
+              <Button variant="outline" size="sm" onClick={loadAttendance}>
+                Refresh
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="text-center p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{attendance.length}</p>
-                <p className="text-slate-500 dark:text-slate-400">Total Students</p>
+              <div className="text-center p-4 glass-panel rounded-lg">
+                <p className="text-2xl font-bold font-headline text-on-surface">{attendance.length}</p>
+                <p className="text-on-surface-variant text-sm">Total Students</p>
               </div>
-              <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{pendingCount}</p>
-                <p className="text-yellow-600 dark:text-yellow-400">⏳ Pending</p>
+              <div className="text-center p-4 glass-panel rounded-lg">
+                <p className="text-2xl font-bold font-headline text-yellow-400">{pendingCount}</p>
+                <p className="text-yellow-400 text-sm">Pending</p>
               </div>
-              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{confirmedCount}</p>
-                <p className="text-green-600 dark:text-green-400">✅ Confirmed</p>
+              <div className="text-center p-4 glass-panel rounded-lg">
+                <p className="text-2xl font-bold font-headline text-green-400">{confirmedCount}</p>
+                <p className="text-green-400 text-sm">Confirmed</p>
               </div>
             </div>
 
@@ -415,7 +353,7 @@ export default function TeacherPage() {
               {attendance.map((att) => (
                 <div
                   key={att.id}
-                  className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-800 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border-l-[3px] data-strip"
                 >
                   <div className="flex items-center gap-3">
                     {att.status === 'pending' && (
@@ -423,6 +361,7 @@ export default function TeacherPage() {
                         type="checkbox"
                         checked={selectedStudents.includes(att.id)}
                         onChange={() => toggleStudent(att.id)}
+                        className="accent-primary-container"
                       />
                     )}
                     <Avatar
@@ -433,25 +372,25 @@ export default function TeacherPage() {
                       offsetY={att.user?.image_offset_y}
                     />
                     <div>
-                      <p className="font-medium text-slate-900 dark:text-white">
+                      <p className="font-medium text-on-surface">
                         {att.user?.first_name} {att.user?.last_name}
                       </p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                      <p className="text-sm text-on-surface-variant">
                         Checked in: {new Date(att.created_at).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={att.status === 'confirmed' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
-                      {att.status === 'confirmed' ? '✅ Confirmed' : '⏳ Pending'}
+                    <span className={att.status === 'confirmed' ? 'text-green-400' : 'text-yellow-400'}>
+                      {att.status === 'confirmed' ? 'Confirmed' : 'Pending'}
                     </span>
                     {att.status === 'pending' && (
                       <>
                         <Button size="sm" onClick={() => handleConfirm(att.id)} disabled={isProcessing}>
-                          ✓ Confirm
+                          Confirm
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleRemove(att.id)} disabled={isProcessing}>
-                          ✕ Remove
+                          Remove
                         </Button>
                       </>
                     )}
@@ -463,26 +402,26 @@ export default function TeacherPage() {
             {selectedStudents.length > 0 && (
               <div className="flex gap-2 mb-4">
                 <Button onClick={handleBulkConfirm} disabled={isProcessing}>
-                  ✅ Confirm Selected ({selectedStudents.length})
+                  Confirm Selected ({selectedStudents.length})
                 </Button>
                 <Button variant="outline" onClick={handleBulkRemove} disabled={isProcessing}>
-                  🗑️ Remove Selected ({selectedStudents.length})
+                  Remove Selected ({selectedStudents.length})
                 </Button>
               </div>
             )}
 
             {pendingCount > 0 && (
               <Button onClick={handleConfirmAllPending} disabled={isProcessing} className="w-full">
-                ✅ CONFIRM ALL PENDING ({pendingCount})
+                CONFIRM ALL PENDING ({pendingCount})
               </Button>
             )}
 
-            <div className="mt-4 border-t pt-4">
+            <div className="mt-4 border-t border-outline-variant/20 pt-4">
               <details>
-                <summary className="cursor-pointer font-medium">+ Add Student Manually</summary>
-                <div className="mt-2 p-3 bg-slate-50 rounded-lg">
+                <summary className="cursor-pointer font-label text-on-surface-variant hover:text-on-surface transition-colors">+ Add Student Manually</summary>
+                <div className="mt-2 p-3 bg-surface-container-low rounded-lg">
                   <select
-                    className="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md p-2"
+                    className="w-full border border-outline-variant/20 bg-surface text-on-surface rounded-md p-2"
                     onChange={(e) => {
                       if (e.target.value) handleAddStudent(e.target.value);
                     }}
@@ -498,16 +437,12 @@ export default function TeacherPage() {
                 </div>
               </details>
             </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {activeTab === 'roster' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Class Roster</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="glass-panel rounded-xl p-6">
+          <h2 className="text-lg font-headline font-bold text-on-surface mb-4">Class Roster</h2>
             <div className="flex gap-4 mb-4">
               <Input
                 type="date"
@@ -516,7 +451,7 @@ export default function TeacherPage() {
                 className="w-auto"
               />
               <select
-                className="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md px-3 py-2"
+                className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(Number(e.target.value))}
               >
@@ -525,7 +460,7 @@ export default function TeacherPage() {
                 ))}
               </select>
               <select
-                className="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md px-3 py-2"
+                className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
                 value={selectedTeacher}
                 onChange={(e) => setSelectedTeacher(e.target.value)}
               >
@@ -546,7 +481,7 @@ export default function TeacherPage() {
                     offsetY={teachers.find(t => t.user_uuid === selectedTeacher)?.image_offset_y}
                     size="sm"
                   />
-                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                  <span className="text-sm text-on-surface-variant">
                     {teachers.find(t => t.user_uuid === selectedTeacher)?.first_name} {teachers.find(t => t.user_uuid === selectedTeacher)?.last_name}
                   </span>
                 </div>
@@ -559,22 +494,22 @@ export default function TeacherPage() {
                 }}
                 disabled={!selectedTeacher}
               >
-                💾 Assign Teacher
+                Assign Teacher
               </Button>
             </div>
 
-            <div className="border dark:border-slate-700 rounded-lg overflow-hidden">
+            <div className="bg-surface-container-low rounded-lg overflow-hidden">
               <table className="w-full">
-                <thead className="bg-slate-100 dark:bg-slate-800">
+                <thead className="bg-surface-container">
                   <tr>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Name</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Rank</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Check-in Time</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Name</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Rank</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Check-in Time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {attendance.map((att) => (
-                    <tr key={att.id} className="border-t dark:border-slate-700">
+                    <tr key={att.id} className="bg-surface-container-low">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <Avatar
@@ -585,13 +520,13 @@ export default function TeacherPage() {
                             offsetY={att.user?.image_offset_y}
                             size="sm"
                           />
-                          <span className="text-slate-900 dark:text-white">
+                          <span className="text-on-surface">
                             {att.user?.first_name} {att.user?.last_name}
                           </span>
                         </div>
                       </td>
-                      <td className="p-3 text-slate-700 dark:text-slate-300">{att.user?.rank || '-'}</td>
-                      <td className="p-3 text-slate-700 dark:text-slate-300">
+                      <td className="p-3 text-on-surface-variant">{att.user?.rank || '-'}</td>
+                      <td className="p-3 text-on-surface-variant">
                         {new Date(att.created_at).toLocaleTimeString()}
                       </td>
                     </tr>
@@ -599,22 +534,18 @@ export default function TeacherPage() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-slate-500 dark:text-slate-400">Total Attendees: {attendance.length}</p>
-          </CardContent>
-        </Card>
+            <p className="mt-2 text-on-surface-variant">Total Attendees: {attendance.length}</p>
+        </div>
       )}
 
       {activeTab === 'feedback' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Feedback</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="glass-panel rounded-xl p-6">
+          <h2 className="text-lg font-headline font-bold text-on-surface mb-4">Feedback</h2>
             <details className="mb-4">
-              <summary className="cursor-pointer font-medium mb-2 text-slate-700 dark:text-slate-300">🔽 Filters</summary>
-              <div className="flex gap-4 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg flex-wrap">
+              <summary className="cursor-pointer font-label text-on-surface-variant hover:text-on-surface transition-colors mb-2">Filters</summary>
+              <div className="flex gap-4 p-3 bg-surface-container-low rounded-lg flex-wrap">
                 <div>
-                  <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">Start Date</label>
+                  <label className="block text-sm text-on-surface-variant mb-1">Start Date</label>
                   <Input
                     type="date"
                     value={dateRange.start}
@@ -623,7 +554,7 @@ export default function TeacherPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">End Date</label>
+                  <label className="block text-sm text-on-surface-variant mb-1">End Date</label>
                   <Input
                     type="date"
                     value={dateRange.end}
@@ -632,9 +563,9 @@ export default function TeacherPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">Rating</label>
+                  <label className="block text-sm text-on-surface-variant mb-1">Rating</label>
                   <select
-                    className="border dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-md px-3 py-2"
+                    className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
                     value={ratingFilter}
                     onChange={(e) => setRatingFilter(e.target.value)}
                   >
@@ -644,9 +575,9 @@ export default function TeacherPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-500 dark:text-slate-400 mb-1">Classes</label>
+                  <label className="block text-sm text-on-surface-variant mb-1">Classes</label>
                   <select
-                    className="border dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-md px-3 py-2 min-w-[150px]"
+                    className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2 min-w-[150px]"
                     onChange={(e) => {
                       const val = e.target.value;
                       if (val === 'all') {
@@ -667,33 +598,33 @@ export default function TeacherPage() {
             </details>
 
             <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="text-center p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{feedback.length}</p>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Total Feedback</p>
+              <div className="text-center p-3 glass-panel rounded-lg">
+                <p className="text-xl font-bold font-headline text-on-surface">{feedback.length}</p>
+                <p className="text-sm text-on-surface-variant">Total Feedback</p>
               </div>
-              <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-center p-3 glass-panel rounded-lg">
+                <p className="text-xl font-bold font-headline text-green-400">
                   {feedback.filter(f => f.rating === 'thumbs_up').length}
                 </p>
-                <p className="text-sm text-green-600 dark:text-green-400">👍 Positive</p>
+                <p className="text-sm text-green-400">Positive</p>
               </div>
-              <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-xl font-bold text-red-600 dark:text-red-400">
+              <div className="text-center p-3 glass-panel rounded-lg">
+                <p className="text-xl font-bold font-headline text-red-400">
                   {feedback.filter(f => f.rating === 'thumbs_down').length}
                 </p>
-                <p className="text-sm text-red-600 dark:text-red-400">👎 Negative</p>
+                <p className="text-sm text-red-400">Negative</p>
               </div>
             </div>
 
-            <div className="border dark:border-slate-700 rounded-lg overflow-hidden">
+            <div className="bg-surface-container-low rounded-lg overflow-hidden">
               <table className="w-full">
-                <thead className="bg-slate-100 dark:bg-slate-800">
+                <thead className="bg-surface-container">
                   <tr>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Date</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Class</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Lesson</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Rating</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Comment</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Date</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Class</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Lesson</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Rating</th>
+                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Comment</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -706,29 +637,28 @@ export default function TeacherPage() {
                       return true;
                     })
                     .map((fb) => (
-                      <tr key={fb.id} className="border-t dark:border-slate-700">
-                        <td className="p-3 text-sm text-slate-700 dark:text-slate-300">{formatDate(fb.created_at)}</td>
-                        <td className="p-3 text-sm text-slate-700 dark:text-slate-300">Class #{fb.class_instance_id || '-'}</td>
-                        <td className="p-3 text-sm text-slate-700 dark:text-slate-300">-</td>
+                      <tr key={fb.id} className="bg-surface-container-low">
+                        <td className="p-3 text-sm text-on-surface-variant">{formatDate(fb.created_at)}</td>
+                        <td className="p-3 text-sm text-on-surface-variant">Class #{fb.class_instance_id || '-'}</td>
+                        <td className="p-3 text-sm text-on-surface-variant">-</td>
                         <td className="p-3">
-                          <span className={fb.rating === 'thumbs_up' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                            {fb.rating === 'thumbs_up' ? '👍' : '👎'}
+                          <span className={fb.rating === 'thumbs_up' ? 'text-green-400' : 'text-red-400'}>
+                            {fb.rating === 'thumbs_up' ? 'Positive' : 'Negative'}
                           </span>
                         </td>
-                        <td className="p-3 text-sm text-slate-700 dark:text-slate-300">{fb.comment || '-'}</td>
+                        <td className="p-3 text-sm text-on-surface-variant">{fb.comment || '-'}</td>
                       </tr>
                     ))}
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          </div>
       )}
 
       {activeTab === 'comments' && (
         <>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Comments</h2>
+            <h2 className="text-lg font-headline font-bold text-on-surface">Comments</h2>
             <Button
               variant={showCreateComment ? 'primary' : 'outline'}
               onClick={() => setShowCreateComment(!showCreateComment)}
@@ -738,39 +668,39 @@ export default function TeacherPage() {
           </div>
 
           {showCreateComment && user && (
-            <CommentCreateForm
-              users={users}
-              currentUser={user}
-              onSubmit={async (targetUserUuid, content, rating) => {
-                if (!user) return;
-                await commentsApi.create(
-                  { content, target_user_uuid: targetUserUuid, rating: rating || undefined },
-                  user.user_uuid
-                );
-                setShowCreateComment(false);
-                loadComments();
-              }}
-            />
-          )}
-
-          <Card>
-            <CardContent className="pt-6">
-              <CommentFeed
-                comments={comments}
+            <div className="glass-panel rounded-xl p-6 mb-4">
+              <CommentCreateForm
+                users={users}
                 currentUser={user}
-                isLoading={isLoadingComments}
-                onRefresh={loadComments}
-                onReplySubmit={async (parentId, content) => {
+                onSubmit={async (targetUserUuid, content, rating) => {
                   if (!user) return;
                   await commentsApi.create(
-                    { content, parent_comment_id: parentId },
+                    { content, target_user_uuid: targetUserUuid, rating: rating || undefined },
                     user.user_uuid
                   );
+                  setShowCreateComment(false);
                   loadComments();
                 }}
               />
-            </CardContent>
-          </Card>
+            </div>
+          )}
+
+          <div className="glass-panel rounded-xl p-6">
+            <CommentFeed
+              comments={comments}
+              currentUser={user}
+              isLoading={isLoadingComments}
+              onRefresh={loadComments}
+              onReplySubmit={async (parentId, content) => {
+                if (!user) return;
+                await commentsApi.create(
+                  { content, parent_comment_id: parentId },
+                  user.user_uuid
+                );
+                loadComments();
+              }}
+            />
+          </div>
         </>
       )}
     </div>

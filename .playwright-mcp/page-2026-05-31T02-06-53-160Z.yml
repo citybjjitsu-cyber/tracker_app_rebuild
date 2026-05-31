@@ -1,0 +1,197 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e38] [cursor=pointer]:
+    - img [ref=e39]
+  - alert [ref=e42]
+  - button [ref=e43]:
+    - img [ref=e44]
+  - complementary [ref=e45]:
+    - button [ref=e47]:
+      - img [ref=e48]
+    - generic [ref=e51]:
+      - generic [ref=e53]:
+        - img [ref=e55]
+        - generic [ref=e57]: CKB Tracker
+      - button "Dark Mode" [ref=e59]:
+        - img [ref=e60]
+        - generic [ref=e62]: Dark Mode
+      - navigation [ref=e63]:
+        - link "Check In" [ref=e84] [cursor=pointer]:
+          - /url: /check-in
+          - img [ref=e85]
+          - generic [ref=e88]: Check In
+        - link "Student Portal" [ref=e89] [cursor=pointer]:
+          - /url: /portal
+          - img [ref=e90]
+          - generic [ref=e102]: Student Portal
+        - link "Admin" [ref=e103] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e104]
+          - generic [ref=e106]: Admin
+      - generic [ref=e107]:
+        - generic "Admin User" [ref=e108]: AU
+        - generic [ref=e109]:
+          - paragraph [ref=e110]: Admin User
+          - paragraph [ref=e111]: admin@example.com
+        - button "Logout" [ref=e112]:
+          - img [ref=e113]
+  - main [ref=e66]:
+    - generic [ref=e68]:
+      - generic [ref=e116]:
+        - heading "Admin Settings" [level=1] [ref=e117]
+        - generic [ref=e118]:
+          - generic [ref=e119]: admin@example.com
+          - button "Logout" [ref=e120]:
+            - img [ref=e121]
+            - text: Logout
+      - generic [ref=e124]:
+        - button "User Admin" [ref=e125]
+        - button "Class Schedule" [ref=e126]
+        - button "Gyms & Types" [ref=e127]
+        - button "Terms" [ref=e128]
+        - button "Targets" [ref=e129]
+        - button "Lessons" [ref=e130]
+        - button "News" [ref=e131]
+        - button "Student Passwords" [ref=e132]
+        - button "Performance Analytics" [ref=e133]
+        - button "Feedback Analytics" [ref=e134]
+        - button "Kiosk" [ref=e135]
+        - button "Database" [ref=e136]
+        - button "CSV Import/Export" [ref=e137]
+        - button "Themes" [ref=e138]
+      - generic [ref=e141]:
+        - generic [ref=e143]:
+          - heading "Members" [level=3] [ref=e145]
+          - generic [ref=e146]:
+            - textbox "Search by name, rank, or email..." [ref=e149]
+            - button "Add Member" [ref=e150]:
+              - img [ref=e151]
+              - text: Add Member
+        - generic [ref=e152]:
+          - paragraph [ref=e153]: "Total Active Members: 14"
+          - generic [ref=e154]:
+            - generic [ref=e155] [cursor=pointer]:
+              - generic [ref=e156]:
+                - generic "John Smith" [ref=e157]: JS
+                - generic [ref=e158]:
+                  - paragraph [ref=e159]: John Smith
+                  - paragraph [ref=e160]: john@example.com
+              - generic [ref=e161]:
+                - img [ref=e162]
+                - text: Blue
+            - generic [ref=e165] [cursor=pointer]:
+              - generic [ref=e166]:
+                - generic "Jane Doe" [ref=e167]: JD
+                - generic [ref=e168]:
+                  - paragraph [ref=e169]: Jane Doe
+                  - paragraph [ref=e170]: jane@example.com
+              - generic [ref=e171]:
+                - img [ref=e172]
+                - text: Purple
+            - generic [ref=e175] [cursor=pointer]:
+              - generic [ref=e176]:
+                - generic "Mike Instructor" [ref=e177]: MI
+                - generic [ref=e178]:
+                  - paragraph [ref=e179]: Mike Instructor
+                  - paragraph [ref=e180]: mike@example.com
+              - generic [ref=e181]:
+                - img [ref=e182]
+                - text: Black
+            - generic [ref=e185] [cursor=pointer]:
+              - generic [ref=e186]:
+                - generic "Admin User" [ref=e187]: AU
+                - generic [ref=e188]:
+                  - paragraph [ref=e189]: Admin User
+                  - paragraph [ref=e190]: admin@example.com
+              - generic [ref=e191]:
+                - img [ref=e192]
+                - text: Black
+            - generic [ref=e195] [cursor=pointer]:
+              - generic [ref=e196]:
+                - generic "Sarah Williams" [ref=e197]: SW
+                - generic [ref=e198]:
+                  - paragraph [ref=e199]: Sarah Williams
+                  - paragraph [ref=e200]: sarah@example.com
+              - generic [ref=e201]:
+                - img [ref=e202]
+                - text: Brown
+            - generic [ref=e205] [cursor=pointer]:
+              - generic [ref=e206]:
+                - generic "David Brown" [ref=e207]: DB
+                - generic [ref=e208]:
+                  - paragraph [ref=e209]: David Brown
+                  - paragraph [ref=e210]: david@example.com
+              - generic [ref=e211]:
+                - img [ref=e212]
+                - text: White
+            - generic [ref=e215] [cursor=pointer]:
+              - generic [ref=e216]:
+                - generic "Emily Davis" [ref=e217]: ED
+                - generic [ref=e218]:
+                  - paragraph [ref=e219]: Emily Davis
+                  - paragraph [ref=e220]: emily@example.com
+              - generic [ref=e221]:
+                - img [ref=e222]
+                - text: Blue
+            - generic [ref=e225] [cursor=pointer]:
+              - generic [ref=e226]:
+                - generic "Chris Wilson" [ref=e227]: CW
+                - generic [ref=e228]:
+                  - paragraph [ref=e229]: Chris Wilson
+                  - paragraph [ref=e230]: chris@example.com
+              - generic [ref=e231]:
+                - img [ref=e232]
+                - text: Purple
+            - generic [ref=e235] [cursor=pointer]:
+              - generic [ref=e236]:
+                - generic "Lisa Martinez" [ref=e237]: LM
+                - generic [ref=e238]:
+                  - paragraph [ref=e239]: Lisa Martinez
+                  - paragraph [ref=e240]: lisa@example.com
+              - generic [ref=e241]:
+                - img [ref=e242]
+                - text: Blue
+            - generic [ref=e245] [cursor=pointer]:
+              - generic [ref=e246]:
+                - generic "Tom Anderson" [ref=e247]: TA
+                - generic [ref=e248]:
+                  - paragraph [ref=e249]: Tom Anderson
+                  - paragraph [ref=e250]: tom@example.com
+              - generic [ref=e251]:
+                - img [ref=e252]
+                - text: White
+            - generic [ref=e255] [cursor=pointer]:
+              - generic [ref=e256]:
+                - generic "Tablet Kiosk" [ref=e257]: TK
+                - generic [ref=e258]:
+                  - paragraph [ref=e259]: Tablet Kiosk
+                  - paragraph [ref=e260]: tablet@example.com
+              - generic [ref=e261]:
+                - img [ref=e262]
+                - text: White
+            - generic [ref=e265] [cursor=pointer]:
+              - generic [ref=e266]:
+                - generic "Eugene Bareman" [ref=e267]: EB
+                - generic [ref=e268]:
+                  - paragraph [ref=e269]: Eugene Bareman
+                  - paragraph [ref=e270]: eugjnr@example.com
+              - generic [ref=e271]:
+                - img [ref=e272]
+                - text: White
+            - generic [ref=e275] [cursor=pointer]:
+              - generic [ref=e276]:
+                - generic "Test User" [ref=e277]: TU
+                - generic [ref=e278]:
+                  - paragraph [ref=e279]: Test User
+                  - paragraph [ref=e280]: test@example.com
+              - generic [ref=e281]:
+                - img [ref=e282]
+                - text: White
+            - generic [ref=e285] [cursor=pointer]:
+              - generic [ref=e286]:
+                - generic "Another Person" [ref=e287]: AP
+                - generic [ref=e288]:
+                  - paragraph [ref=e289]: Another Person
+                  - paragraph [ref=e290]: another@example.com
+              - generic [ref=e291]:
+                - img [ref=e292]
+                - text: Blue

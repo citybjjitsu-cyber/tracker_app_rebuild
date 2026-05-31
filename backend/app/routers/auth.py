@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from app.auth.limiter import limiter
+import logging
 
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -93,6 +94,24 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
+    return user
+
+
+def get_admin_user(
+    user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    user_role = (
+        db.query(models.UserRole)
+        .filter(
+            models.UserRole.user_uuid == user.user_uuid,
+            models.UserRole.is_current == True,
+        )
+        .join(models.Role)
+        .filter(models.Role.name == "Admin")
+        .first()
+    )
+    if not user_role:
+        raise HTTPException(status_code=403, detail="Admin role required")
     return user
 
 

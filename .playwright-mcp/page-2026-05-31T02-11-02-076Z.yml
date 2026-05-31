@@ -1,0 +1,94 @@
+- generic [ref=e1]:
+  - button [ref=e2]:
+    - img [ref=e3]
+  - complementary [ref=e4]:
+    - button [ref=e6]:
+      - img [ref=e7]
+    - generic [ref=e10]:
+      - generic [ref=e12]:
+        - img [ref=e14]
+        - generic [ref=e16]: CKB Tracker
+      - button "Dark Mode" [ref=e18]:
+        - img [ref=e19]
+        - generic [ref=e21]: Dark Mode
+      - navigation [ref=e22]:
+        - link "Check In" [ref=e23] [cursor=pointer]:
+          - /url: /check-in
+          - img [ref=e24]
+          - generic [ref=e27]: Check In
+        - link "Student Portal" [ref=e28] [cursor=pointer]:
+          - /url: /portal
+          - img [ref=e29]
+          - generic [ref=e41]: Student Portal
+        - link "Admin" [ref=e42] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e43]
+          - generic [ref=e45]: Admin
+      - generic [ref=e47]:
+        - generic "Admin User" [ref=e48]: AU
+        - generic [ref=e49]:
+          - paragraph [ref=e50]: Admin User
+          - paragraph [ref=e51]: admin@example.com
+        - button "Logout" [ref=e52]:
+          - img [ref=e53]
+  - main [ref=e56]:
+    - generic [ref=e58]:
+      - generic [ref=e59]:
+        - heading "Admin Settings" [level=1] [ref=e60]
+        - generic [ref=e61]:
+          - generic [ref=e62]: admin@example.com
+          - button "Logout" [ref=e63]:
+            - img [ref=e64]
+            - text: Logout
+      - generic [ref=e67]:
+        - button "User Admin" [ref=e68]
+        - button "Class Schedule" [ref=e69]
+        - button "Gyms & Types" [ref=e70]
+        - button "Terms" [ref=e71]
+        - button "Targets" [ref=e72]
+        - button "Lessons" [ref=e73]
+        - button "News" [ref=e74]
+        - button "Student Passwords" [ref=e75]
+        - button "Performance Analytics" [ref=e76]
+        - button "Feedback Analytics" [ref=e77]
+        - button "Kiosk" [ref=e78]
+        - button "Database" [active] [ref=e79]
+        - button "CSV Import/Export" [ref=e80]
+        - button "Themes" [ref=e81]
+      - generic [ref=e249]:
+        - generic [ref=e250]:
+          - heading "Database Statistics" [level=3] [ref=e253]
+          - generic [ref=e255]:
+            - generic [ref=e256]:
+              - paragraph [ref=e257]: N/A
+              - paragraph [ref=e258]: Size
+            - generic [ref=e259]:
+              - paragraph [ref=e260]: "0"
+              - paragraph [ref=e261]: Users
+            - generic [ref=e262]:
+              - paragraph [ref=e263]: "0"
+              - paragraph [ref=e264]: Attendance
+            - generic [ref=e265]:
+              - paragraph [ref=e266]: "0"
+              - paragraph [ref=e267]: Classes
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - heading "Export" [level=3] [ref=e272]
+            - generic [ref=e273]:
+              - button "📦 Create Seed File" [ref=e274]
+              - button "💾 Create Backup" [ref=e275]
+          - generic [ref=e276]:
+            - heading "Restore" [level=3] [ref=e279]
+            - generic [ref=e281]:
+              - generic [ref=e282]: Upload Backup File
+              - button "Choose File" [ref=e283]
+        - generic [ref=e284]:
+          - heading "Reset Database" [level=3] [ref=e287]
+          - generic [ref=e289]:
+            - paragraph [ref=e290]: "Warning: These actions cannot be undone!"
+            - generic [ref=e291]:
+              - button "🗑️ Empty (Keep Roles)" [ref=e292]
+              - button "🌱 Load from Seed" [ref=e293]
+  - button "Open Next.js Dev Tools" [ref=e244] [cursor=pointer]:
+    - img [ref=e245]
+  - alert [ref=e248]

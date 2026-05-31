@@ -5,227 +5,153 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 
 ---
 
-## RECENT UPDATES (April 1, 2026)
+## Implementation Plan: PIN-Based Check-In Confirmation & Future Kiosk Mode
 
-### ID Photo Implementation
-- ✅ Added ID photo display to all name displays (check-in, teacher, admin dashboards)
-- ✅ Created Facebook-style placeholder SVG (`/public/placeholder-avatar.svg`)
-- ✅ Updated seed data with placeholder URLs for all demo users
-- ✅ Avatar component shows placeholder image when profile_image_url is set
+**Goal:** Add per-user PIN verification as a confirmation step during check-in on the `/check-in` page. Students select their classes, then confirm with their PIN. This is the first step toward a full self-service kiosk mode.
 
-### Tablet/Teacher Login Fix
-- ✅ Fixed tablet login after student logout (CSRF token on logout)
-- ✅ Fixed teacher login after other user logout
-- ✅ Root cause: Multiple stale backend processes in development
+### Design Decisions
 
-### Role-Based Login Redirects
-- ✅ Tablet users → `/check-in`
-- ✅ Teacher users → `/teacher`
-- ✅ Admin users → `/admin`
-- ✅ Student users → `/portal`
-
-### Check-In Page Access Control
-- ✅ **Tablet role**: Full access - search any user, add new members
-- ✅ **Student role**: Pre-selected own profile, no search capability
-- ✅ **Teacher role**: Pre-selected own profile, no search capability, can access via sidebar but limited to own check-in
-- ✅ **Admin role**: Full access - search any user, add new members
-
-### Student Portal Analytics Updates
-- ✅ Removed "Points" column from Recent Attendance History table
-- ✅ Added gauge visualization for target progress vs. term targets
-- ✅ Shows current term target based on user's rank
-
-### Sidebar Navigation
-- ✅ Check In link visible to all authenticated users (Student, Teacher, Tablet, Admin)
-- ✅ Role-appropriate dashboard links shown per user role
+- **PIN timing**: Session confirm (Option B) — select classes first, then enter PIN once to confirm all
+- **Page**: PIN step added to existing `/check-in` page (not a separate page)
+- **Bypass**: PIN not required for teacher-mediated check-ins (teacher's authority substitutes)
+- **Future**: Full self-service kiosk page at `/kiosk` (Phase 2), eventual tablet user deprecation (Phase 3)
 
 ---
 
-## TESTING STATUS
+## Phase 1: PIN Verification on Check-In Page
 
-### Verified Working (Confirmed via seed data):
-- Frontend builds successfully - ✅
-- Frontend serves pages (200 OK) - ✅
-- Backend API responds - ✅
-- Database stats endpoint - ✅
-- Seed data created - ✅ (10 users, 12 classes, 208 attendance records, 9 feedback)
+### Backend Changes
 
-### Demo Accounts Available:
-- Student: john@example.com / password123
-- Student: jane@example.com / password123
-- Teacher: mike@example.com / password123
-- Teacher: sarah@example.com / password123
-- Admin: admin@example.com / admin123
-- Tablet: tablet@example.com / tablet123 (full check-in access)
+| File | Change |
+|------|--------|
+| `backend/app/routers/attendance.py` | Add `POST /attendance/bulk-check-in` — accepts `{ user_uuid, class_ids: int[] }`, creates multiple pending attendance records in one request. Needed so frontend can submit all selected classes at once after PIN verification. |
+| (none) | `POST /kiosk/verify-user-pin` already exists — no changes needed. |
 
-### Can Now Test:
-- User creation - ✅ Ready
-- User search - ✅ Ready
-- Check-in flow - ✅ Ready
-- Teacher confirm - ✅ Ready
-- All other user-facing features - ✅ Ready (data exists)
+### Frontend Changes
 
----
+| File | Change |
+|------|--------|
+| `ckb-tracker/src/lib/api.ts` | Add `kioskApi.verifyUserPin(pin)` → `POST /kiosk/verify-user-pin`. Add `attendanceApi.bulkCheckIn(userUuid, classIds)` → `POST /attendance/bulk-check-in`. |
+| `ckb-tracker/src/app/check-in/page.tsx` | Refactor class selection and submission flow (described below). |
 
-## DETAILED MISSING FEATURES
+### Check-In Page Flow (After Changes)
 
-### Home Page (`/`)
-All features implemented - ✅ COMPLETE
+1. **Class selection** — "Check In" button on each class adds it to a **pending queue** instead of submitting immediately. Button toggles to "Selected ✓". No API call yet.
 
-### Portal Page (`/portal`)
-All features implemented - ✅ COMPLETE
+2. **Pending queue indicator** — Shows count of selected classes (e.g., "2 classes selected") near the student info card. Includes a "Clear" button.
 
-### Teacher Page (`/teacher`)
-All features implemented - ✅ COMPLETE
+3. **"Confirm with PIN" button** — Appears when ≥1 class is queued.
 
-### Admin Page (`/admin`)
-All features implemented - ✅ COMPLETE (~95%)
+4. **PIN entry modal** — Centered modal with: student avatar + name, list of selected classes, PIN input (4 digits, masked), numeric keypad (mobile-friendly), Confirm/Cancel buttons, error display.
 
----
+5. **PIN verification** — Calls `POST /kiosk/verify-user-pin` with entered PIN.
 
-## SUMMARY
+6. **Submit check-ins** — On `valid: true`, calls `POST /attendance/bulk-check-in` to create all pending records. Shows success state.
 
-| Page | Spec Items | Completed | Missing | % Complete |
-|------|-----------|-----------|---------|------------|
-| Home (`/`) | 15 | 15 | 0 | 100% |
-| Portal (`/portal`) | 14 | 14 | 0 | 100% |
-| Teacher (`/teacher`) | 26 | 26 | 0 | 95% |
-| Admin (`/admin`) | 50+ | 50+ | ~3 | 95% |
+7. **Error handling** — On `valid: false`, shows "Invalid PIN" error.
 
-**Overall: ~98% Complete**
+### Guard Conditions
 
----
+| Who is checking in | PIN required? |
+|---|---|
+| Tablet user checking in a student | ✅ Yes |
+| Student checking self in | ✅ Yes |
+| Teacher checking in a student | ❌ No |
+| Teacher adding students to class manually | ❌ No |
+| Admin checking in | ❌ No |
 
-## RECOMMENDATIONS
+### Implementation Order
 
-1. **Start Backend Server** - `uvicorn app.main:app --reload` in backend folder
-2. **Start Frontend** - `npm run dev` in ckb-tracker folder
-3. **Security Hardening** - Replace hardcoded admin credentials with proper auth
-4. **Production Readiness** - Add proper error handling, loading states, and form validation
+1. Add `kioskApi.verifyUserPin` and `attendanceApi.bulkCheckIn` to `api.ts`
+2. Add `POST /attendance/bulk-check-in` to backend `attendance.py`
+3. Modify `check-in/page.tsx` — add state for `pendingCheckIns: number[]`
+4. Replace direct `handleCheckIn(cls.id)` calls with queue add/remove logic
+5. Build PIN entry modal component (inline in check-in page)
+6. Wire up: PIN verify → bulk check-in → success feedback
+7. Add teacher/admin bypass logic
 
 ---
 
-*Generated: March 25, 2026*
+## Phase 2: Full Kiosk Mode (Future)
+
+**Goal:** Self-service page at `/kiosk` where students walk up, enter their PIN, select classes, and confirm — no tablet user needed.
+
+### New Page: `/kiosk`
+
+| Step | Screen | Description |
+|------|--------|-------------|
+| 1 | Welcome | Full-screen idle screen, "Tap to sign in" prompt, auto-timeout |
+| 2 | Identify | Enter PIN (primary, calls `verify-user-pin`), or search by name (fallback) |
+| 3 | Select classes | Simplified weekly grid, tap to toggle classes |
+| 4 | Confirm | Shows student info + selected classes, "Confirm" button |
+| 5 | Success | Animated checkmark, auto-return to welcome after 5s |
+
+### Key Differences from `/check-in`
+
+| Aspect | Current `/check-in` | Future `/kiosk` |
+|--------|-------------------|-----------------|
+| Operator | Tablet user searches & selects | Student self-service |
+| Identification | Tablet user searches by name | Student enters PIN (or searches name) |
+| Class selection | Tablet user picks classes | Student picks own classes |
+| Confirmation | Immediate check-in (no PIN) | PIN entry to confirm |
+| Session | 120s timer, logout button | Auto-timeout, no logout |
+| UI density | Full desktop-style | Large touch targets, minimal |
+
+### New Files
+
+- `ckb-tracker/src/app/kiosk/page.tsx` — welcome + identify screen
+- `ckb-tracker/src/app/kiosk/select/page.tsx` — class selection
+- `ckb-tracker/src/app/kiosk/confirm/page.tsx` — PIN re-entry + confirmation
+
+### Relationship to Tablet User
+
+- Kiosk mode eventually **replaces** the need for a dedicated tablet user login
+- The `tablet@example.com` account becomes **optional/legacy**
+- Both can coexist during migration
 
 ---
 
-## KNOWN ISSUES
+## Phase 3: Tablet User Deprecation (Future)
 
-### Issue: Backend Server Requires Restart for New Auth Endpoints
-
-**Date Reported:** March 21, 2026
-
-**Description:**
-After deploying the new JWT authentication system, the backend server must be restarted for the new `/auth/me`, `/auth/refresh`, `/auth/logout`, and `/auth/logout-all` endpoints to be available.
-
-**Resolution:**
-```bash
-# Stop backend (Ctrl+C) and restart:
-cd backend
-uv run uvicorn app.main:app --reload
-```
-
-**Status:** RESOLVED - Requires server restart
+- Add migration guide for gyms using tablet user
+- Admin setting: "Enable Kiosk Mode" toggle
+- Optionally redirect `/check-in` → `/kiosk`
+- Retire tablet role and seed account
 
 ---
 
-*Last Updated: March 31, 2026*
+## Design Decisions (Resolved)
+
+1. **Bulk check-in status**: **`pending`** — teacher must confirm attendance (prevents skipping). PIN verification does not auto-confirm.
+2. **Session timeout**: **120s, no reset on PIN entry** — session stays short. Multiple classes can be selected simultaneously and confirmed with a single PIN entry, so no need for a long session.
+3. **PIN lockout**: **3 failed attempts → 5-minute cooldown** — needs backend rate-limiting on `verify-user-pin` tracking failed attempts per PIN (or IP) with timestamp-based cooldown. Returns `429 Too Many Requests` during cooldown.
+
+## Backend Requirements (PIN Lockout)
+
+- Track failed PIN attempts per user or IP in a new table or in-memory store
+- Return a lockout error with remaining cooldown time after 3 failures
+- Reset counter on successful PIN entry or after cooldown expires
+- Cooldown: 5 minutes (300 seconds)
 
 ---
 
-## IMMEDIATE NEXT WORK (Current Priority)
+## RECENT UPDATES (May 31, 2026)
 
-### Security Hardening - Authentication & Production Readiness ✅ COMPLETE
-**Priority:** HIGH - Completed May 2, 2026
+### Per-User PIN System
+- ✅ Added `pin_hash` column to `User` model
+- ✅ Added PIN fields to schemas (`UserCreate`, `UserUpdate`, `UserResponse`)
+- ✅ Created `KioskUserPinVerifyRequest`/`KioskUserPinVerifyResponse` schemas
+- ✅ Added `POST /kiosk/verify-user-pin` endpoint (returns user data + JWT tokens on PIN match)
+- ✅ Updated `create_user` and `update_user` to handle PIN hashing
+- ✅ Added unique PINs (1001–1011) to all 11 seed users in `seed_complete_data.py`
+- ✅ Fixed seed script — `pin` → `pin_hash=hash_password(pin)` (was passing raw `pin` keyword)
+- ✅ Re-seeded database — all 11 users have bcrypt-hashed PINs
+- ✅ Verified `POST /kiosk/verify-user-pin` works: valid PIN returns user + tokens, invalid PIN returns `valid: false`
+- ✅ Created `creds.md` with all seed credentials (added to `.gitignore`)
 
-**Completed Work:**
-1. ✅ Created `.env.example` with security configuration template
-2. ✅ Updated `app/auth/config.py` to use environment variables with production validation
-3. ✅ Added security headers middleware (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, HSTS)
-4. ✅ Added TrustedHostMiddleware for host validation
-5. ✅ Configurable CORS origins via environment variables
-6. ✅ Added rate limiting on auth endpoints (5/minute) via slowapi
-7. ✅ Verified `.env` is in `.gitignore`
-8. ✅ Added request logging middleware for security audit trails
-9. ✅ Backend successfully starts with all security middleware
-
-**Verification:**
-- Backend running on http://127.0.0.1:8000
-- Rate limiting active on `/auth/login` and `/auth/teacher-login`
-- Security headers being set on all responses
-
-**Remaining Optional Work:**
-- Input validation/sanitization for user-facing forms (frontend-side)
-- Production deployment documentation
-- End-to-end testing of all security features
+### Still Needed (Next)
+- Phase 1 implementation: PIN confirmation step on `/check-in` page
 
 ---
 
-## UPCOMING WORK (After Theme Audit)
-
-### Check-In Class Error Investigation & Fix ✅ COMPLETE
-**Status:** Completed - May 2, 2026
-
-**Error Summary:**
-- **Type:** Console AxiosError (400 Bad Request)
-- **Location:** `ckb-tracker/src/lib/api.ts:152` and `ckb-tracker/src/app/check-in/page.tsx:177`
-- **Endpoint:** `POST /attendance/check-in`
-
-**Root Cause Analysis:**
-The 400 error was caused by:
-1. **User already checked in** - Backend explicitly raises `HTTPException(400, "Already checked in")` at `backend/app/routers/attendance.py:89`
-2. ~~Missing validation~~ ✅ Fixed: Backend now uses `schemas.CheckInRequest` Pydantic schema (line 71)
-3. ~~Poor error feedback~~ ✅ Fixed: Frontend now displays error details from response (line 184)
-
-**Completed Fixes:**
-1. ✅ Proper request validation added via `CheckInRequest` schema
-2. ✅ Frontend error handling improved to show user-friendly messages
-3. ✅ Backend logs verified - no recent 400 errors
-
----
-
-*Last Updated: May 2, 2026*
-
----
-
-## COMPLETED WORK (May 2, 2026)
-
-### Theme Consistency Audit - Dark Mode / Light Mode ✅ COMPLETE
-
-**Status:** All pages and components now properly support both light and dark modes.
-
-**Work Completed:**
-1. **Login Page** (`/login`) - Fixed hardcoded dark-mode classes
-   - Background gradients now use `dark:` variants
-   - Form inputs now use proper `dark:` classes via Input component
-   - Error messages support both modes
-   - Text colors properly switch between light/dark
-
-2. **Home Page** (`/`) - Fixed hardcoded dark-mode classes
-   - Background gradients now use `dark:` variants
-   - Class schedule cards support both modes
-   - News section properly themed
-   - All text colors now switch correctly
-
-3. **Sidebar Component** - Fixed hardcoded dark-mode classes
-   - Navigation items properly highlight in both modes
-   - User info section supports light/dark
-   - Theme toggle button works correctly
-   - Mobile/desktop sidebar variants fixed
-
-4. **Check-In Page** (`/check-in`) - Fixed hardcoded dark-mode classes
-   - Class schedule grid supports both modes
-   - Attendance status badges properly themed
-   - User info cards support light/dark
-   - All text colors now switch correctly
-
-5. **Portal, Teacher, Admin Pages** - Audited ✅
-   - All pages already properly implemented `dark:` variants
-   - No hardcoded dark-mode classes found
-   - UI components (Card, Input, Button, Avatar) all support theming
-
-**Build Status:** ✅ Build successful (Next.js 16.1.7 with Turbopack)
-
----
-
-*Last Updated: May 2, 2026*
+*Last Updated: May 31, 2026*

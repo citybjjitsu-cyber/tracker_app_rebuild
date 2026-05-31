@@ -27,9 +27,10 @@ import {
   kioskApi,
   newsApi,
   themesApi,
+  api,
 } from '@/lib/api';
 import { formatDate, DAYS_OF_WEEK } from '@/lib/utils';
-import { Camera, LogOut, Newspaper, Plus, X } from 'lucide-react';
+import { Camera, LogOut, Newspaper, Plus, Shield, X } from 'lucide-react';
 import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme } from '@/types';
 
 export default function AdminPage() {
@@ -157,7 +158,7 @@ export default function AdminPage() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'kiosk') {
+    if (activeTab === 'kiosk' || activeTab === 'database') {
       loadDbStats();
     }
   }, [activeTab]);
@@ -479,7 +480,7 @@ export default function AdminPage() {
     }
     setIsProcessing(true);
     try {
-      await usersApi.update(selectedUser.user_uuid, { password_hash: passwordForm.password });
+      await usersApi.update(selectedUser.user_uuid, { password: passwordForm.password } as any);
       alert('Password reset successfully');
       setPasswordForm({ password: '', confirm_password: '' });
     } catch (error) {
@@ -668,11 +669,11 @@ export default function AdminPage() {
         first_name: newUserForm.first_name,
         last_name: newUserForm.last_name,
         email: newUserForm.email,
-        password_hash: newUserForm.password,
+        password: newUserForm.password,
         rank: newUserForm.rank,
         nicknames: newUserForm.nicknames || undefined,
         comments: newUserForm.comments || undefined,
-      });
+      } as any);
 
       if (newUserPhoto) {
         await usersApi.uploadPhoto(user.user_uuid, newUserPhoto);
@@ -771,9 +772,8 @@ export default function AdminPage() {
 
   const loadDbStats = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/stats`);
-      const data = await res.json();
-      setDbStats(data);
+      const res = await api.get('/database/stats');
+      setDbStats(res.data);
     } catch (error) {
       console.error('Error loading db stats:', error);
     }
@@ -851,32 +851,32 @@ export default function AdminPage() {
 
   if (isLoading || !isAuthenticated || !isAdmin) {
     return (
-      <>
-        <div className="max-w-md mx-auto pt-20">
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Login</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <Input
-                  label="Email"
-                  type="email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                />
-                <Input
-                  label="Password"
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                />
-                <Button type="submit" className="w-full">Login</Button>
-              </form>
-            </CardContent>
-          </Card>
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <div className="w-full max-w-md glass-panel rounded-xl p-8">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-container flex items-center justify-center">
+              <Shield className="w-8 h-8 text-on-primary-container" />
+            </div>
+            <h1 className="text-2xl font-headline font-bold text-on-surface">Admin <span className="text-primary-container">Login</span></h1>
+            <p className="text-on-surface-variant text-sm mt-1">Sign in with admin credentials</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <Input
+              label="Email"
+              type="email"
+              value={loginForm.email}
+              onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={loginForm.password}
+              onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+            />
+            <Button type="submit" className="w-full">Login</Button>
+          </form>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -884,9 +884,9 @@ export default function AdminPage() {
     <>
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admin Settings</h1>
+          <h1 className="text-2xl font-headline font-bold text-on-surface">Admin Settings</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500 dark:text-slate-400">{user?.email}</span>
+            <span className="text-sm text-on-surface-variant">{user?.email}</span>
             <Button variant="outline" size="sm" onClick={() => logout()}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -894,15 +894,19 @@ export default function AdminPage() {
           </div>
         </div>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="flex gap-4 mb-6 border-b border-outline-variant/20 overflow-x-auto">
         {tabs.map((tab) => (
-          <Button
+          <button
             key={tab.id}
-            variant={activeTab === tab.id ? 'primary' : 'outline'}
             onClick={() => setActiveTab(tab.id)}
+            className={`text-xs font-bold font-label tracking-wider uppercase pb-3 whitespace-nowrap transition-colors ${
+              activeTab === tab.id
+                ? 'text-primary-container border-b-2 border-primary-container'
+                : 'text-on-surface-variant/70 hover:text-on-surface'
+            }`}
           >
             {tab.label}
-          </Button>
+          </button>
         ))}
       </div>
 
@@ -2356,7 +2360,9 @@ export default function AdminPage() {
                   className="w-full"
                   onClick={async () => {
                     try {
-                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/export-seed`);
+                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/export-seed`, {
+                        credentials: 'include',
+                      });
                       const blob = await res.blob();
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement('a');
@@ -2376,7 +2382,9 @@ export default function AdminPage() {
                   className="w-full"
                   onClick={async () => {
                     try {
-                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/create-backup`);
+                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/create-backup`, {
+                        credentials: 'include',
+                      });
                       const blob = await res.blob();
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement('a');
@@ -2413,6 +2421,7 @@ export default function AdminPage() {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/restore`, {
                           method: 'POST',
+                          credentials: 'include',
                           body: formData,
                         });
                         if (res.ok) {
@@ -2446,6 +2455,7 @@ export default function AdminPage() {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/reset`, {
                           method: 'POST',
+                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ mode: 'empty' }),
                         });
@@ -2468,6 +2478,7 @@ export default function AdminPage() {
                       try {
                         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/reset`, {
                           method: 'POST',
+                          credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ mode: 'seed' }),
                         });

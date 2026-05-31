@@ -15,16 +15,30 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: Optional[str] = None
+    pin: Optional[str] = None
     profile_image_url: Optional[str] = None
 
 
-class UserUpdate(UserBase):
-    pass
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    rank: Optional[str] = None
+    nicknames: Optional[str] = None
+    comments: Optional[str] = None
+    last_graded_date: Optional[date] = None
+    password: Optional[str] = None
+    pin: Optional[str] = None
 
 
 class UserResponse(UserBase):
     user_uuid: str
+    password_hash: Optional[str] = None
+    pin_hash: Optional[str] = None
     profile_image_url: Optional[str] = None
+    image_offset_x: Optional[float] = None
+    image_offset_y: Optional[float] = None
+    end_date: Optional[datetime] = None
     is_current: bool
     effective_date: datetime
     created_date: datetime
@@ -400,3 +414,23 @@ class NewsResponse(NewsBase):
 
     class Config:
         from_attributes = True
+
+
+class DbStatsResponse(BaseModel):
+    total_users: int
+    total_classes: int
+    total_attendance: int
+    size: str
+    kiosk_pin_set: bool
+
+
+class KioskUserPinVerifyRequest(BaseModel):
+    pin: str
+
+
+class KioskUserPinVerifyResponse(BaseModel):
+    valid: bool
+    user: Optional[UserResponse] = None
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    csrf_token: Optional[str] = None

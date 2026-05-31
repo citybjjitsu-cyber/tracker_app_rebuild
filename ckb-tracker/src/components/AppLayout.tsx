@@ -16,7 +16,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <main className="lg:ml-[280px] min-h-screen transition-all duration-300">
+      <main className="lg:ml-[var(--sidebar-width)] min-h-screen transition-all duration-300">
         <div className="p-6 lg:p-8 pt-16 lg:pt-8">
           {children}
         </div>

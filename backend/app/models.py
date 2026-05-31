@@ -25,6 +25,7 @@ class User(Base):
     last_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String)
+    pin_hash = Column(String)
     rank = Column(String, default="White")
     last_graded_date = Column(Date)
     comments = Column(Text)

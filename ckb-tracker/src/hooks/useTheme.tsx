@@ -24,7 +24,7 @@ const THEME_VAR_KEYS = [
 ] as const;
 
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'light';
+  if (typeof window === 'undefined') return 'dark';
   const stored = localStorage.getItem('theme') as Theme | null;
   if (stored) return stored;
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -62,6 +62,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.classList.toggle('light', theme === 'light');
   }, [theme]);
 
   useEffect(() => {

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Arena Elite - Gym Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "surface-container": "#201f1f",
+                "on-tertiary": "#003450",
+                "tertiary-fixed": "#cbe6ff",
+                "on-primary-fixed": "#410002",
+                "on-surface": "#e5e2e1",
+                "on-tertiary-fixed": "#001e30",
+                "tertiary-fixed-dim": "#90cdff",
+                "secondary-fixed-dim": "#ffb4ab",
+                "on-error": "#690005",
+                "surface-variant": "#353534",
+                "on-secondary": "#660709",
+                "on-primary-container": "#fff6f5",
+                "on-error-container": "#ffdad6",
+                "inverse-on-surface": "#313030",
+                "background": "#131313",
+                "surface-dim": "#131313",
+                "on-tertiary-fixed-variant": "#004b71",
+                "on-primary-fixed-variant": "#93000b",
+                "on-primary": "#690005",
+                "surface-container-highest": "#353534",
+                "primary-container": "#dc2626",
+                "on-secondary-fixed": "#410002",
+                "surface-container-high": "#2a2a2a",
+                "secondary": "#ffb4ab",
+                "primary": "#ffb4ab",
+                "surface-bright": "#3a3939",
+                "primary-fixed": "#ffdad6",
+                "surface-container-low": "#1c1b1b",
+                "on-secondary-container": "#ff9f94",
+                "error-container": "#93000a",
+                "outline-variant": "#5c403c",
+                "surface-container-lowest": "#0e0e0e",
+                "secondary-container": "#89231e",
+                "on-tertiary-container": "#f3f8ff",
+                "on-surface-variant": "#e6bdb8",
+                "surface": "#131313",
+                "on-background": "#e5e2e1",
+                "on-secondary-fixed-variant": "#86211c",
+                "secondary-fixed": "#ffdad6",
+                "inverse-primary": "#bf0715",
+                "surface-tint": "#ffb4ab",
+                "primary-fixed-dim": "#ffb4ab",
+                "error": "#ffb4ab",
+                "tertiary-container": "#0078b2",
+                "outline": "#ac8884",
+                "tertiary": "#90cdff",
+                "inverse-surface": "#e5e2e1"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+            },
+            "fontFamily": {
+                "headline": ["Space Grotesk"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        .glass-panel {
+            background: rgba(53, 53, 52, 0.6);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<aside class="flex flex-col fixed left-0 top-0 h-full overflow-y-auto bg-[#0e0e0e] h-screen w-64 border-r border-white/15 shadow-[20px_0_40px_rgba(0,0,0,0.5)] z-50">
+<div class="p-6">
+<div class="flex items-center gap-3 mb-8">
+<div class="w-10 h-10 bg-primary-container flex items-center justify-center rounded">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+</div>
+<div>
+<h1 class="font-['Space_Grotesk'] font-black text-xl text-red-600 leading-none">Arena Elite</h1>
+<p class="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold">Admin Terminal</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span> Users
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="sports_martial_arts">sports_martial_arts</span> Classes
+                </a>
+<a class="bg-red-900/20 text-red-500 border-l-4 border-red-600 px-4 py-3 flex items-center gap-3 font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="fitness_center" style="font-variation-settings: 'FILL' 1;">fitness_center</span> Gyms
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span> Terms
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="track_changes">track_changes</span> Targets
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span> Lessons
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="newspaper">newspaper</span> News
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span> Analytics
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="forum">forum</span> Feedback
+                </a>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="tv">tv</span> Kiosk
+                </a>
+</nav>
+</div>
+<div class="mt-auto p-6 space-y-4">
+<button class="w-full bg-primary-container text-on-primary-container py-3 rounded-lg font-bold text-xs tracking-widest transition-transform active:scale-95">
+                NEW SESSION
+            </button>
+<a class="flex items-center gap-3 text-[#e5e2e1]/70 px-4 py-3 hover:bg-[#1c1b1b] hover:text-white transition-all font-['Inter'] font-medium text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span> Logout
+            </a>
+</div>
+</aside>
+<main class="ml-64 min-h-screen">
+<header class="flex justify-between items-center w-full px-6 h-16 bg-[#131313] sticky top-0 z-40">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-sm">search</span>
+<input class="w-full bg-surface-container-lowest border-none focus:ring-1 focus:ring-primary-container rounded-lg pl-10 text-sm py-2 text-on-surface" placeholder="Search facilities..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<button class="text-[#e5e2e1] hover:bg-[#353534]/60 transition-colors p-2 rounded-lg relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<button class="text-[#e5e2e1] hover:bg-[#353534]/60 transition-colors p-2 rounded-lg">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="flex items-center gap-3 pl-4 border-l border-white/10">
+<div class="text-right">
+<p class="text-xs font-bold leading-none">Admin Profile</p>
+<p class="text-[10px] text-on-surface-variant">Superuser</p>
+</div>
+<img alt="Admin Profile" class="w-8 h-8 rounded-full border border-primary-container" data-alt="professional headshot of a gym administrator in a dark studio setting with dramatic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjq99Ru9lNgj_163MTKfxIhueBh4tZQzYZLPMOSOP5-jWj-o0_x64ZWqE6wCsNTcA8V8y0YEVnVncIfQ0VmqtSxnGfX6RDt_fnwND0VHhA-pr5Oiq0haBCCwLWT0Fy45AT3K5nzOVnyk6LSnpp_bEXDqb8yFNgJgJ5t_aanJc0AUTUhTRXzTCxSKF-6lHQU0kWRcpsboLP38nydBpfo3_GGIZZdSoFl5xfpishmJ36wJ3uY5WYH9A5fVZBtBKvrqhuamaZpC82Lrc"/>
+</div>
+</div>
+</header>
+<section class="p-8">
+<div class="flex justify-between items-end mb-10">
+<div>
+<span class="text-primary-container font-headline font-black text-sm tracking-[0.3em] uppercase">Fleet Status</span>
+<h2 class="font-headline font-black text-5xl text-on-surface tracking-tighter mt-2">Gym Locations</h2>
+</div>
+<div class="flex gap-4">
+<div class="glass-panel p-4 rounded-xl flex items-center gap-4">
+<div class="text-right">
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant">Active Gyms</p>
+<p class="font-headline font-black text-2xl text-on-surface">12</p>
+</div>
+<div class="w-10 h-10 bg-primary-container/10 border border-primary-container/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-xl flex items-center gap-4">
+<div class="text-right">
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant">Capacity</p>
+<p class="font-headline font-black text-2xl text-on-surface">94%</p>
+</div>
+<div class="w-10 h-10 bg-tertiary-container/10 border border-tertiary-container/20 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Gym Entry 1 -->
+<div class="group relative overflow-hidden rounded-xl bg-surface-container-low transition-all duration-300 hover:translate-y-[-4px]">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="h-48 relative">
+<img alt="The Forge Location" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" data-alt="industrial style luxury gym with red neon lighting and heavy weights on dark rubber flooring" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz-O9YM3Tiu-_r-gNAiGpdBncvei1oVWGWi45kOTjxalM5A847k8tFw685dZrlWSVpist3PmQNDYczEh4cTB3okpAqefNm7-ijDnhkm97q825e9i7c36K5wFs4nYZQsi6HtowFoQFODT7z_xZO5-sg2TaVGcmGG8NJ6uM65Uv1fzlxNnXP7CzYc_rZrAWf1ZmNYEY914mMs1dsDTspLFS0e3oqVqadSFtyC0xCBB6RZiR65nqokSOPBstd6UEEBzXYwHEnaQQK4VU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+<div class="absolute bottom-4 left-6">
+<h3 class="font-headline font-black text-2xl text-on-surface tracking-tight">The Forge</h3>
+<p class="text-on-surface-variant text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Downtown District
+                            </p>
+</div>
+</div>
+<div class="p-6 pt-2 space-y-6">
+<div class="flex justify-between items-center border-b border-white/5 pb-4">
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Manager</p>
+<div class="flex items-center gap-2">
+<img alt="Manager Avatar" class="w-6 h-6 rounded-full grayscale" data-alt="close up headshot of a fit male manager with a professional smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDVGQnIn11anWzq5--fASKiKRREgcbzVsbdCqGFqqOf7dTUIFsMESHGqgiXbIcRR7hbEigtJjFNswwSI64tNeTBBuXl_Aa3SseaHWoBOILAxn7lsrFUjp1w1IaDWbZRT5clkvQwaW6nihKSkhvIzdKY0NCfdzH5G0hVUQJBTECc9fuyWhW1_vD2GRtspNo9h_Wpre_wzGIngmDBQo4_W-GPys2oC6wdhilqjt-U8r0UsgAkF1lJqpqM1rNIcoM_qszprsdCx3DDDY"/>
+<span class="text-sm font-bold">Marcus Thorne</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Status</p>
+<span class="text-[10px] bg-primary-container/20 text-primary px-2 py-0.5 rounded border border-primary-container/30 uppercase font-black">Live Class</span>
+</div>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">Active Class Types</p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Muay Thai</span>
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">BJJ</span>
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">H.I.I.T</span>
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Striking</span>
+</div>
+</div>
+<button class="w-full bg-white/5 border border-white/10 text-on-surface hover:bg-primary-container hover:text-on-primary-container hover:border-transparent py-3 rounded-lg font-bold text-xs tracking-widest transition-all">
+                            VIEW ANALYTICS
+                        </button>
+</div>
+</div>
+<!-- Gym Entry 2 -->
+<div class="group relative overflow-hidden rounded-xl bg-surface-container-low transition-all duration-300 hover:translate-y-[-4px]">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="h-48 relative">
+<img alt="Titan Hall Location" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" data-alt="modern minimalist martial arts gym with light wood mats and dark charcoal walls" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXe3er9yLYVCA3sbRi_a6D3s22XlpgNx7VRxRGX6DoHrXUvP91vrskW7WoyjWF2JkTUaf4lGZfzZGyG2vGnqcGkTdRrLL8Aqk9lfftezS8I14SkPkeDDnwfzj7wuXsNgYG9ZpNL5T3kI2Ih0WHBRBv5mDJ2Vys7WmXXQsyIAG__fuTOwWNY90eRRZN213hFUZXCS0xDODPSgnJiyjP54AdFdpj1Z3mcPnl2pe-q6gJiJGaFDUz7-zmX1dpIOmW1W5UZ38tQ6-dNco"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+<div class="absolute bottom-4 left-6">
+<h3 class="font-headline font-black text-2xl text-on-surface tracking-tight">Titan Hall</h3>
+<p class="text-on-surface-variant text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> Uptown Commons
+                            </p>
+</div>
+</div>
+<div class="p-6 pt-2 space-y-6">
+<div class="flex justify-between items-center border-b border-white/5 pb-4">
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Manager</p>
+<div class="flex items-center gap-2">
+<img alt="Manager Avatar" class="w-6 h-6 rounded-full grayscale" data-alt="close up headshot of a fit female manager with hair tied back in a professional setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjaG7OVUKAFpBPYkgk8Z91NwPEnMN6qb2YLIbQZZ4-CcuN96kDgQ2LYYaRwyVX4k1phJns0fSdIJQCp5ma30Yla7xcWghNjG3vyR9SsEf2doJQWckd32OhSga5j-puv8ltaOn6uLzWEa7ncvL-Ez-Sc1U_ln8JbamBBfBf3uTL_YaOr_Idc0ORPBDwkWfUz8gYxueDrVFy-E0Cg1BvbX_vegrMDyGZRuR_I-R84mmAD023LJunoejSK4f3Wrs6goi3GDxeecRhXzk"/>
+<span class="text-sm font-bold">Elena Vance</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Status</p>
+<span class="text-[10px] bg-white/5 text-on-surface-variant px-2 py-0.5 rounded border border-white/10 uppercase font-black">Idle</span>
+</div>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">Active Class Types</p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Wrestling</span>
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Yoga</span>
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Conditioning</span>
+</div>
+</div>
+<button class="w-full bg-white/5 border border-white/10 text-on-surface hover:bg-primary-container hover:text-on-primary-container hover:border-transparent py-3 rounded-lg font-bold text-xs tracking-widest transition-all">
+                            VIEW ANALYTICS
+                        </button>
+</div>
+</div>
+<!-- Gym Entry 3 (Bento-style placeholder for new addition) -->
+<div class="flex flex-col gap-6">
+<div class="bg-surface-container-lowest border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-center group cursor-pointer hover:border-primary-container/50 transition-all h-full">
+<div class="w-16 h-16 bg-surface-container-highest rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary-container text-3xl">add</span>
+</div>
+<h4 class="font-headline font-black text-xl text-on-surface">Add New Location</h4>
+<p class="text-on-surface-variant text-sm mt-2 max-w-[180px]">Expand the Arena Elite network to a new district.</p>
+</div>
+</div>
+<!-- Gym Entry 4 -->
+<div class="group relative overflow-hidden rounded-xl bg-surface-container-low transition-all duration-300 hover:translate-y-[-4px]">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="h-48 relative">
+<img alt="Apex Lab Location" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" data-alt="high-tech gym facility with glowing blue floor markings and advanced cardio equipment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSAc2FitGRJ-2qzg2GuLZOy1iWo3Xf89BoxGGGd1Gl5Sd0bfMwglTyHe7ZuMJjgxSn0_cuSwURZgM2tz8jFnaSY32UIXLV8MdIUfhp0-qDPmWFKYwzuFUPCrQX_FDh1Mv0rBqdIdMZUdCIrHuyhTPqrU7CL4c5rydv_kJm57X5PmyCVVEfMwDBcbYoFCAHxtK7pEu4ZhXE28TGHdbq-qVRrfwilBPUSdisHL2viXjXtaqTtSNpWjJXssEghPzZSITcx-qAGAojZoY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+<div class="absolute bottom-4 left-6">
+<h3 class="font-headline font-black text-2xl text-on-surface tracking-tight">Apex Lab</h3>
+<p class="text-on-surface-variant text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span> East Bay Waterfront
+                            </p>
+</div>
+</div>
+<div class="p-6 pt-2 space-y-6">
+<div class="flex justify-between items-center border-b border-white/5 pb-4">
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Manager</p>
+<div class="flex items-center gap-2">
+<img alt="Manager Avatar" class="w-6 h-6 rounded-full grayscale" data-alt="headshot of a focused male gym manager in a black polo shirt" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIyTSl1yywxn_RCAZqYSj_FnvzrjbTkaXgxc0Tpt6CXut7gHI-PiygrzvgxAAHxwNxNPw6ZGB-rz9D0l_YAI_6rA-fx0_kyliJfl-dg0ZOc7jz-JxLI2GT_pNHZ1_x3g9wA64NuxrUQtshAcUd29OAcBz_xwISByB5zeHLkpXcZIvrA-yb0SDLwUT1nxj5XwJpDiQ3r7yzLdvT_kNtxNJ2cXRaH8jiFuYQkLglnsW5nkVJgybPs2UolrkeU4KjCyzrAzdvw4N7JbQ"/>
+<span class="text-sm font-bold">Julian Reyes</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Status</p>
+<span class="text-[10px] bg-primary-container/20 text-primary px-2 py-0.5 rounded border border-primary-container/30 uppercase font-black">Live Class</span>
+</div>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">Active Class Types</p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Kickboxing</span>
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Olympic Lifting</span>
+<span class="bg-surface-container-highest/50 px-3 py-1 rounded text-xs text-on-surface border border-white/5">Crossfit</span>
+</div>
+</div>
+<button class="w-full bg-white/5 border border-white/10 text-on-surface hover:bg-primary-container hover:text-on-primary-container hover:border-transparent py-3 rounded-lg font-bold text-xs tracking-widest transition-all">
+                            VIEW ANALYTICS
+                        </button>
+</div>
+</div>
+<!-- Map Bento Card -->
+<div class="lg:col-span-2 relative overflow-hidden rounded-xl bg-surface-container-low min-h-[400px]">
+<div class="absolute inset-0 bg-surface-container-lowest/40 z-10 pointer-events-none"></div>
+<div class="absolute top-6 left-6 z-20 glass-panel p-4 rounded-lg border border-white/10">
+<h4 class="font-headline font-black text-lg text-on-surface">Regional Distribution</h4>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant">Metropolitan Area Coverage</p>
+</div>
+<div class="w-full h-full bg-[#1a1a1a] flex items-center justify-center">
+<!-- Simulated Map Interface -->
+<div class="relative w-full h-full" data-location="Los Angeles" style="background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;">
+<div class="absolute top-1/4 left-1/3 w-4 h-4 bg-primary-container rounded-full ring-8 ring-primary-container/20 animate-pulse"></div>
+<div class="absolute top-1/2 left-2/3 w-4 h-4 bg-primary-container rounded-full ring-8 ring-primary-container/20 animate-pulse"></div>
+<div class="absolute bottom-1/3 left-1/2 w-4 h-4 bg-primary-container rounded-full ring-8 ring-primary-container/20 animate-pulse"></div>
+<div class="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-40"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background opacity-40"></div>
+</div>
+</div>
+<div class="absolute bottom-6 right-6 z-20 flex gap-2">
+<button class="bg-surface-container-highest p-2 rounded-lg border border-white/10 text-on-surface hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined">zoom_in</span>
+</button>
+<button class="bg-surface-container-highest p-2 rounded-lg border border-white/10 text-on-surface hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined">zoom_out</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CKB Tracker | Elite Performance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#353534",
+                        "primary-container": "#dc2626",
+                        "on-surface": "#e5e2e1",
+                        "on-tertiary-container": "#f3f8ff",
+                        "background": "#131313",
+                        "secondary": "#ffb4ab",
+                        "inverse-surface": "#e5e2e1",
+                        "on-secondary": "#660709",
+                        "surface-container": "#201f1f",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "on-primary-fixed": "#410002",
+                        "tertiary-fixed-dim": "#90cdff",
+                        "on-secondary-container": "#ff9f94",
+                        "primary": "#ffb4ab",
+                        "outline": "#ac8884",
+                        "tertiary-fixed": "#cbe6ff",
+                        "secondary-fixed-dim": "#ffb4ab",
+                        "tertiary": "#90cdff",
+                        "inverse-on-surface": "#313030",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-tint": "#ffb4ab",
+                        "secondary-container": "#89231e",
+                        "error-container": "#93000a",
+                        "surface-container-low": "#1c1b1b",
+                        "tertiary-container": "#0078b2",
+                        "outline-variant": "#5c403c",
+                        "inverse-primary": "#bf0715",
+                        "secondary-fixed": "#ffdad6",
+                        "on-primary": "#690005",
+                        "on-primary-container": "#fff6f5",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "surface-dim": "#131313",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#86211c",
+                        "surface-bright": "#3a3939",
+                        "surface": "#131313",
+                        "on-primary-fixed-variant": "#93000b",
+                        "on-tertiary": "#003450",
+                        "on-error": "#690005",
+                        "primary-fixed": "#ffdad6",
+                        "on-secondary-fixed": "#410002",
+                        "error": "#ffb4ab",
+                        "on-background": "#e5e2e1",
+                        "on-surface-variant": "#e6bdb8",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-fixed": "#001e30"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-grid {
+            background-image: radial-gradient(circle, rgba(220, 38, 38, 0.05) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .glass-panel {
+            background: rgba(53, 53, 52, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-white">
+<!-- Hero / Login Section with Background Pattern -->
+<div class="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden bg-grid">
+<!-- Background Gradient Glows -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary-container/10 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="absolute -bottom-48 -left-48 w-96 h-96 bg-primary-container/5 blur-[100px] rounded-full pointer-events-none"></div>
+<!-- Login Card Container -->
+<div class="z-10 w-full max-w-md">
+<div class="flex flex-col items-center mb-10">
+<div class="w-16 h-16 bg-primary-container flex items-center justify-center rounded-xl shadow-2xl shadow-primary-container/20 mb-6">
+<span class="material-symbols-outlined text-white text-4xl" data-weight="fill">shield</span>
+</div>
+<h1 class="font-headline text-4xl font-black uppercase tracking-tighter text-on-surface">
+                    CKB <span class="text-primary-container">Tracker</span>
+</h1>
+<p class="font-label text-on-surface-variant tracking-[0.2em] uppercase text-[10px] mt-2 font-bold">CKB Tracker Access</p>
+</div>
+<div class="glass-panel p-8 rounded-xl border border-outline-variant/15 shadow-2xl">
+<form class="space-y-6">
+<div>
+<label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Email Identity</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface focus:ring-1 focus:ring-primary-container focus:border-primary-container transition-all outline-none placeholder:text-neutral-700" placeholder="fighter@ckbtracker.com" type="email"/>
+</div>
+<div>
+<label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Secure Protocol</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface focus:ring-1 focus:ring-primary-container focus:border-primary-container transition-all outline-none placeholder:text-neutral-700" placeholder="••••••••" type="password"/>
+</div>
+<button class="w-full bg-primary-container hover:bg-inverse-primary text-on-primary-container font-headline font-bold uppercase tracking-widest py-4 rounded-lg transition-all active:scale-[0.98] shadow-lg shadow-primary-container/20">
+                        Sign In
+                    </button>
+<div class="flex justify-between items-center text-[11px] font-bold uppercase text-neutral-500 tracking-tighter px-1">
+<a class="hover:text-primary-container transition-colors" href="#">Forgot Access Code?</a>
+<a class="hover:text-primary-container transition-colors" href="#">New Recruit?</a>
+</div>
+</form>
+</div>
+</div>
+<!-- Scroll Indicator -->
+<div class="mt-20 flex flex-col items-center gap-2 text-neutral-600 animate-bounce">
+<span class="text-[10px] font-black tracking-widest uppercase">Field Intel</span>
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+<!-- Main Content Section -->
+<main class="max-w-7xl mx-auto px-6 py-24 space-y-32">
+<!-- Class Schedule Section -->
+<section>
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+<div>
+<h2 class="font-headline text-5xl font-black uppercase tracking-tighter leading-none mb-4">Class <span class="text-primary-container">Schedule</span></h2>
+<p class="text-on-surface-variant font-medium max-w-md">Weekly combat rotations and performance drills for the CKB Tracker elite tier.</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 bg-surface-container-high rounded-lg text-on-surface hover:bg-primary-container hover:text-white transition-all">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<span class="font-headline font-bold tracking-widest uppercase text-sm">October 23 — 29</span>
+<button class="p-2 bg-surface-container-high rounded-lg text-on-surface hover:bg-primary-container hover:text-white transition-all">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- 7-Day Grid -->
+<div class="grid grid-cols-1 md:grid-cols-7 gap-4">
+<!-- Mon -->
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/10 flex flex-col min-h-[220px]">
+<span class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Mon</span>
+<span class="text-2xl font-black font-headline mb-6">23</span>
+<div class="space-y-3 mt-auto">
+<div class="p-3 bg-surface-container-lowest rounded-lg border-l-2 border-primary-container/30">
+<p class="text-[10px] font-bold text-primary-container uppercase">06:00</p>
+<p class="text-xs font-bold text-on-surface">Striking Drills</p>
+</div>
+<div class="p-3 bg-surface-container-lowest rounded-lg border-l-2 border-neutral-700">
+<p class="text-[10px] font-bold text-neutral-500 uppercase">18:00</p>
+<p class="text-xs font-bold text-on-surface">BJJ Fundamentals</p>
+</div>
+</div>
+</div>
+<!-- Tue -->
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/10 flex flex-col min-h-[220px]">
+<span class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Tue</span>
+<span class="text-2xl font-black font-headline mb-6">24</span>
+<div class="space-y-3 mt-auto">
+<div class="p-3 bg-surface-container-lowest rounded-lg border-l-2 border-primary-container/30">
+<p class="text-[10px] font-bold text-primary-container uppercase">07:00</p>
+<p class="text-xs font-bold text-on-surface">Conditioning</p>
+</div>
+</div>
+</div>
+<!-- Wed (TODAY HIGHLIGHTED) -->
+<div class="relative p-6 rounded-xl border border-primary-container/50 bg-primary-container/10 flex flex-col min-h-[220px] shadow-2xl shadow-primary-container/20">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-container text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Today</div>
+<span class="text-[10px] font-black uppercase tracking-widest text-primary-container mb-2">Wed</span>
+<span class="text-2xl font-black font-headline mb-6 text-on-surface">25</span>
+<div class="space-y-3 mt-auto">
+<div class="p-3 bg-primary-container rounded-lg shadow-lg">
+<p class="text-[10px] font-black text-white/70 uppercase">06:00</p>
+<p class="text-xs font-black text-white">Elite Sparring</p>
+</div>
+<div class="p-3 bg-surface-container-lowest/50 rounded-lg border-l-2 border-primary-container">
+<p class="text-[10px] font-bold text-primary-container uppercase">19:00</p>
+<p class="text-xs font-bold text-on-surface">Muay Thai</p>
+</div>
+</div>
+</div>
+<!-- Thu -->
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/10 flex flex-col min-h-[220px]">
+<span class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Thu</span>
+<span class="text-2xl font-black font-headline mb-6">26</span>
+<div class="space-y-3 mt-auto">
+<div class="p-3 bg-surface-container-lowest rounded-lg border-l-2 border-primary-container/30">
+<p class="text-[10px] font-bold text-primary-container uppercase">06:00</p>
+<p class="text-xs font-bold text-on-surface">Wrestling</p>
+</div>
+</div>
+</div>
+<!-- Fri -->
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/10 flex flex-col min-h-[220px]">
+<span class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Fri</span>
+<span class="text-2xl font-black font-headline mb-6">27</span>
+<div class="space-y-3 mt-auto">
+<div class="p-3 bg-surface-container-lowest rounded-lg border-l-2 border-primary-container/30">
+<p class="text-[10px] font-bold text-primary-container uppercase">17:00</p>
+<p class="text-xs font-bold text-on-surface">Open Mat</p>
+</div>
+</div>
+</div>
+<!-- Sat -->
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/10 flex flex-col min-h-[220px]">
+<span class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Sat</span>
+<span class="text-2xl font-black font-headline mb-6">28</span>
+<div class="space-y-3 mt-auto">
+<div class="p-3 bg-surface-container-lowest rounded-lg border-l-2 border-primary-container/30">
+<p class="text-[10px] font-bold text-primary-container uppercase">10:00</p>
+<p class="text-xs font-bold text-on-surface">Heavy Bag</p>
+</div>
+</div>
+</div>
+<!-- Sun -->
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/10 flex flex-col min-h-[220px] bg-surface-container-lowest opacity-50">
+<span class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Sun</span>
+<span class="text-2xl font-black font-headline mb-6 text-neutral-600">29</span>
+<div class="mt-auto">
+<p class="text-[10px] font-black text-neutral-600 uppercase italic">Facility Closed</p>
+</div>
+</div>
+</div>
+</section>
+<!-- News & Updates Section -->
+<section>
+<div class="flex items-center gap-4 mb-12">
+<h2 class="font-headline text-5xl font-black uppercase tracking-tighter leading-none">News <span class="text-primary-container">Updates</span></h2>
+<div class="h-1 flex-grow bg-surface-container-high rounded-full">
+<div class="h-full w-24 bg-primary-container rounded-full"></div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- News Card 1 -->
+<article class="group relative bg-surface-container-low rounded-xl overflow-hidden transition-all hover:-translate-y-2">
+<div class="aspect-[16/10] overflow-hidden">
+<img alt="Gym training session" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-105 group-hover:scale-100" data-alt="close-up of cinematic martial arts training session in dark gym with dramatic red backlighting and dust particles in air" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4_iMRtbsc74Iy2RsX8jy4zW8zdwZ2xYwbJQhwdaUVOR9O2qvxKLkyrtsFuIuDkqiZaqVo3rPe5CLTp7OJ-v8ByZ4rh7lgm9ivN6xI-av6iikbjrvSZoSWfQHCgl9YZZlwFXy3a762O0kByhru_3bLKZL4g1suHCQr13_9xnfihEbY9eJWgzLZ6fTcwC2WQx-X2NUPNfv1Zh1wjLuoQi_kxJc0BSq0S41aaSAqMhuovqbSLi2KH_0UwfeWN_-VptnWS4VW10fewjI"/>
+</div>
+<div class="p-6">
+<div class="flex items-center justify-between mb-4">
+<span class="text-[9px] font-black text-primary-container uppercase tracking-widest border border-primary-container/30 px-2 py-0.5 rounded">Event</span>
+<span class="text-[10px] font-medium text-neutral-500">2 hours ago</span>
+</div>
+<h3 class="font-headline text-xl font-bold mb-3 leading-tight text-on-surface group-hover:text-primary-container transition-colors">Grand Prix Qualifier Registration Open</h3>
+<p class="text-sm text-on-surface-variant line-clamp-2">The annual CKB Tracker qualifiers start next month. Ensure your medical clearance is updated in the portal before Friday.</p>
+</div>
+</article>
+<!-- News Card 2 -->
+<article class="group relative bg-surface-container-low rounded-xl overflow-hidden transition-all hover:-translate-y-2">
+<div class="aspect-[16/10] overflow-hidden">
+<img alt="Kettlebells on floor" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-105 group-hover:scale-100" data-alt="heavy black kettlebells on a dark textured gym floor with high contrast lighting and red accent glow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCe-Bciz7MW9e8Ux4Yvoeh7tSOxa8gjlPvKtcW2wwcwVtvHxIa4N0Q_cbCJYQzNg0bcVGqT6cLLtPBQGAtCqC4bWuK2dHJqVjj9-8P4CjmgHUvtTK0tTi7fQa4s6qX88753g3YJbSaNaJJ6S4pk85L-aXgyBwvkhU1Oax-hK70QsZ14jVIqSWd8Zcf8OITfdehR74gxN4Im6keMdXgOmYbuxskMv5OIIxO9xg_Dc22cs7Nmr_8ucJ5GqMsmrXCT3-rlB-w6yi18J_g"/>
+</div>
+<div class="p-6">
+<div class="flex items-center justify-between mb-4">
+<span class="text-[9px] font-black text-tertiary uppercase tracking-widest border border-tertiary/30 px-2 py-0.5 rounded">Gear</span>
+<span class="text-[10px] font-medium text-neutral-500">1 day ago</span>
+</div>
+<h3 class="font-headline text-xl font-bold mb-3 leading-tight text-on-surface group-hover:text-tertiary transition-colors">New Performance Gear Arriving</h3>
+<p class="text-sm text-on-surface-variant line-clamp-2">Official CKB Tracker striking gloves and performance rashguards now available at the front desk for elite members.</p>
+</div>
+</article>
+<!-- News Card 3 -->
+<article class="group relative bg-surface-container-low rounded-xl overflow-hidden transition-all hover:-translate-y-2">
+<div class="aspect-[16/10] overflow-hidden">
+<img alt="Fighter silhouette" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-105 group-hover:scale-100" data-alt="dramatic silhouette of a professional fighter standing in a dark doorway with intense red rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWhYjcb5pb61VVn6qvvEPjXU11E4fJqrKGx6MjlEbzH72d1TnShMx0vG9vBaHliHs-9Y51bKp9oiuvX7bV0u9dp61_sN437aurzFmACjfl4ezRsBWvftqebDsfMbzAihnw7ZsZTdYY457uM6vd4i7hK18lr97unFAVpCvuIES1ix_CkqavxQPn2o1AvT6FXmdrI1s6MRV4jnh6x7g8d5wwT4NQ0kdoy_IQejhytfS2D-ZPYByj5s66kxcDqmeTXSH_HBVvCRnyuUs"/>
+</div>
+<div class="p-6">
+<div class="flex items-center justify-between mb-4">
+<span class="text-[9px] font-black text-secondary-fixed-dim uppercase tracking-widest border border-secondary-fixed-dim/30 px-2 py-0.5 rounded">Notice</span>
+<span class="text-[10px] font-medium text-neutral-500">3 days ago</span>
+</div>
+<h3 class="font-headline text-xl font-bold mb-3 leading-tight text-on-surface group-hover:text-secondary-fixed-dim transition-colors">Holiday Hours &amp; Facility Maintenance</h3>
+<p class="text-sm text-on-surface-variant line-clamp-2">The main CKB facility will be undergoing equipment upgrades this Sunday. All morning classes are shifted to the West Wing.</p>
+</div>
+</article>
+</div>
+<div class="mt-12 flex justify-center">
+<button class="font-label text-[10px] font-black uppercase tracking-widest text-on-surface-variant hover:text-primary-container flex items-center gap-2 transition-colors border-b border-outline-variant pb-1">
+                    View Archive Intel <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant/10 py-16">
+<div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container text-2xl">shield</span>
+<span class="font-headline font-black text-lg uppercase tracking-tight">CKB <span class="text-primary-container">Tracker</span></span>
+</div>
+<div class="flex gap-8">
+<a class="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors" href="#">Privacy Protocol</a>
+<a class="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors" href="#">Service Terms</a>
+<a class="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors" href="#">Contact Command</a>
+</div>
+<p class="text-[10px] font-medium text-neutral-700">© 2024 CKB Tracker / Kinetic Precision System</p>
+</div>
+</footer>
+</body></html>

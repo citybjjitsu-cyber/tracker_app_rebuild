@@ -4,6 +4,7 @@ from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
 from datetime import date
+from app.routers.auth import get_current_user
 
 router = APIRouter()
 
@@ -68,7 +69,11 @@ def get_class_attendance(
 
 
 @router.post("/check-in")
-def check_in(data: schemas.CheckInRequest, db: Session = Depends(get_db)):
+def check_in(
+    data: schemas.CheckInRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
     user_uuid = data.user_uuid
     class_id = data.class_id
     class_instance_id = data.class_instance_id
@@ -104,7 +109,11 @@ def check_in(data: schemas.CheckInRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/direct")
-def direct_attendance(data: dict, db: Session = Depends(get_db)):
+def direct_attendance(
+    data: dict,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
     user_uuid = data.get("user_uuid")
     class_id = data.get("class_id")
     class_instance_id = data.get("class_instance_id")
@@ -157,7 +166,11 @@ def cancel_attendance(attendance_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/bulk-confirm")
-def bulk_confirm(data: dict, db: Session = Depends(get_db)):
+def bulk_confirm(
+    data: dict,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
     ids = data.get("ids", [])
     attendance_list = (
         db.query(models.Attendance).filter(models.Attendance.id.in_(ids)).all()

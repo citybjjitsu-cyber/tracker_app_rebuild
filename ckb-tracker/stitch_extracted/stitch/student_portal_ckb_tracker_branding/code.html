@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CKB Tracker - Student Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#353534",
+                        "primary-container": "#dc2626",
+                        "on-surface": "#e5e2e1",
+                        "on-tertiary-container": "#f3f8ff",
+                        "background": "#131313",
+                        "secondary": "#ffb4ab",
+                        "inverse-surface": "#e5e2e1",
+                        "on-secondary": "#660709",
+                        "surface-container": "#201f1f",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "on-primary-fixed": "#410002",
+                        "tertiary-fixed-dim": "#90cdff",
+                        "on-secondary-container": "#ff9f94",
+                        "primary": "#ffb4ab",
+                        "outline": "#ac8884",
+                        "tertiary-fixed": "#cbe6ff",
+                        "secondary-fixed-dim": "#ffb4ab",
+                        "tertiary": "#90cdff",
+                        "inverse-on-surface": "#313030",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-tint": "#ffb4ab",
+                        "secondary-container": "#89231e",
+                        "error-container": "#93000a",
+                        "surface-container-low": "#1c1b1b",
+                        "tertiary-container": "#0078b2",
+                        "outline-variant": "#5c403c",
+                        "inverse-primary": "#bf0715",
+                        "secondary-fixed": "#ffdad6",
+                        "on-primary": "#690005",
+                        "on-primary-container": "#fff6f5",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "surface-dim": "#131313",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#86211c",
+                        "surface-bright": "#3a3939",
+                        "surface": "#131313",
+                        "on-primary-fixed-variant": "#93000b",
+                        "on-tertiary": "#003450",
+                        "on-error": "#690005",
+                        "primary-fixed": "#ffdad6",
+                        "on-secondary-fixed": "#410002",
+                        "error": "#ffb4ab",
+                        "on-background": "#e5e2e1",
+                        "on-surface-variant": "#e6bdb8",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-fixed": "#001e30"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #131313;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(42, 42, 42, 0.6);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="flex min-h-screen overflow-x-hidden">
+<!-- SideNavBar (Shared Component) -->
+<aside class="flex flex-col h-full border-r border-neutral-900 bg-neutral-950 fixed h-screen w-64 left-0 top-0 z-50">
+<div class="p-6 flex flex-col gap-1">
+<div class="text-xl font-black text-white font-['Space_Grotesk'] uppercase tracking-widest flex items-center gap-2"><span class="w-8 h-8 bg-primary-container flex items-center justify-center rounded-lg"><span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">bolt</span></span>CKB Tracker</div>
+<div class="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em] font-['Space_Grotesk']">CKB Performance</div>
+</div>
+<nav class="flex-1 mt-6 px-2 space-y-1">
+<a class="flex items-center gap-4 text-neutral-500 py-3 px-4 hover:bg-neutral-900 hover:text-neutral-200 transition-all duration-300 hover:translate-x-1 font-['Space_Grotesk'] font-bold uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined">login</span>
+                Check-In
+            </a>
+<a class="flex items-center gap-4 text-red-500 bg-neutral-900/50 py-3 px-4 rounded-r-lg border-l-4 border-red-600 transition-all duration-300 hover:translate-x-1 font-['Space_Grotesk'] font-bold uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined">person</span>
+                Student Portal
+            </a>
+<a class="flex items-center gap-4 text-neutral-500 py-3 px-4 hover:bg-neutral-900 hover:text-neutral-200 transition-all duration-300 hover:translate-x-1 font-['Space_Grotesk'] font-bold uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined">sports_martial_arts</span>
+                Teacher
+            </a>
+<a class="flex items-center gap-4 text-neutral-500 py-3 px-4 hover:bg-neutral-900 hover:text-neutral-200 transition-all duration-300 hover:translate-x-1 font-['Space_Grotesk'] font-bold uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined">admin_panel_settings</span>
+                Admin
+            </a>
+</nav>
+<div class="px-6 mb-8">
+<button class="w-full py-4 bg-primary-container text-on-primary-container font-['Space_Grotesk'] font-black uppercase tracking-widest text-sm rounded-lg active:scale-95 transition-transform">
+                Quick Strike
+            </button>
+</div>
+<div class="p-4 border-t border-neutral-900 space-y-1">
+<a class="flex items-center gap-4 text-neutral-500 py-3 px-4 hover:bg-neutral-900 hover:text-neutral-200 transition-all duration-300 font-['Space_Grotesk'] font-bold uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-4 text-neutral-500 py-3 px-4 hover:bg-neutral-900 hover:text-neutral-200 transition-all duration-300 font-['Space_Grotesk'] font-bold uppercase tracking-widest" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 ml-64 min-h-screen bg-surface flex flex-col">
+<!-- TopNavBar (Shared Component Adaptation) -->
+<header class="sticky top-0 z-40 flex justify-between items-center px-8 h-20 w-full bg-neutral-950/60 backdrop-blur-xl shadow-2xl shadow-black/50">
+<div class="flex items-center gap-8">
+<h1 class="text-2xl font-black italic uppercase text-red-600 font-['Space_Grotesk'] tracking-tight">CKB Tracker</h1>
+<div class="hidden md:flex items-center gap-6">
+<button class="text-red-500 font-bold border-b-2 border-red-600 py-2 transition-colors duration-200">Portal</button>
+<button class="text-neutral-400 font-medium hover:text-red-500 transition-colors duration-200">Curriculum</button>
+<button class="text-neutral-400 font-medium hover:text-red-500 transition-colors duration-200">Resources</button>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-neutral-400 hover:text-red-500 cursor-pointer">dark_mode</span>
+<span class="material-symbols-outlined text-neutral-400 hover:text-red-500 cursor-pointer relative">
+                    notifications
+                    <span class="absolute top-0 right-0 w-2 h-2 bg-primary-container rounded-full border-2 border-neutral-950"></span>
+</span>
+<div class="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="professional portrait of a martial artist in a black gi with a focused expression against a dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQG0YcoFgPUgdeIcj3tyLU57Usj5-7oYK3hdsH41uU3Tm7nvbX3Svs0tGuMX15LHWl7VMEXTqh4ufpqwtKlnTv2X8ngoMgLYWnhaDDhAvBpxFzIPeVX6BkxRC54KZARsQg0YmWWFPGKq74PLVF0T1iOHZFlXPDgu3jx0kIIhm2K7crH4rsHGKVNCjzzrG8zAaJEHr8yRHLi_Xg_cdFC1RXLDBTgmuDS9FnvGk5fN24XGxOT8HCV-ZhDX_BLg3I0BenAit3B4nHVco"/>
+</div>
+</div>
+</header>
+<div class="p-8 space-y-8">
+<!-- Hero Greeting & Tabs -->
+<div class="flex flex-col md:flex-row justify-between items-end gap-6">
+<div>
+<h2 class="text-4xl font-black text-on-surface font-['Space_Grotesk'] uppercase leading-none">Welcome back, Marcus</h2>
+<p class="text-neutral-500 mt-2 font-medium">Your current path: <span class="text-primary">Advanced Muay Thai</span> • Rank: Purple Prajiad</p>
+</div>
+<div class="flex bg-surface-container-lowest p-1 rounded-xl">
+<button class="px-6 py-2 bg-surface-container-high text-on-surface rounded-lg font-bold text-sm transition-all">Analytics</button>
+<button class="px-6 py-2 text-neutral-500 hover:text-on-surface rounded-lg font-bold text-sm transition-all">Feedback</button>
+</div>
+</div>
+<!-- Stats Overview Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-surface-container-low p-6 rounded-xl relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="flex justify-between items-start mb-4">
+<span class="text-xs font-bold text-neutral-500 uppercase tracking-widest font-['Space_Grotesk']">Total Classes</span>
+<span class="material-symbols-outlined text-primary-container">fitness_center</span>
+</div>
+<div class="text-5xl font-black text-on-surface font-['Space_Grotesk'] mb-1">142</div>
+<div class="text-xs text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+                        +12 this month
+                    </div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl relative overflow-hidden group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-xs font-bold text-neutral-500 uppercase tracking-widest font-['Space_Grotesk']">Experience Points</span>
+<span class="material-symbols-outlined text-tertiary">military_tech</span>
+</div>
+<div class="text-5xl font-black text-on-surface font-['Space_Grotesk'] mb-1">2,850</div>
+<div class="text-xs text-tertiary flex items-center gap-1">
+                        XP Tier: Elite
+                    </div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl relative overflow-hidden group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-xs font-bold text-neutral-500 uppercase tracking-widest font-['Space_Grotesk']">Monthly Attendance</span>
+<span class="material-symbols-outlined text-primary-container">calendar_month</span>
+</div>
+<div class="text-5xl font-black text-on-surface font-['Space_Grotesk'] mb-1">94%</div>
+<div class="text-xs text-neutral-500">Above average (82%)</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl relative overflow-hidden group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-xs font-bold text-neutral-500 uppercase tracking-widest font-['Space_Grotesk']">Last Session</span>
+<span class="material-symbols-outlined text-neutral-500">schedule</span>
+</div>
+<div class="text-2xl font-black text-on-surface font-['Space_Grotesk'] mb-1 uppercase">18 Hours Ago</div>
+<div class="text-xs text-primary">Advanced Sparring</div>
+</div>
+</div>
+<!-- Detailed Analysis Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Target Progress Doughnut Card -->
+<div class="lg:col-span-1 glass-panel p-8 rounded-xl flex flex-col items-center justify-center text-center">
+<h3 class="text-sm font-bold text-neutral-400 uppercase tracking-[0.2em] mb-8 w-full text-left">Next Rank Progress</h3>
+<div class="relative w-48 h-48 mb-8">
+<!-- SVG Circular Progress -->
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-container-highest" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary-container" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="552.92" stroke-dashoffset="138.23" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-4xl font-black font-['Space_Grotesk'] text-on-surface">75%</span>
+<span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest mt-1">Complete</span>
+</div>
+</div>
+<div class="space-y-4 w-full">
+<div class="flex justify-between text-xs font-bold">
+<span class="text-neutral-500">Required Classes</span>
+<span class="text-on-surface">15 / 20</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="w-3/4 h-full bg-primary-container"></div>
+</div>
+<p class="text-xs text-neutral-400 italic">5 more classes until Brown Belt testing eligibility.</p>
+</div>
+</div>
+<!-- Attendance Trend Bar Chart -->
+<div class="lg:col-span-2 glass-panel p-8 rounded-xl flex flex-col">
+<div class="flex justify-between items-center mb-10">
+<h3 class="text-sm font-bold text-neutral-400 uppercase tracking-[0.2em]">Attendance Trend (14 Days)</h3>
+<div class="flex gap-4">
+<div class="flex items-center gap-2 text-[10px] uppercase font-bold text-neutral-500">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span> Classes
+                            </div>
+</div>
+</div>
+<div class="flex-1 flex items-end justify-between gap-2 h-48">
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[40%] group hover:bg-primary-container transition-colors relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-neutral-800 text-[10px] px-2 py-1 rounded">1h</div>
+</div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Mon</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[80%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Tue</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[0%]"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Wed</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[60%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Thu</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[90%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Fri</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[30%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Sat</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[0%]"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Sun</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[50%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Mon</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[100%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Tue</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[70%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Wed</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[85%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Thu</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[40%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Fri</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[20%] group hover:bg-primary-container transition-colors"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Sat</span>
+</div>
+<div class="w-full flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container/20 rounded-t-sm h-[0%]"></div>
+<span class="text-[9px] text-neutral-600 font-bold uppercase font-['Space_Grotesk']">Sun</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Attendance History -->
+<section class="space-y-6">
+<div class="flex justify-between items-center">
+<h3 class="text-sm font-bold text-neutral-400 uppercase tracking-[0.2em]">Recent Attendance History</h3>
+<button class="text-xs font-bold text-primary uppercase tracking-widest hover:underline">Download Report</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[10px] uppercase font-bold tracking-widest text-neutral-500 border-b border-neutral-900">
+<th class="pb-4 pr-6">Date</th>
+<th class="pb-4 pr-6">Class Name</th>
+<th class="pb-4 pr-6">Instructor</th>
+<th class="pb-4 pr-6">Duration</th>
+<th class="pb-4 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-neutral-900/50">
+<tr class="group hover:bg-neutral-900/30 transition-colors">
+<td class="py-4 font-['Space_Grotesk'] font-bold text-on-surface">Oct 24, 2023</td>
+<td class="py-4 text-neutral-300">Advanced Muay Thai Strike</td>
+<td class="py-4 text-neutral-400">Kru Jackson</td>
+<td class="py-4 text-neutral-500">90 min</td>
+<td class="py-4 text-right">
+<span class="inline-block px-3 py-1 rounded bg-green-500/10 text-green-500 text-[10px] font-black uppercase">Confirmed</span>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-900/30 transition-colors">
+<td class="py-4 font-['Space_Grotesk'] font-bold text-on-surface">Oct 22, 2023</td>
+<td class="py-4 text-neutral-300">Intensive Clinch Work</td>
+<td class="py-4 text-neutral-400">Kru Smith</td>
+<td class="py-4 text-neutral-500">60 min</td>
+<td class="py-4 text-right">
+<span class="inline-block px-3 py-1 rounded bg-green-500/10 text-green-500 text-[10px] font-black uppercase">Confirmed</span>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-900/30 transition-colors">
+<td class="py-4 font-['Space_Grotesk'] font-bold text-on-surface">Oct 21, 2023</td>
+<td class="py-4 text-neutral-300">Morning Cardio Blast</td>
+<td class="py-4 text-neutral-400">Coach Mendez</td>
+<td class="py-4 text-neutral-500">45 min</td>
+<td class="py-4 text-right">
+<span class="inline-block px-3 py-1 rounded bg-red-500/10 text-red-500 text-[10px] font-black uppercase">Late</span>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-900/30 transition-colors">
+<td class="py-4 font-['Space_Grotesk'] font-bold text-on-surface">Oct 19, 2023</td>
+<td class="py-4 text-neutral-300">Advanced Muay Thai Strike</td>
+<td class="py-4 text-neutral-400">Kru Jackson</td>
+<td class="py-4 text-neutral-500">90 min</td>
+<td class="py-4 text-right">
+<span class="inline-block px-3 py-1 rounded bg-green-500/10 text-green-500 text-[10px] font-black uppercase">Confirmed</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<footer class="mt-auto py-12 px-8 border-t border-neutral-900 bg-surface-container-lowest">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-6">
+<div class="w-12 h-12 bg-primary-container flex items-center justify-center rounded-lg grayscale opacity-50">
+<span class="material-symbols-outlined text-white">bolt</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface font-['Space_Grotesk'] uppercase tracking-widest">CKB Tracker v2.4.0</p>
+<p class="text-xs text-neutral-500 mt-1">Real-time Performance Monitoring</p>
+</div>
+</div>
+<div class="flex gap-8 text-xs font-bold uppercase tracking-widest text-neutral-500">
+<a class="hover:text-primary transition-colors" href="#">Support</a>
+<a class="hover:text-primary transition-colors" href="#">Academy Rules</a>
+<a class="hover:text-primary transition-colors" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+</main>
+</body></html>

@@ -431,4 +431,5 @@ export const commentsApi = {
   },
 };
 
+export { api };
 export default api;

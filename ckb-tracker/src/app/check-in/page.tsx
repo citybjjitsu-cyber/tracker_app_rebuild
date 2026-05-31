@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -238,11 +237,11 @@ export default function CheckInPage() {
         first_name: newMember.first_name,
         last_name: newMember.last_name,
         email: newMember.email,
-        password_hash: newMember.password,
+        password: newMember.password,
         nicknames: newMember.nicknames,
         rank: newMember.rank as User['rank'],
         comments: newMember.comments,
-      });
+      } as any);
       setSelectedUser(user);
       setShowNewMemberForm(false);
       setNewMember({
@@ -433,12 +432,12 @@ export default function CheckInPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold">CKB</span>
+          <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold font-headline">CKB</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Check-In</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{isTablet ? 'Tablet Mode' : 'Check-In'}</p>
+            <h1 className="text-xl font-bold text-on-surface font-headline">Check-In</h1>
+            <p className="text-sm text-on-surface-variant">{isTablet ? 'Tablet Mode' : 'Check-In'}</p>
           </div>
         </div>
       {isTablet && (
@@ -450,123 +449,119 @@ export default function CheckInPage() {
     </div>
 
     {error && (
-      <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-red-600 dark:text-red-400">
+      <div className="flex items-center gap-2 p-4 bg-error-container/20 border border-error/30 rounded-lg text-on-error-container">
         <AlertCircle className="w-5 h-5 flex-shrink-0" />
         {error}
       </div>
     )}
 
     {showCompleteConfirm && (
-        <Card className="border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/20 dark:to-slate-900">
-          <CardContent className="py-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center ring-4 ring-emerald-500/20">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              Complete Check-In Session?
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
-              You have checked into {todayAttendance.length} class{todayAttendance.length !== 1 ? 'es' : ''} today.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button variant="outline" onClick={() => setShowCompleteConfirm(false)}>
-                Go Back
-              </Button>
-              <Button variant="success" onClick={confirmComplete}>
-                <Check className="w-4 h-4 mr-2" />
-                Complete Session
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border border-primary-container/30 bg-primary-container/10 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-surface-container-high rounded-full flex items-center justify-center ring-4 ring-primary-container/20">
+            <CheckCircle2 className="w-8 h-8 text-primary-container" />
+          </div>
+          <h2 className="text-xl font-bold text-on-surface font-headline mb-2">
+            Complete Check-In Session?
+          </h2>
+          <p className="text-on-surface-variant mb-6">
+            You have checked into {todayAttendance.length} class{todayAttendance.length !== 1 ? 'es' : ''} today.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={() => setShowCompleteConfirm(false)}>
+              Go Back
+            </Button>
+            <Button variant="success" onClick={confirmComplete}>
+              <Check className="w-4 h-4 mr-2" />
+              Complete Session
+            </Button>
+          </div>
+        </div>
       )}
 
       {!selectedUser ? (
         <div className="space-y-6 animate-in">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                  {isStudent ? 'Welcome' : 'Welcome to Check-In'}
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  {formatDate(new Date())}
+          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-on-surface font-headline mb-1">
+                {isStudent ? 'Welcome' : 'Welcome to Check-In'}
+              </h1>
+              <p className="text-on-surface-variant flex items-center justify-center gap-2">
+                <Clock className="w-4 h-4" />
+                {formatDate(new Date())}
+              </p>
+            </div>
+
+            {canSearch && (
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                  <Search className="w-5 h-5" />
+                </div>
+                <input
+                  placeholder="Search your name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 h-12 text-base bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-on-surface placeholder:text-neutral-700 focus:ring-1 focus:ring-primary-container focus:border-primary-container transition-all outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {searchResults.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {searchResults.map((user) => (
+                  <button
+                    key={user.user_uuid}
+                    onClick={() => handleSelectUser(user)}
+                    className={cn(
+                      "w-full flex items-center gap-4 p-4 rounded-xl text-left",
+                      "glass-panel border border-transparent hover:border-primary-container/30",
+                      "transition-all duration-200 group"
+                    )}
+                  >
+                    <Avatar
+                      src={user.profile_image_url}
+                      firstName={user.first_name}
+                      lastName={user.last_name}
+                      offsetX={user.image_offset_x}
+                      offsetY={user.image_offset_y}
+                      size="lg"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-on-surface font-headline">
+                        {user.first_name} {user.last_name}
+                      </p>
+                      {user.nicknames && (
+                        <p className="text-sm text-on-surface-variant">{user.nicknames}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <RankBadge rank={user.rank} />
+                      <ChevronRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-all" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {canSearch && searchQuery.length >= 2 && searchResults.length === 0 && (
+              <div className="mt-4 text-center py-8">
+                <div className="w-12 h-12 mx-auto mb-3 bg-surface-container-high rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-on-surface-variant" />
+                </div>
+                <p className="text-on-surface-variant">No results found</p>
+                <p className="text-sm text-neutral-500 mt-1">
+                  Try a different name or add yourself as a new member
                 </p>
               </div>
-
-              {canSearch && (
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Search className="w-5 h-5" />
-                  </div>
-                  <Input
-                    placeholder="Search your name..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-12 text-base"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {searchResults.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {searchResults.map((user) => (
-                    <button
-                      key={user.user_uuid}
-                      onClick={() => handleSelectUser(user)}
-                      className={cn(
-                        "w-full flex items-center gap-4 p-4 rounded-xl text-left",
-                        "bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800",
-                        "transition-all duration-200 group"
-                      )}
-                    >
-                      <Avatar
-                        src={user.profile_image_url}
-                        firstName={user.first_name}
-                        lastName={user.last_name}
-                        offsetX={user.image_offset_x}
-                        offsetY={user.image_offset_y}
-                        size="lg"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-900 dark:text-white">
-                          {user.first_name} {user.last_name}
-                        </p>
-                        {user.nicknames && (
-                          <p className="text-sm text-slate-500 dark:text-slate-400">{user.nicknames}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <RankBadge rank={user.rank} />
-                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {canSearch && searchQuery.length >= 2 && searchResults.length === 0 && (
-                <div className="mt-4 text-center py-8">
-                  <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <p className="text-slate-500 dark:text-slate-400">No results found</p>
-                  <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
-                    Try a different name or add yourself as a new member
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            )}
+          </div>
 
           {canSearch && (
             <Button
@@ -580,332 +575,337 @@ export default function CheckInPage() {
           )}
 
           {showNewMemberForm && (
-            <Card className="animate-in">
-              <CardHeader>
-                <CardTitle>New Member Registration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="First Name"
-                    value={newMember.first_name}
-                    onChange={(e) => setNewMember({ ...newMember, first_name: e.target.value })}
-                  />
-                  <Input
-                    label="Last Name"
-                    value={newMember.last_name}
-                    onChange={(e) => setNewMember({ ...newMember, last_name: e.target.value })}
-                  />
-                  <Input
-                    label="Email"
-                    type="email"
-                    value={newMember.email}
-                    onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                  />
-                  <Input
-                    label="Password"
-                    type="password"
-                    value={newMember.password}
-                    onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
-                  />
-                  <Input
-                    label="Confirm Password"
-                    type="password"
-                    value={newMember.confirm_password}
-                    onChange={(e) => setNewMember({ ...newMember, confirm_password: e.target.value })}
-                  />
-                  <Input
-                    label="Nicknames (optional)"
-                    value={newMember.nicknames}
-                    onChange={(e) => setNewMember({ ...newMember, nicknames: e.target.value })}
-                  />
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      Rank
-                    </label>
-                    <select
-                      className="flex h-11 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white"
-                      value={newMember.rank}
-                      onChange={(e) => setNewMember({ ...newMember, rank: e.target.value })}
-                    >
-                      <option value="White">White</option>
-                      <option value="Blue">Blue</option>
-                      <option value="Purple">Purple</option>
-                      <option value="Brown">Brown</option>
-                      <option value="Black">Black</option>
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <Input
-                      label="Comments (optional)"
-                      value={newMember.comments}
-                      onChange={(e) => setNewMember({ ...newMember, comments: e.target.value })}
-                    />
-                  </div>
+            <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6 animate-in">
+              <h3 className="font-headline font-bold text-lg text-on-surface mb-4">New Member Registration</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="First Name"
+                  value={newMember.first_name}
+                  onChange={(e) => setNewMember({ ...newMember, first_name: e.target.value })}
+                />
+                <Input
+                  label="Last Name"
+                  value={newMember.last_name}
+                  onChange={(e) => setNewMember({ ...newMember, last_name: e.target.value })}
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  value={newMember.email}
+                  onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  value={newMember.password}
+                  onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
+                />
+                <Input
+                  label="Confirm Password"
+                  type="password"
+                  value={newMember.confirm_password}
+                  onChange={(e) => setNewMember({ ...newMember, confirm_password: e.target.value })}
+                />
+                <Input
+                  label="Nicknames (optional)"
+                  value={newMember.nicknames}
+                  onChange={(e) => setNewMember({ ...newMember, nicknames: e.target.value })}
+                />
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-on-surface mb-1.5">Rank</label>
+                  <select
+                    className="flex h-11 w-full rounded-lg border border-outline-variant/20 bg-surface-container-lowest px-4 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container/20"
+                    value={newMember.rank}
+                    onChange={(e) => setNewMember({ ...newMember, rank: e.target.value })}
+                  >
+                    <option value="White">White</option>
+                    <option value="Blue">Blue</option>
+                    <option value="Purple">Purple</option>
+                    <option value="Brown">Brown</option>
+                    <option value="Black">Black</option>
+                  </select>
                 </div>
-                <Button 
-                  className="w-full mt-6" 
-                  onClick={handleCreateMember} 
-                  disabled={isFormLoading}
-                  isLoading={isFormLoading}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Member
-                </Button>
-              </CardContent>
-            </Card>
+                <div className="col-span-2">
+                  <Input
+                    label="Comments (optional)"
+                    value={newMember.comments}
+                    onChange={(e) => setNewMember({ ...newMember, comments: e.target.value })}
+                  />
+                </div>
+              </div>
+              <Button 
+                className="w-full mt-6" 
+                onClick={handleCreateMember} 
+                disabled={isFormLoading}
+                isLoading={isFormLoading}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Member
+              </Button>
+            </div>
           )}
         </div>
       ) : (
         <div className="space-y-6 animate-in">
-          <Card className="overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-blue-500 to-blue-600" />
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Avatar
-                      src={selectedUser.profile_image_url}
-                      firstName={selectedUser.first_name}
-                      lastName={selectedUser.last_name}
-                      offsetX={selectedUser.image_offset_x}
-                      offsetY={selectedUser.image_offset_y}
-                      size="xl"
-                      className="ring-4 ring-slate-100 dark:ring-slate-800"
-                    />
-                    <button
-                      onClick={() => setShowPhotoUpload(!showPhotoUpload)}
-                      className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors shadow-lg"
-                    >
-                      <Camera className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                      {selectedUser.first_name} {selectedUser.last_name}
-                    </h2>
-                    {selectedUser.nicknames && (
-                      <p className="text-slate-500 dark:text-slate-400">&quot;{selectedUser.nicknames}&quot;</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-2">
-                      <RankBadge rank={selectedUser.rank} />
-                    </div>
-                  </div>
+          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6 flex items-center gap-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/10 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
+            <div className="relative z-10 flex items-start gap-4 flex-1">
+              <div className="relative flex-shrink-0">
+                <div className="w-24 h-24 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
+                  <Avatar
+                    src={selectedUser.profile_image_url}
+                    firstName={selectedUser.first_name}
+                    lastName={selectedUser.last_name}
+                    offsetX={selectedUser.image_offset_x}
+                    offsetY={selectedUser.image_offset_y}
+                    size="xl"
+                    className="w-full h-full rounded-[10px]"
+                  />
                 </div>
-                <div className="text-right">
-                  <div className={cn(
-                    "px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800",
-                    sessionTimeLeft < 30 && "bg-red-100 dark:bg-red-900/20 animate-pulse"
-                  )}>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Session Time</p>
+                <button
+                  onClick={() => setShowPhotoUpload(!showPhotoUpload)}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary-container text-white rounded-full flex items-center justify-center hover:bg-inverse-primary transition-colors shadow-lg"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-1">
+                  <h2 className="font-headline text-2xl font-black uppercase tracking-tight text-on-surface">
+                    {selectedUser.first_name} {selectedUser.last_name}
+                  </h2>
+                  <span className="bg-primary-container/20 text-primary px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest">
+                    Active
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-on-surface-variant text-sm font-medium">{selectedUser.rank} Belt</span>
+                  {selectedUser.nicknames && (
+                    <>
+                      <span className="text-neutral-600">•</span>
+                      <span className="text-on-surface-variant text-sm font-medium italic">"{selectedUser.nicknames}"</span>
+                    </>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="border-l border-outline-variant/30 pl-4">
+                    <p className="text-[9px] uppercase tracking-widest text-on-surface-variant mb-1">Session Time</p>
                     <p className={cn(
-                      "text-2xl font-bold tabular-nums",
-                      sessionTimeLeft < 30 ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"
+                      "text-xl font-black font-headline",
+                      sessionTimeLeft < 30 ? "text-primary" : "text-on-surface"
                     )}>
                       {formatTimeLeft()}
                     </p>
                   </div>
+                  <div className="border-l border-outline-variant/30 pl-4">
+                    <p className="text-[9px] uppercase tracking-widest text-on-surface-variant mb-1">Classes Checked</p>
+                    <p className="text-xl font-black text-on-surface font-headline">{todayAttendance.length}</p>
+                  </div>
                 </div>
               </div>
+              <div className="relative z-10 ml-auto self-center">
+                <button
+                  onClick={handleComplete}
+                  className="bg-primary-container text-white px-8 py-4 rounded-lg font-headline font-black text-lg uppercase tracking-widest shadow-xl shadow-primary-container/20 hover:scale-105 active:scale-95 transition-all"
+                >
+                  Confirm Check-In
+                </button>
+              </div>
+            </div>
+          </div>
 
-              {showPhotoUpload && (
-                <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <div className="flex gap-2 mb-3">
-                    <Button
-                      variant={photoMethod === 'upload' ? 'primary' : 'outline'}
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => { setPhotoMethod('upload'); stopCamera(); }}
-                    >
-                      <Upload className="w-4 h-4 mr-1" /> Upload
+          {showPhotoUpload && (
+            <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-4">
+              <div className="flex gap-2 mb-3">
+                <Button
+                  variant={photoMethod === 'upload' ? 'primary' : 'outline'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => { setPhotoMethod('upload'); stopCamera(); }}
+                >
+                  <Upload className="w-4 h-4 mr-1" /> Upload
+                </Button>
+                <Button
+                  variant={photoMethod === 'camera' ? 'primary' : 'outline'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => { setPhotoMethod('camera'); startCamera(); }}
+                >
+                  <Camera className="w-4 h-4 mr-1" /> Camera
+                </Button>
+              </div>
+
+              {photoMethod === 'upload' ? (
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              ) : cameraStream ? (
+                <div className="space-y-2">
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full max-w-sm mx-auto rounded-lg" />
+                  <div className="flex gap-2 justify-center">
+                    <Button size="sm" onClick={capturePhoto} disabled={isUploadingPhoto}>
+                      Capture
                     </Button>
-                    <Button
-                      variant={photoMethod === 'camera' ? 'primary' : 'outline'}
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => { 
-                        setPhotoMethod('camera'); 
-                        startCamera(); 
-                      }}
-                    >
-                      <Camera className="w-4 h-4 mr-1" /> Camera
+                    <Button variant="outline" size="sm" onClick={stopCamera}>
+                      Cancel
                     </Button>
-                  </div>
-
-                  {photoMethod === 'upload' ? (
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  ) : cameraStream ? (
-                    <div className="space-y-2">
-                      <video ref={videoRef} autoPlay playsInline muted className="w-full max-w-sm mx-auto rounded-lg" />
-                      <div className="flex gap-2 justify-center">
-                        <Button size="sm" onClick={capturePhoto} disabled={isUploadingPhoto}>
-                          Capture
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={stopCamera}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : cameraError ? (
-                    <div className="text-center py-2">
-                      <p className="text-sm text-red-500 dark:text-red-400 mb-2">{cameraError}</p>
-                      <Button variant="outline" size="sm" onClick={startCamera}>
-                        Try Again
-                      </Button>
-                    </div>
-                  ) : isCameraInitializing ? (
-                    <div className="text-center py-2">
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Initializing camera...</p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-2">
-                      <Button variant="outline" size="sm" onClick={startCamera}>
-                        Start Camera
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 mt-3 justify-center">
-                    {photoMethod === 'upload' && (
-                      <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploadingPhoto}>
-                        Choose Photo
-                      </Button>
-                    )}
-                    {selectedUser.profile_image_url && (
-                      <Button variant="ghost" size="sm" onClick={handleDeletePhoto} className="text-red-500 hover:text-red-600">
-                        <Trash2 className="w-4 h-4 mr-1" /> Delete
-                      </Button>
-                    )}
                   </div>
                 </div>
+              ) : cameraError ? (
+                <div className="text-center py-2">
+                  <p className="text-sm text-on-error-container mb-2">{cameraError}</p>
+                  <Button variant="outline" size="sm" onClick={startCamera}>
+                    Try Again
+                  </Button>
+                </div>
+              ) : isCameraInitializing ? (
+                <div className="text-center py-2">
+                  <p className="text-sm text-on-surface-variant">Initializing camera...</p>
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <Button variant="outline" size="sm" onClick={startCamera}>
+                    Start Camera
+                  </Button>
+                </div>
               )}
-            </CardContent>
-          </Card>
 
-          <Card className="p-4 md:p-6">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg md:text-xl">This Week&apos;s Classes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 md:gap-3">
+              <div className="flex gap-2 mt-3 justify-center">
+                {photoMethod === 'upload' && (
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploadingPhoto}>
+                    Choose Photo
+                  </Button>
+                )}
+                {selectedUser.profile_image_url && (
+                  <Button variant="ghost" size="sm" onClick={handleDeletePhoto} className="text-error hover:text-on-error-container">
+                    <Trash2 className="w-4 h-4 mr-1" /> Delete
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
+            <div className="flex justify-between items-end border-b border-outline-variant/20 pb-4 mb-6">
+              <div>
+                <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface">Weekly Registration</h2>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-primary-container font-black uppercase tracking-[0.2em]">{todayAttendance.length} CLASSES CHECKED</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {DAYS_OF_WEEK.map((day) => {
                   const dayClasses = classes.filter(c => c.day?.toLowerCase() === day.toLowerCase()).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
                   const isTodayDay = day === todayDayName;
                   
                    return (
-                     <div 
-                       key={day} 
-                       className={`
-                         min-h-[160px] md:min-h-[200px] rounded-lg p-2 md:p-3 border
-                         ${isTodayDay 
-                           ? 'bg-blue-500/10 border-blue-500/50' 
-                           : 'bg-slate-100 dark:bg-slate-700/30 border-slate-200 dark:border-slate-600/30'}
-                       `}
-                     >
-                       <div className={`
-                         text-center font-semibold text-sm mb-2 pb-2 border-b 
-                         ${isTodayDay ? 'text-blue-400 border-blue-500/30' : 'text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-600/30'}
-                       `}>
-                         {day}
-                       </div>
-                       <div className="space-y-2">
-                         {dayClasses.length > 0 ? (
-                           dayClasses.map((cls) => {
-                             const { status, attendance } = getAttendanceStatus(cls.id);
-                             
-                             return (
-                               <div
-                                 key={cls.id}
-                                 className={cn(
-                                   "p-2 rounded-lg border text-xs",
-                                   status === 'confirmed' 
-                                     ? "bg-emerald-50 dark:bg-emerald-500/20 border-emerald-200 dark:border-emerald-500/50"
-                                     : status === 'pending'
-                                     ? "bg-amber-50 dark:bg-amber-500/20 border-amber-200 dark:border-amber-500/50"
-                                     : "bg-slate-100 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600/50"
-                                 )}
-                               >
-                                 <p className="font-medium text-slate-900 dark:text-white truncate">{cls.class_name}</p>
-                                 <p className="text-slate-500 dark:text-slate-400">{cls.time}</p>
-                                 <p className="text-blue-400 font-medium">{cls.points} pts</p>
-                                <div className="mt-1">
-                                  {status === 'not_checked_in' && (
-                                    <Button 
-                                      size="sm"
-                                      className="w-full text-xs"
-                                      onClick={() => handleCheckIn(cls.id)} 
-                                      disabled={isFormLoading}
-                                    >
-                                      Check In
-                                    </Button>
+                      <div key={day} className="space-y-3">
+                        <div className={cn(
+                          "text-center py-2 rounded-t-lg",
+                          isTodayDay ? "bg-neutral-950 border border-primary-container/30" : "bg-surface-container"
+                        )}>
+                          <p className={cn(
+                            "text-[10px] font-black uppercase tracking-widest",
+                            isTodayDay ? "text-primary" : "text-on-surface-variant"
+                          )}>{day.slice(0, 3)}</p>
+                        </div>
+                        <div className="space-y-3">
+                          {dayClasses.length > 0 ? (
+                            dayClasses.map((cls) => {
+                              const { status, attendance } = getAttendanceStatus(cls.id);
+                              
+                              return (
+                                <div
+                                  key={cls.id}
+                                  className={cn(
+                                    "p-3 rounded-lg border-l-[3px] transition-all duration-200",
+                                    status === 'confirmed'
+                                      ? "bg-surface-container-low border-green-500"
+                                      : status === 'pending'
+                                      ? "bg-surface-container-low border-amber-500"
+                                      : "bg-surface-container-low border-primary-container hover:bg-surface-container-high cursor-pointer"
                                   )}
-                                  {status === 'pending' && (
-                                    <div className="flex flex-col gap-1">
-                                      <span className="text-center text-amber-400 text-xs font-medium">
-                                        Pending
-                                      </span>
-                                      <Button 
-                                        variant="ghost" 
+                                >
+                                  <p className="text-[10px] font-bold text-primary-container uppercase mb-1">{cls.time}</p>
+                                  <p className="text-xs font-bold text-on-surface leading-tight">{cls.class_name}</p>
+                                  <div className="mt-2 flex justify-between items-center">
+                                    {status === 'not_checked_in' && (
+                                      <Button
                                         size="sm"
-                                        className="w-full text-xs text-red-400"
-                                        onClick={() => handleCancelCheckIn(attendance!.id)}
+                                        className="w-full text-[10px] font-black uppercase tracking-tight"
+                                        onClick={() => handleCheckIn(cls.id)}
+                                        disabled={isFormLoading}
                                       >
-                                        Cancel
+                                        Check In
                                       </Button>
-                                    </div>
-                                  )}
-                                  {status === 'confirmed' && (
-                                    <span className="block text-center text-emerald-400 text-xs font-medium">
-                                      ✓ Confirmed
-                                    </span>
-                                  )}
+                                    )}
+                                    {status === 'pending' && (
+                                      <>
+                                        <span className="text-[10px] font-bold text-amber-400 uppercase">Pending</span>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-[10px] text-error font-bold"
+                                          onClick={() => handleCancelCheckIn(attendance!.id)}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </>
+                                    )}
+                                    {status === 'confirmed' && (
+                                      <span className="text-[10px] font-bold text-green-500 uppercase flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3" /> Confirmed
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <p className="text-xs text-slate-500 text-center py-2">No classes</p>
-                        )}
+                              );
+                            })
+                          ) : (
+                            <div className="border-2 border-dashed border-outline-variant/20 h-24 rounded-lg flex items-center justify-center">
+                              <p className="text-[10px] font-bold text-neutral-700 uppercase text-center leading-tight">
+                                {day === 'Sunday' ? 'Gym Closed' : 'No Classes'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-            {hasCheckedIn && (
-              <CardFooter className="flex gap-3">
-                <Button className="flex-1" onClick={handleComplete}>
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Complete Session
-                </Button>
-                <Button variant="outline" onClick={handleStartOver}>
-                  Start Over
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
-        </div>
+                   );
+                 })}
+               </div>
+             {hasCheckedIn && (
+               <div className="flex gap-3 mt-6 pt-6 border-t border-outline-variant/20">
+                 <Button className="flex-1" onClick={handleComplete}>
+                   <CheckCircle2 className="w-4 h-4 mr-2" />
+                   Complete Session
+                 </Button>
+                 <Button variant="outline" onClick={handleStartOver}>
+                   Start Over
+                 </Button>
+               </div>
+             )}
+           </div>
+         </div>
       )}
 
       <canvas ref={canvasRef} className="hidden" />
 
       {showPhotoPositionModal && pendingPhotoPreview && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+          <div className="bg-surface rounded-xl p-6 max-w-md w-full border border-outline-variant/10">
+            <h3 className="text-lg font-bold text-on-surface font-headline mb-4">
               Adjust Photo Position
             </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <p className="text-sm text-on-surface-variant mb-4">
               Drag the photo to position it within the circle
             </p>
             <div 
-              className="relative w-48 h-48 mx-auto rounded-full overflow-hidden cursor-move bg-slate-100 dark:bg-slate-800 border-4 border-slate-200 dark:border-slate-700"
+              className="relative w-48 h-48 mx-auto rounded-full overflow-hidden cursor-move bg-surface-container-lowest border-4 border-outline-variant/30"
               onMouseDown={(e) => {
                 const container = e.currentTarget as HTMLDivElement;
                 const handleMouseMove = (moveEvent: MouseEvent) => {

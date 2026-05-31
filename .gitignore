@@ -57,3 +57,6 @@ temp.json
 
 # Handoff and task management
 handoff/
+
+# Credentials
+creds.md
