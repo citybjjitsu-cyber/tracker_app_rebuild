@@ -248,6 +248,11 @@ class CheckInRequest(BaseModel):
     class_instance_id: Optional[int] = None
 
 
+class BulkCheckInRequest(BaseModel):
+    user_uuid: str
+    class_ids: List[int]
+
+
 class AttendanceCreate(AttendanceBase):
     pass
 

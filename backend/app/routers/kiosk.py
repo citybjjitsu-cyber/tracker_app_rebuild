@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from collections import defaultdict
+import time
 from app.routers.auth import get_current_user
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -21,6 +23,30 @@ from app.auth.csrf import generate_csrf_token
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# PIN lockout tracking (in-memory)
+PIN_ATTEMPTS: dict[str, list[float]] = defaultdict(list)
+MAX_FAILED_ATTEMPTS = 3
+LOCKOUT_DURATION = 300  # 5 minutes
+
+
+def check_pin_lockout(pin: str) -> Optional[int]:
+    now = time.time()
+    attempts = PIN_ATTEMPTS.get(pin, [])
+    attempts = [t for t in attempts if now - t < LOCKOUT_DURATION]
+    PIN_ATTEMPTS[pin] = attempts
+    if len(attempts) >= MAX_FAILED_ATTEMPTS:
+        remaining = int(LOCKOUT_DURATION - (now - attempts[-1]))
+        return max(remaining, 0)
+    return None
+
+
+def record_failed_attempt(pin: str):
+    PIN_ATTEMPTS[pin].append(time.time())
+
+
+def clear_pin_lockout(pin: str):
+    PIN_ATTEMPTS.pop(pin, None)
+
 
 def get_db():
     db = SessionLocal()
@@ -35,6 +61,14 @@ def verify_user_pin(
     data: schemas.KioskUserPinVerifyRequest,
     db: Session = Depends(get_db),
 ):
+    remaining = check_pin_lockout(data.pin)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Try again in {remaining} seconds.",
+            headers={"Retry-After": str(remaining)},
+        )
+
     users = (
         db.query(models.User)
         .filter(
@@ -51,7 +85,10 @@ def verify_user_pin(
             break
 
     if not matched_user:
+        record_failed_attempt(data.pin)
         return schemas.KioskUserPinVerifyResponse(valid=False)
+
+    clear_pin_lockout(data.pin)
 
     access_token, access_jti = create_access_token(matched_user.user_uuid)
     refresh_token, refresh_jti = create_refresh_token(matched_user.user_uuid)

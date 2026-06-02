@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
-import { usersApi, classesApi, attendanceApi } from '@/lib/api';
+import { usersApi, classesApi, attendanceApi, kioskApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { cn, formatDate, debounce, DAYS_OF_WEEK } from '@/lib/utils';
 import type { User, ClassSchedule, Attendance } from '@/types';
@@ -62,6 +62,13 @@ export default function CheckInPage() {
     rank: 'White',
     comments: '',
   });
+
+  const [pendingCheckIns, setPendingCheckIns] = useState<number[]>([]);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinValue, setPinValue] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [verifySuccess, setVerifySuccess] = useState(false);
 
   const isTablet = roles.some(r => r.name === 'Tablet');
   const isAdmin = roles.some(r => r.name === 'Admin');
@@ -170,22 +177,86 @@ export default function CheckInPage() {
     setShowCompleteConfirm(false);
   };
 
-  const handleCheckIn = async (classId: number) => {
-    if (!selectedUser) return;
+  const togglePendingCheckIn = (classId: number) => {
+    setPendingCheckIns(prev =>
+      prev.includes(classId)
+        ? prev.filter(id => id !== classId)
+        : [...prev, classId]
+    );
+  };
+
+  const handleConfirmCheckIn = () => {
+    if (pendingCheckIns.length === 0 || !selectedUser) return;
+    if (isTeacher || isAdmin) {
+      submitBulkCheckIn();
+    } else {
+      setPinValue('');
+      setPinError('');
+      setShowPinModal(true);
+    }
+  };
+
+  const submitBulkCheckIn = async () => {
+    if (!selectedUser || pendingCheckIns.length === 0) return;
     setIsFormLoading(true);
     setError('');
     try {
-      await attendanceApi.checkIn(selectedUser.user_uuid, classId);
+      await attendanceApi.bulkCheckIn(selectedUser.user_uuid, pendingCheckIns);
+      setPendingCheckIns([]);
+      setTodayAttendance(prev => {
+        const existing = prev.filter(a => {
+          const stillPending = pendingCheckIns.includes(a.class_id);
+          return !stillPending;
+        });
+        return existing;
+      });
       const today = new Date().toISOString().split('T')[0];
       const attendance = await attendanceApi.getByUser(selectedUser.user_uuid);
       setTodayAttendance(attendance.filter(a => a.attendance_date === today));
-    } catch (error: any) {
-      const message = error?.response?.data?.detail || error?.message || 'Failed to check in';
+      setVerifySuccess(true);
+      setTimeout(() => setVerifySuccess(false), 3000);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string }; status?: number }; message?: string };
+      const message = err?.response?.data?.detail || err?.message || 'Failed to check in';
       setError(message);
-      console.error('Check-in error:', error);
+      console.error('Bulk check-in error:', error);
     } finally {
       setIsFormLoading(false);
     }
+  };
+
+  const handlePinSubmit = async () => {
+    if (!pinValue || pinValue.length < 4) {
+      setPinError('Please enter your 4-digit PIN');
+      return;
+    }
+    setIsVerifyingPin(true);
+    setPinError('');
+    try {
+      const result = await kioskApi.verifyUserPin(pinValue);
+      if (result.valid) {
+        setShowPinModal(false);
+        await submitBulkCheckIn();
+      } else {
+        setPinError('Invalid PIN. Please try again.');
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string }; status?: number }; message?: string };
+      if (err?.response?.status === 429) {
+        const msg = err?.response?.data?.detail || 'Too many attempts. Please wait.';
+        setPinError(msg);
+      } else {
+        setPinError('Verification failed. Please try again.');
+      }
+    } finally {
+      setIsVerifyingPin(false);
+    }
+  };
+
+  const closePinModal = () => {
+    setShowPinModal(false);
+    setPinValue('');
+    setPinError('');
   };
 
   const handleCancelCheckIn = async (attendanceId: number) => {
@@ -210,6 +281,8 @@ export default function CheckInPage() {
       setTodayAttendance([]);
       setShowCompleteConfirm(false);
       setShowPhotoUpload(false);
+      setPendingCheckIns([]);
+      closePinModal();
     }
   };
 
@@ -224,6 +297,8 @@ export default function CheckInPage() {
     setTodayAttendance([]);
     setShowCompleteConfirm(false);
     setShowPhotoUpload(false);
+    setPendingCheckIns([]);
+    closePinModal();
   };
 
   const handleCreateMember = async () => {
@@ -410,7 +485,10 @@ export default function CheckInPage() {
 
   const getAttendanceStatus = (classId: number): { status: string; attendance?: Attendance } => {
     const attendance = todayAttendance.find(a => a.class_id === classId);
-    if (!attendance) return { status: 'not_checked_in' };
+    if (!attendance) {
+      if (pendingCheckIns.includes(classId)) return { status: 'queued' };
+      return { status: 'not_checked_in' };
+    }
     return { status: attendance.status, attendance };
   };
 
@@ -703,13 +781,24 @@ export default function CheckInPage() {
                   </div>
                 </div>
               </div>
-              <div className="relative z-10 ml-auto self-center">
-                <button
-                  onClick={handleComplete}
-                  className="bg-primary-container text-white px-8 py-4 rounded-lg font-headline font-black text-lg uppercase tracking-widest shadow-xl shadow-primary-container/20 hover:scale-105 active:scale-95 transition-all"
-                >
-                  Confirm Check-In
-                </button>
+              <div className="relative z-10 ml-auto self-center flex flex-col items-end gap-2">
+                {pendingCheckIns.length > 0 && (
+                  <button
+                    onClick={handleConfirmCheckIn}
+                    disabled={isFormLoading || isVerifyingPin}
+                    className="bg-primary-container text-white px-8 py-4 rounded-lg font-headline font-black text-base uppercase tracking-widest shadow-xl shadow-primary-container/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {isFormLoading ? 'Checking in...' : `Confirm with PIN (${pendingCheckIns.length})`}
+                  </button>
+                )}
+                {hasCheckedIn && (
+                  <button
+                    onClick={handleComplete}
+                    className="text-xs text-on-surface-variant hover:text-on-surface underline transition-colors"
+                  >
+                    Complete Session
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -838,10 +927,20 @@ export default function CheckInPage() {
                                       <Button
                                         size="sm"
                                         className="w-full text-[10px] font-black uppercase tracking-tight"
-                                        onClick={() => handleCheckIn(cls.id)}
+                                        onClick={() => togglePendingCheckIn(cls.id)}
                                         disabled={isFormLoading}
                                       >
                                         Check In
+                                      </Button>
+                                    )}
+                                    {status === 'queued' && (
+                                      <Button
+                                        size="sm"
+                                        variant="success"
+                                        className="w-full text-[10px] font-black uppercase tracking-tight"
+                                        onClick={() => togglePendingCheckIn(cls.id)}
+                                      >
+                                        Selected ✓
                                       </Button>
                                     )}
                                     {status === 'pending' && (
@@ -878,19 +977,127 @@ export default function CheckInPage() {
                    );
                  })}
                </div>
-             {hasCheckedIn && (
-               <div className="flex gap-3 mt-6 pt-6 border-t border-outline-variant/20">
-                 <Button className="flex-1" onClick={handleComplete}>
-                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                   Complete Session
-                 </Button>
-                 <Button variant="outline" onClick={handleStartOver}>
-                   Start Over
-                 </Button>
-               </div>
-             )}
+             {(hasCheckedIn || pendingCheckIns.length > 0) && (
+                <div className="flex gap-3 mt-6 pt-6 border-t border-outline-variant/20">
+                  {pendingCheckIns.length > 0 && (
+                    <Button className="flex-1" onClick={handleConfirmCheckIn} disabled={isFormLoading || isVerifyingPin} isLoading={isFormLoading}>
+                      {isFormLoading ? 'Checking in...' : `Confirm with PIN (${pendingCheckIns.length})`}
+                    </Button>
+                  )}
+                  {hasCheckedIn && (
+                    <Button className="flex-1" onClick={handleComplete}>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Complete Session
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={handleStartOver}>
+                    Start Over
+                  </Button>
+                </div>
+              )}
            </div>
          </div>
+      )}
+
+      {showPinModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-xl p-6 max-w-sm w-full border border-outline-variant/10">
+            <h3 className="text-lg font-bold text-on-surface font-headline mb-4 text-center">
+              Confirm with PIN
+            </h3>
+            {selectedUser && (
+              <div className="flex flex-col items-center mb-4">
+                <Avatar
+                  src={selectedUser.profile_image_url}
+                  firstName={selectedUser.first_name}
+                  lastName={selectedUser.last_name}
+                  offsetX={selectedUser.image_offset_x}
+                  offsetY={selectedUser.image_offset_y}
+                  size="lg"
+                />
+                <p className="mt-2 font-semibold text-on-surface font-headline">
+                  {selectedUser.first_name} {selectedUser.last_name}
+                </p>
+              </div>
+            )}
+            {pendingCheckIns.length > 0 && (
+              <div className="mb-4 p-3 bg-surface-container-low rounded-lg">
+                <p className="text-xs text-on-surface-variant mb-2 font-bold uppercase tracking-wider">
+                  Selected Classes ({pendingCheckIns.length})
+                </p>
+                <ul className="text-sm text-on-surface space-y-1">
+                  {pendingCheckIns.map(id => {
+                    const cls = classes.find(c => c.id === id);
+                    return cls ? (
+                      <li key={id} className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-container flex-shrink-0" />
+                        {cls.class_name} <span className="text-on-surface-variant">{cls.time}</span>
+                      </li>
+                    ) : null;
+                  })}
+                </ul>
+              </div>
+            )}
+            <div className="mb-4">
+              <div className="flex justify-center gap-2 mb-3">
+                {[1, 2, 3, 4].map(i => (
+                  <div
+                    key={i}
+                    className="w-12 h-14 rounded-lg bg-surface-container-high border border-outline-variant/20 flex items-center justify-center text-xl font-bold text-on-surface"
+                  >
+                    {pinValue[i - 1] ? '•' : ''}
+                  </div>
+                ))}
+              </div>
+              {pinError && (
+                <p className="text-center text-sm text-error">{pinError}</p>
+              )}
+              <div className="grid grid-cols-3 gap-2 mt-4 max-w-[200px] mx-auto">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setPinValue(prev => prev.length < 4 ? prev + n : prev)}
+                    className="h-12 rounded-lg bg-surface-container-high hover:bg-surface-container-highest active:scale-95 transition-all text-lg font-bold text-on-surface"
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPinValue(prev => prev.slice(0, -1))}
+                  className="h-12 rounded-lg bg-surface-container-high hover:bg-surface-container-highest active:scale-95 transition-all text-sm text-on-surface-variant font-bold"
+                >
+                  ⌫
+                </button>
+                <button
+                  onClick={() => setPinValue(prev => prev.length < 4 ? prev + 0 : prev)}
+                  className="h-12 rounded-lg bg-surface-container-high hover:bg-surface-container-highest active:scale-95 transition-all text-lg font-bold text-on-surface"
+                >
+                  0
+                </button>
+                <button
+                  onClick={closePinModal}
+                  className="h-12 rounded-lg bg-surface-container-high hover:bg-surface-container-highest active:scale-95 transition-all text-sm text-error font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={closePinModal} disabled={isVerifyingPin}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onClick={handlePinSubmit} disabled={pinValue.length < 4 || isVerifyingPin} isLoading={isVerifyingPin}>
+                {isVerifyingPin ? 'Verifying...' : 'Confirm'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {verifySuccess && (
+        <div className="fixed bottom-6 right-6 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl font-semibold animate-in z-50">
+          ✓ Check-in successful
+        </div>
       )}
 
       <canvas ref={canvasRef} className="hidden" />

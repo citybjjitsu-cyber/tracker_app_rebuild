@@ -120,6 +120,124 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 
 ---
 
+## Phase 4: Testing (Future)
+
+**Goal:** Add comprehensive test coverage — unit tests for backend and frontend, plus Playwright E2E tests for the PIN check-in flow.
+
+### Backend Tests — `backend/tests/`
+
+| Step | What | Details |
+|------|------|---------|
+| 1 | Install test deps | `uv add --dev pytest httpx` |
+| 2 | `conftest.py` | Shared fixtures: test DB session with SQLite in-memory, FastAPI test client, seed data |
+| 3 | `test_kiosk.py` | `test_verify_valid_pin`, `test_verify_invalid_pin`, `test_pin_lockout_3_strikes`, `test_pin_lockout_429`, `test_pin_no_hash` |
+| 4 | `test_attendance.py` | `test_bulk_check_in_success`, `test_bulk_check_in_duplicates`, `test_bulk_check_in_unauthenticated` |
+
+### Frontend Unit Tests — `ckb-tracker/vitest` + `@testing-library/react`
+
+| Step | What | Details |
+|------|------|---------|
+| 1 | Install test deps | `npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom` |
+| 2 | `vitest.config.ts` | Configure with React, jsdom environment, path aliases |
+| 3 | `src/__tests__/api.test.ts` | Mock axios, test `kioskApi.verifyUserPin`, `attendanceApi.bulkCheckIn` |
+| 4 | `src/__tests__/check-in-flow.test.tsx` | Component tests: toggle queue on/off, PIN modal renders, teacher bypass, error states |
+
+### Frontend E2E Tests — Playwright
+
+| Step | What | Details |
+|------|------|---------|
+| 1 | Install | `npm install -D @playwright/test` + `npx playwright install chromium` |
+| 2 | `ckb-tracker/e2e/playwright.config.ts` | Configure base URL, test dir, webServer to auto-start dev server |
+| 3 | `e2e/check-in.spec.ts` | Login as teacher → select classes → confirm (bypass PIN) → verify pending status |
+| 4 | `e2e/kiosk-pin.spec.ts` | Login as student → queue class → PIN modal → enter valid PIN → verify check-in |
+| 5 | `e2e/pin-lockout.spec.ts` | Login as student → queue → enter wrong PIN 3× → verify 429 lockout message |
+| 6 | `e2e/cancel.spec.ts` | Check in → cancel pending → verify removed |
+
+---
+
+## Phase 5: Security Review (Web Deployment)
+
+**Goal:** Hardened security posture for production web deployment — covering authentication, API, frontend, infrastructure, and data protection.
+
+### 5.1 Authentication & Session Security
+
+| # | Task | Details |
+|---|------|---------|
+| 1 | JWT rotation | Enforce short-lived access tokens (15 min), implement refresh token rotation with revocation of old pairs |
+| 2 | CSRF audit | Verify CSRF token is validated on all state-changing endpoints (POST/PUT/DELETE). Ensure double-submit cookie pattern is correct |
+| 3 | Session management | Ensure proper session invalidation on logout (server-side token blacklist or DB-backed sessions). Add absolute session expiry (e.g., 24h) |
+| 4 | Password policy | Enforce minimum password length (8+ chars), complexity requirements. Add password strength indicator on registration |
+| 5 | Login rate limiting | Ensure `slowapi` rate limiting covers `/auth/login`, `/kiosk/verify-user-pin`, and password reset endpoints |
+
+### 5.2 API Security
+
+| # | Task | Details |
+|---|------|---------|
+| 1 | Input validation audit | Verify all Pydantic schemas have proper constraints (String min/max lengths, EmailStr validation, numeric ranges). No raw dict inputs |
+| 2 | CORS hardening | Restrict CORS origins in production to specific domains (not `*`). Validate allowed methods and headers |
+| 3 | SQL injection | Verify all raw SQL usage (if any) uses parameterized queries. Confirm SQLAlchemy ORM usage is consistent |
+| 4 | Request size limits | Enforce max request body size (e.g., 10MB for photo uploads, 1MB for JSON). Configure in uvicorn/FastAPI middleware |
+| 5 | Rate limiting per endpoint | Define rate limit tiers: auth endpoints (5/min), kiosk PIN (10/min), general API (60/min), static (unlimited). Configure `slowapi` |
+
+### 5.3 Secrets & Configuration
+
+| # | Task | Details |
+|---|------|---------|
+| 1 | Environment variable audit | Ensure all secrets (JWT secret, DB path, Supabase keys) are loaded from env vars, never hardcoded |
+| 2 | `.env` file security | Confirm `.env` is in `.gitignore`, add `.env.example` with dummy values and documentation |
+| 3 | Production secret generation | Add script/generate-secrets.py for generating secure JWT_SECRET, CSRF_SECRET, etc. |
+| 4 | Supabase keys | Ensure anon key vs service_role key separation. Service role key only used server-side, never exposed to client |
+| 5 | Credential files | Verify `creds.md` is in `.gitignore` (already done), **not** deployed to production |
+
+### 5.4 Frontend Security
+
+| # | Task | Details |
+|---|------|---------|
+| 1 | XSS prevention | Audit all user-rendered content (comments, nicknames, class names) uses React's auto-escaping. No `dangerouslySetInnerHTML` usage |
+| 2 | Content Security Policy | Add CSP headers via Next.js `next.config.js` or middleware. Restrict script sources, disallow inline scripts |
+| 3 | Secure cookie config | Ensure auth cookies use `HttpOnly`, `Secure`, `SameSite=Strict` in production. Verify CSRF cookie uses `SameSite=Lax` |
+| 4 | API token storage | Audit where JWT tokens are stored (memory vs localStorage vs cookies). Prefer httpOnly cookies over localStorage for tokens |
+| 5 | Sensitive data exposure | Ensure `UserResponse` schema excludes `password_hash` and `pin_hash` from API responses in non-admin contexts |
+
+### 5.5 Data Protection
+
+| # | Task | Details |
+|---|------|---------|
+| 1 | PIN hashing | Confirm all PIN storage uses bcrypt (already done via passlib). Verify no plaintext PINs exist in logs or error messages |
+| 2 | Password hashing | Confirm bcrypt cost factor is adequate (e.g., `rounds=12`). Verify no plaintext passwords in API responses or logs |
+| 3 | Photo upload security | Validate uploaded files: restrict MIME types (image/jpeg, image/png), enforce max dimensions, server-side re-compression, scan for EXIF metadata |
+| 4 | SQLite deployment considerations | Document that SQLite is dev-only. Add configuration for production DB (PostgreSQL) with migration strategy |
+| 5 | Audit logging | Add structured logging for sensitive operations: failed logins, PIN attempts, attendance changes, role assignments |
+
+### 5.6 Infrastructure
+
+| # | Task | Details |
+|---|------|---------|
+| 1 | HTTPS enforcement | Ensure all traffic redirects to HTTPS in production. HSTS header configuration |
+| 2 | Security headers | Add middleware for: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Referrer-Policy: strict-origin-when-cross-origin` |
+| 3 | Dependency scanning | Run `npm audit` and `uv audit` to identify vulnerable packages. Document process for regular scanning |
+| 4 | Error handling | Ensure production error pages don't leak stack traces. Configure custom error handlers for 400/401/403/404/500 |
+| 5 | Supabase RLS | If Supabase is used for auth, review Row-Level Security policies. Ensure users can only access their own data |
+
+### Remediation Order
+
+1. Secrets & env var hardening (quick wins, high impact)
+2. CSRF + CORS audit (prevents common web attacks)
+3. Input validation & rate limiting (prevents abuse)
+4. Cookie & token security (prevents session hijacking)
+5. XSS + CSP (prevents client-side attacks)
+6. File upload hardening (if photos are user-submitted)
+7. Security headers & HTTPS (infrastructure hardening)
+8. Audit logging (detection & forensics)
+
+---
+
+## Phase 6: Kiosk Mode Refinements (Future)
+
+Placeholder for additional features discovered during testing and deployment.
+
+---
+
 ## Design Decisions (Resolved)
 
 1. **Bulk check-in status**: **`pending`** — teacher must confirm attendance (prevents skipping). PIN verification does not auto-confirm.
@@ -149,9 +267,27 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 - ✅ Verified `POST /kiosk/verify-user-pin` works: valid PIN returns user + tokens, invalid PIN returns `valid: false`
 - ✅ Created `creds.md` with all seed credentials (added to `.gitignore`)
 
-### Still Needed (Next)
-- Phase 1 implementation: PIN confirmation step on `/check-in` page
+## RECENT UPDATES (June 2, 2026)
+
+### Phase 1: PIN Check-In Flow
+- ✅ `backend/app/routers/kiosk.py` — PIN lockout: 3 failed attempts → 5-min cooldown, returns 429 with Retry-After
+- ✅ `backend/app/routers/attendance.py` — `POST /attendance/bulk-check-in` creates multiple pending records in one transaction
+- ✅ `backend/app/schemas.py` — `BulkCheckInRequest` schema
+- ✅ `ckb-tracker/src/lib/api.ts` — Added `kioskApi.verifyUserPin` and `attendanceApi.bulkCheckIn`
+- ✅ `ckb-tracker/src/app/check-in/page.tsx` — Refactored to queue-based flow with PIN modal
+  - Pending queue: checkbox-style toggle on class cards ("Check In" / "Selected ✓")
+  - "Confirm with PIN" button appears when classes queued
+  - PIN modal: avatar + name, class list, 4-digit masked input, numeric keypad, error display
+  - Teacher/Admin bypass: skips PIN modal, submits directly
+  - Lockout handling: 429 from backend shows lockout message
+  - Success toast on completion
+- ✅ Playwright-verified: teacher bypass creates pending attendance, student PIN modal renders with correct elements
+
+### Next Up
+- Phase 4 (Testing): Set up pytest, vitest, and Playwright E2E tests
+- Phase 5 (Security Review): Harden auth, API, frontend, and deployment for production
+- Phase 2 (Kiosk Mode): Self-service kiosk page
 
 ---
 
-*Last Updated: May 31, 2026*
+*Last Updated: June 2, 2026*

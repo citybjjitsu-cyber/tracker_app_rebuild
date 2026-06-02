@@ -108,6 +108,51 @@ def check_in(
     return db_attendance
 
 
+@router.post("/bulk-check-in")
+def bulk_check_in(
+    data: schemas.BulkCheckInRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    today = date.today()
+    created = []
+    errors = []
+
+    for class_id in data.class_ids:
+        existing = (
+            db.query(models.Attendance)
+            .filter(
+                models.Attendance.user_uuid == data.user_uuid,
+                models.Attendance.class_id == class_id,
+                models.Attendance.attendance_date == today,
+            )
+            .first()
+        )
+
+        if existing:
+            errors.append({"class_id": class_id, "detail": "Already checked in today"})
+            continue
+
+        db_attendance = models.Attendance(
+            user_uuid=data.user_uuid,
+            class_id=class_id,
+            attendance_date=today,
+            status="pending",
+        )
+        db.add(db_attendance)
+        db.flush()
+        created.append(db_attendance)
+
+    db.commit()
+    for att in created:
+        db.refresh(att)
+
+    return {
+        "created": [schemas.AttendanceResponse.model_validate(a) for a in created],
+        "errors": errors,
+    }
+
+
 @router.post("/direct")
 def direct_attendance(
     data: dict,

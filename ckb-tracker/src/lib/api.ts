@@ -194,6 +194,10 @@ export const attendanceApi = {
     const response = await api.delete(`/attendance/${id}/cancel`);
     return response.data;
   },
+  bulkCheckIn: async (userUuid: string, classIds: number[]) => {
+    const response = await api.post('/attendance/bulk-check-in', { user_uuid: userUuid, class_ids: classIds });
+    return response.data;
+  },
   bulkConfirm: async (ids: number[]) => {
     const response = await api.post('/attendance/bulk-confirm', { ids });
     return response.data;
@@ -338,6 +342,10 @@ export const dashboardApi = {
 export const kioskApi = {
   verifyPin: async (pin: string) => {
     const response = await api.post('/kiosk/verify-pin', { pin });
+    return response.data;
+  },
+  verifyUserPin: async (pin: string) => {
+    const response = await api.post('/kiosk/verify-user-pin', { pin });
     return response.data;
   },
   updatePin: async (currentPin: string, newPin: string) => {
