@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from collections import defaultdict
 import time
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, set_auth_cookies
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
@@ -117,6 +117,68 @@ def verify_user_pin(
         refresh_token=refresh_token,
         csrf_token=csrf_token,
     )
+
+
+@router.post("/verify-pin-for-user")
+def verify_pin_for_user(
+    data: schemas.KioskUserPinVerifyForUserRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    lockout_key = f"user:{data.user_uuid}"
+    remaining = check_pin_lockout(lockout_key)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Try again in {remaining} seconds.",
+            headers={"Retry-After": str(remaining)},
+        )
+
+    user = (
+        db.query(models.User)
+        .filter(
+            models.User.user_uuid == data.user_uuid,
+            models.User.is_current == True,
+        )
+        .first()
+    )
+
+    if not user or not user.pin_hash:
+        return {"valid": False}
+
+    if pwd_context.verify(data.pin, user.pin_hash):
+        clear_pin_lockout(lockout_key)
+
+        access_token, access_jti = create_access_token(user.user_uuid)
+        refresh_token, refresh_jti = create_refresh_token(user.user_uuid)
+
+        store_token_record(
+            db,
+            access_jti,
+            user.user_uuid,
+            "access",
+            datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        store_token_record(
+            db,
+            refresh_jti,
+            user.user_uuid,
+            "refresh",
+            datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+
+        csrf_token = generate_csrf_token()
+        set_auth_cookies(response, access_token, refresh_token, csrf_token)
+
+        return {
+            "valid": True,
+            "csrf_token": csrf_token,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+        }
+
+    record_failed_attempt(lockout_key)
+    return {"valid": False}
 
 
 @router.post("/verify-pin")

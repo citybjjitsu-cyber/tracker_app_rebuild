@@ -1,4 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Request, Cookie, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Response,
+    Request,
+    Cookie,
+    Header,
+    status,
+)
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
@@ -68,8 +77,15 @@ def get_user_roles(db, user_uuid: str) -> List[dict]:
 
 
 def get_current_user(
-    access_token: Optional[str] = Cookie(None), db: Session = Depends(get_db)
+    access_token: Optional[str] = Cookie(None),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
 ):
+    if not access_token and authorization:
+        parts = authorization.split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            access_token = parts[1]
+
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 

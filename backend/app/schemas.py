@@ -433,6 +433,11 @@ class KioskUserPinVerifyRequest(BaseModel):
     pin: str
 
 
+class KioskUserPinVerifyForUserRequest(BaseModel):
+    user_uuid: str
+    pin: str
+
+
 class KioskUserPinVerifyResponse(BaseModel):
     valid: bool
     user: Optional[UserResponse] = None
