@@ -4,10 +4,16 @@ from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, List
 from collections import defaultdict
 import time
-from app.routers.auth import get_current_user, set_auth_cookies
+import logging
+from app.routers.auth import (
+    get_current_user,
+    set_auth_cookies,
+    verify_password,
+    get_user_roles,
+)
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
@@ -17,8 +23,10 @@ from app.auth.jwt_utils import (
     create_access_token,
     create_refresh_token,
     store_token_record,
+    revoke_all_user_tokens,
 )
 from app.auth.csrf import generate_csrf_token
+from app.auth.limiter import limiter
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -56,10 +64,73 @@ def get_db():
         db.close()
 
 
+@router.post("/unlock", response_model=schemas.KioskUnlockResponse)
+@limiter.limit("5/minute")
+def kiosk_unlock(
+    request: Request,
+    data: schemas.LoginRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    user = (
+        db.query(models.User)
+        .filter(models.User.email == data.email, models.User.is_current == True)
+        .first()
+    )
+
+    if not user or not user.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not verify_password(data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    roles = get_user_roles(db, user.user_uuid)
+    role_names = [r["name"] for r in roles]
+    if "Kiosk" not in role_names:
+        raise HTTPException(
+            status_code=403, detail="Kiosk service account required to unlock kiosk"
+        )
+
+    access_token, access_jti = create_access_token(user.user_uuid)
+    refresh_token, refresh_jti = create_refresh_token(user.user_uuid)
+
+    store_token_record(
+        db,
+        access_jti,
+        user.user_uuid,
+        "access",
+        datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    store_token_record(
+        db,
+        refresh_jti,
+        user.user_uuid,
+        "refresh",
+        datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+    )
+
+    return schemas.KioskUnlockResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=schemas.UserResponse.model_validate(user),
+        roles=[schemas.RoleResponse.model_validate(r) for r in roles],
+    )
+
+
+@router.post("/lock")
+def kiosk_lock(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    revoke_all_user_tokens(db, user.user_uuid)
+    return {"message": "Kiosk locked"}
+
+
 @router.post("/verify-user-pin", response_model=schemas.KioskUserPinVerifyResponse)
 def verify_user_pin(
     data: schemas.KioskUserPinVerifyRequest,
     db: Session = Depends(get_db),
+    kiosk_user: models.User = Depends(get_current_user),
 ):
     remaining = check_pin_lockout(data.pin)
     if remaining is not None:
@@ -124,6 +195,7 @@ def verify_pin_for_user(
     data: schemas.KioskUserPinVerifyForUserRequest,
     response: Response,
     db: Session = Depends(get_db),
+    kiosk_user: models.User = Depends(get_current_user),
 ):
     lockout_key = f"user:{data.user_uuid}"
     remaining = check_pin_lockout(lockout_key)

@@ -7,7 +7,7 @@ import { classesApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { DAYS_OF_WEEK } from '@/lib/utils';
-import { Check, LogOut, Calendar } from 'lucide-react';
+import { Check, X, Calendar } from 'lucide-react';
 import type { ClassSchedule } from '@/types';
 
 export default function KioskSelectPage() {
@@ -18,7 +18,7 @@ export default function KioskSelectPage() {
 
   useEffect(() => {
     if (!identifiedUser) {
-      router.push('/kiosk');
+      router.push('/');
       return;
     }
     resetIdleTimer();
@@ -65,8 +65,8 @@ export default function KioskSelectPage() {
           onClick={resetSession}
           className="flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
         >
-          <LogOut className="w-4 h-4" />
-          Sign Out
+          <X className="w-4 h-4" />
+          Cancel
         </button>
       </div>
 

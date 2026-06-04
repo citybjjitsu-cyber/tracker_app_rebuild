@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { authApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Shield, Lock, Mail, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, roles } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, roles, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -36,21 +35,10 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const data = await authApi.login(email, password);
-      const roles = data.roles || [];
-      const roleNames = roles.map((r: { name: string }) => r.name);
-
-      if (roleNames.includes('Admin')) {
-        router.push('/admin');
-      } else if (roleNames.includes('Teacher')) {
-        router.push('/teacher');
-      } else {
-        router.push('/portal');
-      }
+      await login(email, password);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Invalid credentials';
       setError(message);
-    } finally {
       setIsLoading(false);
     }
   };

@@ -444,3 +444,10 @@ class KioskUserPinVerifyResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     csrf_token: Optional[str] = None
+
+
+class KioskUnlockResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    user: UserResponse
+    roles: List[RoleResponse]

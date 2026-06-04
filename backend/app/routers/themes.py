@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import SessionLocal
 from app import models, schemas
-from app.routers.auth import get_current_user
+from app.routers.auth import get_admin_user
 
 router = APIRouter(tags=["Themes"])
 
@@ -51,7 +51,7 @@ def get_theme(theme_id: int, db: Session = Depends(get_db)):
 def create_theme(
     theme: schemas.ThemeCreate,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(get_admin_user),
 ):
     existing = (
         db.query(models.WebsiteTheme)
@@ -82,7 +82,7 @@ def update_theme(
     theme_id: int,
     theme_update: schemas.ThemeUpdate,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(get_admin_user),
 ):
     db_theme = (
         db.query(models.WebsiteTheme).filter(models.WebsiteTheme.id == theme_id).first()
@@ -120,7 +120,7 @@ def update_theme(
 def delete_theme(
     theme_id: int,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(get_admin_user),
 ):
     db_theme = (
         db.query(models.WebsiteTheme).filter(models.WebsiteTheme.id == theme_id).first()
@@ -136,7 +136,7 @@ def delete_theme(
 def apply_theme(
     theme_id: int,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(get_admin_user),
 ):
     db_theme = (
         db.query(models.WebsiteTheme).filter(models.WebsiteTheme.id == theme_id).first()

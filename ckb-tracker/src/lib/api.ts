@@ -22,6 +22,26 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+// Staff kiosk token — stored in memory + sessionStorage (cross-navigation persistence)
+let kioskStaffToken: string | null = null;
+
+if (typeof window !== 'undefined') {
+  kioskStaffToken = sessionStorage.getItem('kiosk_staff_token');
+}
+
+export function setKioskStaffToken(token: string | null) {
+  kioskStaffToken = token;
+  if (token) {
+    sessionStorage.setItem('kiosk_staff_token', token);
+  } else {
+    sessionStorage.removeItem('kiosk_staff_token');
+  }
+}
+
+export function getKioskStaffToken(): string | null {
+  return kioskStaffToken;
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -35,9 +55,14 @@ api.interceptors.request.use((config) => {
   if (csrfToken && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '')) {
     config.headers['X-CSRF-Token'] = csrfToken;
   }
-  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  if (accessToken) {
-    config.headers['Authorization'] = `Bearer ${accessToken}`;
+  const kioskToken = getKioskStaffToken();
+  if (kioskToken) {
+    config.headers['Authorization'] = `Bearer ${kioskToken}`;
+  } else {
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    if (accessToken) {
+      config.headers['Authorization'] = `Bearer ${accessToken}`;
+    }
   }
   return config;
 });
@@ -344,6 +369,18 @@ export const dashboardApi = {
 };
 
 export const kioskApi = {
+  unlock: async (email: string, password: string) => {
+    const response = await api.post('/kiosk/unlock', { email, password });
+    if (response.data?.access_token) {
+      setKioskStaffToken(response.data.access_token);
+    }
+    return response.data;
+  },
+  lock: async () => {
+    const response = await api.post('/kiosk/lock');
+    setKioskStaffToken(null);
+    return response.data;
+  },
   verifyPin: async (pin: string) => {
     const response = await api.post('/kiosk/verify-pin', { pin });
     return response.data;

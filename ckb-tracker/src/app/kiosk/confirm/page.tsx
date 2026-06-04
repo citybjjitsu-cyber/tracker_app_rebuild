@@ -6,7 +6,7 @@ import { useKiosk } from '../KioskContext';
 import { classesApi, attendanceApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle2, ChevronLeft, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Loader2, X } from 'lucide-react';
 import type { ClassSchedule } from '@/types';
 
 export default function KioskConfirmPage() {
@@ -18,7 +18,7 @@ export default function KioskConfirmPage() {
 
   useEffect(() => {
     if (!identifiedUser || selectedClassIds.length === 0) {
-      router.push('/kiosk');
+      router.push('/');
       return;
     }
     resetIdleTimer();
@@ -177,6 +177,16 @@ export default function KioskConfirmPage() {
       >
         {isLoading ? 'Checking in...' : `Confirm Check-In`}
       </Button>
+
+      <div className="text-center mt-4">
+        <button
+          onClick={resetSession}
+          className="inline-flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+        >
+          <X className="w-4 h-4" />
+          Cancel check-in
+        </button>
+      </div>
     </div>
   );
 }

@@ -58,5 +58,11 @@ temp.json
 # Handoff and task management
 handoff/
 
+# Playwright MCP session artifacts
+.playwright-mcp/
+kiosk-home.yml
+kiosk-initial
+kiosk-page.yml
+
 # Credentials
 creds.md

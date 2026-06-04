@@ -172,6 +172,21 @@ uv sync
 - Password hashing with bcrypt (passlib)
 - CORS configured for specific origins in production
 
+## Kiosk Security Model
+
+The kiosk at `/` is the app landing page with two states:
+
+- **LOCKED** (default): Shows CKB branding + staff sign-in button + news feed. No API calls are made to protected endpoints.
+- **UNLOCKED**: Staff has authenticated via email/password. Students can search, enter PIN, and check in.
+
+Key rules:
+- All kiosk API endpoints require `Authorization: Bearer <staff_token>` header
+- Staff token is stored in JavaScript memory only (a module variable), never in localStorage or cookies
+- Idle timer (60s) locks the kiosk and discards the token
+- Staff unlock uses `/kiosk/unlock` (email/password, rate-limited)
+- Lock uses `/kiosk/lock` (revokes JWT JTI server-side)
+- The `/login` route is for full staff access (admin/teacher dashboards) — separate from kiosk unlock
+
 ## Git Workflow
 
 - Main branch: `main`
