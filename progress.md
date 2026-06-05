@@ -72,7 +72,7 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 
 ---
 
-## Phase 2: Full Kiosk Mode (Future)
+## Phase 2: Full Kiosk Mode (Completed)
 
 **Goal:** Self-service page at `/kiosk` where students walk up, enter their PIN, select classes, and confirm — no tablet user needed.
 
@@ -111,7 +111,43 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 
 ---
 
-## Phase 3: Tablet User Deprecation (Future)
+## Phase 3: Staff-Authenticated Kiosk (In Progress — Current)
+
+**Goal:** Kiosk requires staff login before students can check in. Protects all kiosk API endpoints behind staff JWT, preventing anonymous enumeration on public web.
+
+### Backend Changes
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `backend/app/routers/kiosk.py` | Add `POST /kiosk/unlock` — staff email/password login, returns access_token + refresh_token in body |
+| 2 | `backend/app/routers/kiosk.py` | Add `POST /kiosk/lock` — revokes kiosk session JTI |
+| 3 | `backend/app/routers/kiosk.py` | Add `Depends(get_current_user)` to: `verify-pin-for-user`, `verify-user-pin`, and any other open kiosk endpoints |
+| 4 | `backend/app/schemas.py` | Add `KioskUnlockResponse` schema |
+
+### Frontend Changes
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `ckb-tracker/src/app/page.tsx` | Replace with kiosk landing page (locked/unlocked states) |
+| 2 | `ckb-tracker/src/app/kiosk/KioskContext.tsx` | Add: `isUnlocked`, `unlockedBy`, unlock/lock functions, staff token in memory |
+| 3 | `ckb-tracker/src/app/kiosk/page.tsx` | Redirect to `/` |
+| 4 | `ckb-tracker/src/app/kiosk/KioskLocked.tsx` | New: locked state with CKB branding + "Staff Sign In" + news section |
+| 5 | `ckb-tracker/src/app/kiosk/KioskStaffLogin.tsx` | New: inline email/password form for staff unlock |
+| 6 | `ckb-tracker/src/app/kiosk/KioskUnlocked.tsx` | New: wrapper around existing flow with "Lock Kiosk" button |
+| 7 | `ckb-tracker/src/lib/api.ts` | Add `kioskApi.unlock`, `kioskApi.lock` |
+| 8 | `ckb-tracker/src/components/AppLayout.tsx` | Update public routes |
+
+### Security Model
+
+- Staff JWT stored in memory (not localStorage) — lost on page close
+- 60s idle timer → auto-lock, clears staff token
+- All kiosk API calls require `Authorization: Bearer <staff_token>`
+- Staff login rate-limited (existing `slowapi` on `/auth/login`)
+- Future: news blog on locked screen via `newsApi.list(true)`
+
+---
+
+## Phase 4: Tablet User Deprecation (Future)
 
 - Add migration guide for gyms using tablet user
 - Admin setting: "Enable Kiosk Mode" toggle
@@ -120,7 +156,7 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 
 ---
 
-## Phase 4: Testing (Future)
+## Phase 5: Testing (Future)
 
 **Goal:** Add comprehensive test coverage — unit tests for backend and frontend, plus Playwright E2E tests for the PIN check-in flow.
 
@@ -155,7 +191,7 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 
 ---
 
-## Phase 5: Security Review (Web Deployment)
+## Phase 6: Security Review (Web Deployment)
 
 **Goal:** Hardened security posture for production web deployment — covering authentication, API, frontend, infrastructure, and data protection.
 
@@ -232,7 +268,7 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 
 ---
 
-## Phase 6: Kiosk Mode Refinements (Future)
+## Phase 7: Kiosk Mode Refinements (Future)
 
 Placeholder for additional features discovered during testing and deployment.
 
@@ -283,11 +319,35 @@ Placeholder for additional features discovered during testing and deployment.
   - Success toast on completion
 - ✅ Playwright-verified: teacher bypass creates pending attendance, student PIN modal renders with correct elements
 
-### Next Up
-- Phase 4 (Testing): Set up pytest, vitest, and Playwright E2E tests
-- Phase 5 (Security Review): Harden auth, API, frontend, and deployment for production
-- Phase 2 (Kiosk Mode): Self-service kiosk page
+## RECENT UPDATES (June 3, 2026)
+
+### Phase 2: Kiosk Mode
+- ✅ `backend/app/routers/auth.py` — `get_current_user` accepts `Authorization: Bearer` header as cookie fallback
+- ✅ `backend/app/routers/kiosk.py` — Added `POST /kiosk/verify-pin-for-user` endpoint (per-user PIN check, returns access_token in body)
+- ✅ `backend/app/schemas.py` — Added `KioskUserPinVerifyForUserRequest` schema
+- ✅ `ckb-tracker/src/app/kiosk/` — Full kiosk UI: welcome, search, PIN entry, class select, confirm pages
+- ✅ `ckb-tracker/src/app/kiosk/KioskContext.tsx` — Kiosk state management (identified user, class selection, idle timer)
+- ✅ `ckb-tracker/src/lib/api.ts` — Axios interceptor for Bearer token, `verifyPinForUser`, `bulkCheckIn` API methods
+- ✅ `ckb-tracker/src/components/AppLayout.tsx` — Added `/kiosk` to public routes
+- ✅ `ckb-tracker/src/lib/utils.ts` — Fixed `DAYS_OF_WEEK` array indexing (off-by-one vs `getDay()`)
+- ✅ Root cause: cross-origin auth cookie (SameSite=Lax) not sent on cross-origin POST; fixed with Authorization header fallback
+- ✅ Playwright-verified: full kiosk flow works end-to-end (identify → PIN → select → confirm)
+
+### Phase 3: Staff-Authenticated Kiosk (Completed)
+- ✅ `backend/app/routers/kiosk.py` — Added `POST /kiosk/unlock` (staff email/password, rate-limited) and `POST /kiosk/lock` (revokes tokens)
+- ✅ `backend/app/schemas.py` — Added `KioskUnlockResponse` schema
+- ✅ `backend/app/routers/kiosk.py` — Protected `verify-pin-for-user`, `verify-user-pin` with `Depends(get_current_user)`
+- ✅ `ckb-tracker/src/app/kiosk/KioskContext.tsx` — Added `isUnlocked`, `unlockedBy`, `unlockKiosk`, `lockKiosk` state; 60s idle timer locks kiosk
+- ✅ `ckb-tracker/src/app/kiosk/KioskStaffLogin.tsx` — New: inline email/password form for staff unlock
+- ✅ `ckb-tracker/src/app/kiosk/KioskLocked.tsx` — New: locked state with CKB branding + "Staff Sign In" + news section
+- ✅ `ckb-tracker/src/app/page.tsx` — Replaced with kiosk landing page (locked state → KioskLocked, unlocked → welcome/search/PIN flow with lock button)
+- ✅ `ckb-tracker/src/app/kiosk/page.tsx` — Redirects to `/`
+- ✅ `ckb-tracker/src/lib/api.ts` — Module-level `kioskStaffToken` (memory only, not localStorage), `kioskApi.unlock`/`lock` methods
+- ✅ `ckb-tracker/src/components/AppLayout.tsx` — Added `/kiosk/select`, `/kiosk/confirm` to public routes
+- ✅ `kiosk/select` and `kiosk/confirm` redirect from `/kiosk` → `/` when no identified user
+- ✅ Backend endpoints verified: unlock returns JWT + user + roles, lock revokes token, PIN endpoints protected
+- ✅ Frontend builds successfully with `npm run build`
 
 ---
 
-*Last Updated: June 2, 2026*
+*Last Updated: June 3, 2026*

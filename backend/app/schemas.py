@@ -438,9 +438,24 @@ class KioskUserPinVerifyForUserRequest(BaseModel):
     pin: str
 
 
+class KioskUserResponse(UserBase):
+    user_uuid: str
+    profile_image_url: Optional[str] = None
+    image_offset_x: Optional[float] = None
+    image_offset_y: Optional[float] = None
+    end_date: Optional[datetime] = None
+    is_current: bool
+    effective_date: datetime
+    created_date: datetime
+    updated_date: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class KioskUserPinVerifyResponse(BaseModel):
     valid: bool
-    user: Optional[UserResponse] = None
+    user: Optional[KioskUserResponse] = None
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     csrf_token: Optional[str] = None
@@ -449,5 +464,5 @@ class KioskUserPinVerifyResponse(BaseModel):
 class KioskUnlockResponse(BaseModel):
     access_token: str
     refresh_token: str
-    user: UserResponse
+    user: KioskUserResponse
     roles: List[RoleResponse]

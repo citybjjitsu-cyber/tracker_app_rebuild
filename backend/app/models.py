@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import (
     Column,
     Integer,
@@ -97,7 +98,9 @@ class ClassSchedule(Base):
     __tablename__ = "classes"
 
     id = Column(Integer, primary_key=True, index=True)
-    class_uuid = Column(String, unique=True, index=True)
+    class_uuid = Column(
+        String, unique=True, index=True, default=lambda: str(uuid.uuid4())
+    )
     class_name = Column(String, nullable=False)
     day = Column(String)
     time = Column(String)

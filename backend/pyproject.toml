@@ -16,4 +16,24 @@ dependencies = [
 ]
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/__init__.py", "app/auth/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+# Hard fail thresholds for CI
+fail_under = 75
+
+[tool.coverage.html]
+directory = "coverage_html"

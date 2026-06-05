@@ -180,7 +180,7 @@ def direct_attendance(
     return db_attendance
 
 
-@router.post("/{attendance_id}/confirm")
+@router.post("/{attendance_id}/confirm", response_model=schemas.AttendanceResponse)
 def confirm_attendance(attendance_id: int, db: Session = Depends(get_db)):
     attendance = (
         db.query(models.Attendance)

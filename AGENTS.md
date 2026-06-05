@@ -51,12 +51,46 @@ uv sync
 
 ### Running Tests
 
-**No test framework is currently configured.** Neither the frontend nor backend have test files or test runners set up. When adding tests:
+#### Backend (pytest + pytest-cov)
 
-- **Frontend**: Use Jest or Vitest with React Testing Library
-  - Single test: `npx jest path/to/test.tsx` or `npx vitest run path/to/test.tsx`
-- **Backend**: Use pytest
-  - Single test: `uv run pytest tests/test_auth.py::test_function -v`
+```bash
+cd backend
+
+# Run all tests
+uv run pytest tests/
+
+# Run with coverage (fails if below 75%)
+uv run pytest tests/ --cov=app --cov-report=term-missing
+
+# Single test
+uv run pytest tests/test_auth.py::test_function -v
+```
+
+**Coverage threshold**: 75% line coverage (configured in `backend/pyproject.toml` under `[tool.coverage.report] fail_under = 75`)
+
+#### Frontend (Vitest + @vitest/coverage-v8)
+
+```bash
+cd ckb-tracker
+
+# Run all tests
+npm run test
+
+# Run with coverage (fails if below thresholds)
+npm run test -- --coverage
+
+# Single test file
+npx vitest run src/__tests__/api.test.ts
+
+# Single test
+npx vitest run src/__tests__/api.test.ts -- -t "test name"
+```
+
+**Coverage thresholds** (configured in `ckb-tracker/vitest.config.ts`):
+- Statements: 65%
+- Branches: 50%
+- Functions: 50%
+- Lines: 65%
 
 ## Code Style Guidelines
 
@@ -186,6 +220,13 @@ Key rules:
 - Staff unlock uses `/kiosk/unlock` (email/password, rate-limited)
 - Lock uses `/kiosk/lock` (revokes JWT JTI server-side)
 - The `/login` route is for full staff access (admin/teacher dashboards) — separate from kiosk unlock
+
+## CI/CD
+
+GitHub Actions workflow at `.github/workflows/test.yml` runs on push/PR to `main`:
+- **Backend**: Installs Python deps via uv, runs `pytest --cov=app --cov-fail-under=75`
+- **Frontend**: Installs Node deps via npm ci, runs `vitest run --coverage` (fails if thresholds not met)
+- Coverage HTML reports are uploaded as build artifacts
 
 ## Git Workflow
 

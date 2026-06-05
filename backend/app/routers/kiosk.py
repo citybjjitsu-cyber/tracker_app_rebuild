@@ -112,7 +112,7 @@ def kiosk_unlock(
     return schemas.KioskUnlockResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        user=schemas.UserResponse.model_validate(user),
+        user=schemas.KioskUserResponse.model_validate(user),
         roles=[schemas.RoleResponse.model_validate(r) for r in roles],
     )
 
@@ -183,7 +183,7 @@ def verify_user_pin(
 
     return schemas.KioskUserPinVerifyResponse(
         valid=True,
-        user=schemas.UserResponse.model_validate(matched_user),
+        user=schemas.KioskUserResponse.model_validate(matched_user),
         access_token=access_token,
         refresh_token=refresh_token,
         csrf_token=csrf_token,
