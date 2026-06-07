@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
+from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, DASHBOARD_LIMIT
 
 router = APIRouter()
 
@@ -17,8 +18,11 @@ def get_db():
 
 
 @router.post("/", response_model=schemas.FeedbackResponse)
-def submit_feedback(feedback: schemas.FeedbackCreate, db: Session = Depends(get_db)):
-    db_feedback = models.ClassFeedback(**feedback.dict())
+@limiter.limit(WRITE_LIMIT)
+def submit_feedback(
+    request: Request, feedback: schemas.FeedbackCreate, db: Session = Depends(get_db)
+):
+    db_feedback = models.ClassFeedback(**feedback.model_dump())
     db.add(db_feedback)
     db.commit()
     db.refresh(db_feedback)
@@ -26,7 +30,8 @@ def submit_feedback(feedback: schemas.FeedbackCreate, db: Session = Depends(get_
 
 
 @router.get("/user/{user_uuid}", response_model=List[schemas.FeedbackResponse])
-def get_user_feedback(user_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_user_feedback(request: Request, user_uuid: str, db: Session = Depends(get_db)):
     return (
         db.query(models.ClassFeedback)
         .filter(models.ClassFeedback.user_uuid == user_uuid)
@@ -36,7 +41,10 @@ def get_user_feedback(user_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/teacher/{teacher_uuid}", response_model=List[schemas.FeedbackResponse])
-def get_teacher_feedback(teacher_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_teacher_feedback(
+    request: Request, teacher_uuid: str, db: Session = Depends(get_db)
+):
     instances = (
         db.query(models.ClassInstance)
         .filter(models.ClassInstance.teacher_uuid == teacher_uuid)
@@ -52,7 +60,9 @@ def get_teacher_feedback(teacher_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/admin/list", response_model=List[schemas.FeedbackResponse])
+@limiter.limit(DASHBOARD_LIMIT)
 def get_admin_feedback_list(
+    request: Request,
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     classes: Optional[str] = Query(None),
@@ -85,7 +95,9 @@ def get_admin_feedback_list(
 
 
 @router.get("/admin/comprehensive-stats", response_model=schemas.FeedbackStats)
+@limiter.limit(DASHBOARD_LIMIT)
 def get_admin_stats(
+    request: Request,
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     classes: Optional[str] = Query(None),

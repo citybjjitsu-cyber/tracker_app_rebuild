@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 
 load_dotenv()
 
@@ -36,7 +37,26 @@ from app.routers import (
     comments,
 )
 
-app = FastAPI(title="CKB Tracker API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    db = SessionLocal()
+    try:
+        existing_tablet_role = (
+            db.query(models.Role).filter(models.Role.name == "Tablet").first()
+        )
+        if not existing_tablet_role:
+            tablet_role = models.Role(
+                name="Tablet", description="Tablet-only user for check-in kiosk"
+            )
+            db.add(tablet_role)
+            db.commit()
+    finally:
+        db.close()
+    yield
+
+
+app = FastAPI(title="CKB Tracker API", version="1.0.0", lifespan=lifespan)
 
 # Rate limiter setup
 app.state.limiter = limiter
@@ -146,20 +166,3 @@ app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 @app.get("/")
 def read_root():
     return {"message": "CKB Tracker API is live!"}
-
-
-@app.on_event("startup")
-def create_default_roles():
-    db = SessionLocal()
-    try:
-        existing_tablet_role = (
-            db.query(models.Role).filter(models.Role.name == "Tablet").first()
-        )
-        if not existing_tablet_role:
-            tablet_role = models.Role(
-                name="Tablet", description="Tablet-only user for check-in kiosk"
-            )
-            db.add(tablet_role)
-            db.commit()
-    finally:
-        db.close()

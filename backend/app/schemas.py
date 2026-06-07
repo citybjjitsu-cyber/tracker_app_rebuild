@@ -1,40 +1,38 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from datetime import date, datetime
 from typing import Optional, List
 
 
 class UserBase(BaseModel):
-    first_name: str
-    last_name: str
-    email: EmailStr
-    rank: Optional[str] = "White"
-    nicknames: Optional[str] = None
-    comments: Optional[str] = None
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    email: EmailStr = Field(max_length=255)
+    rank: Optional[str] = Field(default="White", max_length=50)
+    nicknames: Optional[str] = Field(default=None, max_length=200)
+    comments: Optional[str] = Field(default=None, max_length=2000)
     last_graded_date: Optional[date] = None
 
 
 class UserCreate(UserBase):
-    password: Optional[str] = None
-    pin: Optional[str] = None
-    profile_image_url: Optional[str] = None
+    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
+    pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
+    profile_image_url: Optional[str] = Field(default=None, max_length=500)
 
 
 class UserUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-    rank: Optional[str] = None
-    nicknames: Optional[str] = None
-    comments: Optional[str] = None
+    first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    email: Optional[EmailStr] = Field(default=None, max_length=255)
+    rank: Optional[str] = Field(default=None, max_length=50)
+    nicknames: Optional[str] = Field(default=None, max_length=200)
+    comments: Optional[str] = Field(default=None, max_length=2000)
     last_graded_date: Optional[date] = None
-    password: Optional[str] = None
-    pin: Optional[str] = None
+    password: Optional[str] = Field(default=None, min_length=8, max_length=128)
+    pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
 
 
 class UserResponse(UserBase):
     user_uuid: str
-    password_hash: Optional[str] = None
-    pin_hash: Optional[str] = None
     profile_image_url: Optional[str] = None
     image_offset_x: Optional[float] = None
     image_offset_y: Optional[float] = None
@@ -50,8 +48,8 @@ class UserResponse(UserBase):
 
 class RoleResponse(BaseModel):
     id: int
-    name: str
-    description: Optional[str] = None
+    name: str = Field(max_length=50)
+    description: Optional[str] = Field(default=None, max_length=500)
 
     class Config:
         from_attributes = True
@@ -59,7 +57,7 @@ class RoleResponse(BaseModel):
 
 class UserRoleResponse(BaseModel):
     id: int
-    user_uuid: str
+    user_uuid: str = Field(min_length=1, max_length=64)
     role_id: int
     is_current: bool
     effective_date: datetime
@@ -70,8 +68,8 @@ class UserRoleResponse(BaseModel):
 
 
 class GymLocationBase(BaseModel):
-    name: str
-    address: Optional[str] = None
+    name: str = Field(min_length=1, max_length=200)
+    address: Optional[str] = Field(default=None, max_length=500)
 
 
 class GymLocationCreate(GymLocationBase):
@@ -86,7 +84,7 @@ class GymLocationResponse(GymLocationBase):
 
 
 class ClassTypeBase(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=100)
 
 
 class ClassTypeCreate(ClassTypeBase):
@@ -101,10 +99,10 @@ class ClassTypeResponse(ClassTypeBase):
 
 
 class ClassScheduleBase(BaseModel):
-    class_name: str
-    day: Optional[str] = None
-    time: Optional[str] = None
-    description: Optional[str] = None
+    class_name: str = Field(min_length=1, max_length=200)
+    day: Optional[str] = Field(default=None, max_length=20)
+    time: Optional[str] = Field(default=None, max_length=20)
+    description: Optional[str] = Field(default=None, max_length=2000)
     points: float = 1.0
     gym_id: Optional[int] = None
     class_type_id: Optional[int] = None
@@ -132,7 +130,7 @@ class ClassScheduleResponse(ClassScheduleBase):
 
 
 class TermBase(BaseModel):
-    term_name: str
+    term_name: str = Field(min_length=1, max_length=200)
     start_date: date
     end_date: date
 
@@ -151,7 +149,7 @@ class TermResponse(TermBase):
 
 class TermTargetBase(BaseModel):
     term_id: int
-    rank: str
+    rank: str = Field(min_length=1, max_length=50)
     target: float
 
 
@@ -168,8 +166,8 @@ class TermTargetResponse(TermTargetBase):
 
 class CurriculumBase(BaseModel):
     class_id: int
-    name: Optional[str] = None
-    description: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=2000)
 
 
 class CurriculumCreate(CurriculumBase):
@@ -187,10 +185,10 @@ class CurriculumResponse(CurriculumBase):
 
 class LessonBase(BaseModel):
     curriculum_id: int
-    title: str
-    description: Optional[str] = None
-    lesson_plan_url: Optional[str] = None
-    video_folder_url: Optional[str] = None
+    title: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    lesson_plan_url: Optional[str] = Field(default=None, max_length=500)
+    video_folder_url: Optional[str] = Field(default=None, max_length=500)
 
 
 class LessonCreate(LessonBase):
@@ -213,7 +211,7 @@ class LessonResponse(LessonBase):
 class ClassInstanceBase(BaseModel):
     class_id: int
     class_date: date
-    teacher_uuid: Optional[str] = None
+    teacher_uuid: Optional[str] = Field(default=None, min_length=1, max_length=64)
     lesson_id: Optional[int] = None
 
 
@@ -236,21 +234,21 @@ class ClassInstanceResponse(ClassInstanceBase):
 
 
 class AttendanceBase(BaseModel):
-    user_uuid: str
+    user_uuid: str = Field(min_length=1, max_length=64)
     class_id: int
     class_instance_id: Optional[int] = None
-    teacher_uuid: Optional[str] = None
+    teacher_uuid: Optional[str] = Field(default=None, min_length=1, max_length=64)
 
 
 class CheckInRequest(BaseModel):
-    user_uuid: str
+    user_uuid: str = Field(min_length=1, max_length=64)
     class_id: int
     class_instance_id: Optional[int] = None
 
 
 class BulkCheckInRequest(BaseModel):
-    user_uuid: str
-    class_ids: List[int]
+    user_uuid: str = Field(min_length=1, max_length=64)
+    class_ids: List[int] = Field(min_length=1)
 
 
 class AttendanceCreate(AttendanceBase):
@@ -279,8 +277,8 @@ class AttendanceResponse(AttendanceBase):
 
 class FeedbackBase(BaseModel):
     attendance_id: int
-    rating: str
-    comment: Optional[str] = None
+    rating: str = Field(max_length=50)
+    comment: Optional[str] = Field(default=None, max_length=2000)
 
 
 class FeedbackCreate(FeedbackBase):
@@ -301,8 +299,8 @@ class FeedbackResponse(FeedbackBase):
 
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(max_length=255)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class TokenResponse(BaseModel):
@@ -340,8 +338,8 @@ class FeedbackStats(BaseModel):
 
 
 class CommentBase(BaseModel):
-    content: str
-    rating: Optional[str] = None
+    content: str = Field(min_length=1, max_length=5000)
+    rating: Optional[str] = Field(default=None, max_length=50)
 
 
 class CommentCreate(CommentBase):
@@ -350,7 +348,7 @@ class CommentCreate(CommentBase):
 
 
 class CommentUpdate(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=5000)
 
 
 class CommentResponse(CommentBase):
@@ -372,8 +370,8 @@ CommentResponse.model_rebuild()
 
 
 class ThemeBase(BaseModel):
-    name: str
-    config: str
+    name: str = Field(min_length=1, max_length=100)
+    config: str = Field(max_length=10000)
     is_active: bool = False
 
 
@@ -397,8 +395,8 @@ class ThemeResponse(ThemeBase):
 
 
 class NewsBase(BaseModel):
-    title: str
-    content: str
+    title: str = Field(min_length=1, max_length=500)
+    content: str = Field(min_length=1, max_length=10000)
     is_published: bool = False
 
 
@@ -430,12 +428,12 @@ class DbStatsResponse(BaseModel):
 
 
 class KioskUserPinVerifyRequest(BaseModel):
-    pin: str
+    pin: str = Field(min_length=4, max_length=8)
 
 
 class KioskUserPinVerifyForUserRequest(BaseModel):
-    user_uuid: str
-    pin: str
+    user_uuid: str = Field(min_length=1, max_length=64)
+    pin: str = Field(min_length=4, max_length=8)
 
 
 class KioskUserResponse(UserBase):

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
 from datetime import datetime
+from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT
 
 router = APIRouter()
 
@@ -110,7 +111,9 @@ def _collect_reply_ids(parent_id, db: Session, ids: set):
 
 
 @router.post("/", response_model=schemas.CommentResponse)
+@limiter.limit(WRITE_LIMIT)
 def create_comment(
+    request: Request,
     comment: schemas.CommentCreate,
     author_uuid: str = Query(...),
     db: Session = Depends(get_db),
@@ -174,7 +177,9 @@ def create_comment(
 
 
 @router.get("/feed", response_model=List[schemas.CommentResponse])
+@limiter.limit(READ_LIMIT)
 def get_comment_feed(
+    request: Request,
     user_uuid: str = Query(...),
     role: Optional[str] = Query(None),
     db: Session = Depends(get_db),
@@ -234,7 +239,8 @@ def get_comment_feed(
 
 
 @router.get("/{comment_uuid}", response_model=schemas.CommentResponse)
-def get_comment(comment_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_comment(request: Request, comment_uuid: str, db: Session = Depends(get_db)):
     comment = (
         db.query(models.Comment)
         .options(
@@ -266,7 +272,9 @@ def get_comment(comment_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{comment_uuid}", response_model=schemas.CommentResponse)
+@limiter.limit(WRITE_LIMIT)
 def update_comment(
+    request: Request,
     comment_uuid: str,
     update_data: schemas.CommentUpdate,
     author_uuid: str = Query(...),
@@ -306,7 +314,9 @@ def update_comment(
 
 
 @router.delete("/{comment_uuid}")
+@limiter.limit(WRITE_LIMIT)
 def delete_comment(
+    request: Request,
     comment_uuid: str,
     author_uuid: str = Query(...),
     db: Session = Depends(get_db),

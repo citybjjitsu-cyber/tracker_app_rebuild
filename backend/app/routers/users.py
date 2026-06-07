@@ -1,6 +1,15 @@
 import csv
 import io
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    UploadFile,
+    File,
+    Form,
+    Request,
+)
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
@@ -12,6 +21,15 @@ import uuid
 import os
 import shutil
 from app.routers.auth import get_current_user, get_admin_user
+from app.auth.limiter import (
+    limiter,
+    REGISTRATION_LIMIT,
+    WRITE_LIMIT,
+    READ_LIMIT,
+    CSV_IMPORT_LIMIT,
+    CSV_EXPORT_LIMIT,
+    UPLOAD_LIMIT,
+)
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -26,7 +44,9 @@ def get_db():
 
 
 @router.post("/", response_model=schemas.UserResponse)
+@limiter.limit(REGISTRATION_LIMIT)
 def create_user(
+    request: Request,
     user: schemas.UserCreate,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
@@ -72,12 +92,14 @@ def create_user(
 
 
 @router.get("/", response_model=List[schemas.UserResponse])
-def list_users(db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def list_users(request: Request, db: Session = Depends(get_db)):
     return db.query(models.User).filter(models.User.is_current == True).all()
 
 
 @router.get("/search", response_model=List[schemas.UserResponse], dependencies=[])
-def search_users(query: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def search_users(request: Request, query: str, db: Session = Depends(get_db)):
     return (
         db.query(models.User)
         .filter(
@@ -91,7 +113,9 @@ def search_users(query: str, db: Session = Depends(get_db)):
 
 
 @router.get("/export-csv")
+@limiter.limit(CSV_EXPORT_LIMIT)
 def export_users_csv(
+    request: Request,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
@@ -142,7 +166,9 @@ def export_users_csv(
 
 
 @router.post("/import-csv")
+@limiter.limit(CSV_IMPORT_LIMIT)
 async def import_users_csv(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
@@ -256,7 +282,8 @@ async def import_users_csv(
 
 
 @router.get("/{user_uuid}", response_model=schemas.UserResponse)
-def get_user(user_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_user(request: Request, user_uuid: str, db: Session = Depends(get_db)):
     user = (
         db.query(models.User)
         .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
@@ -268,7 +295,9 @@ def get_user(user_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{user_uuid}", response_model=schemas.UserResponse)
+@limiter.limit(WRITE_LIMIT)
 def update_user(
+    request: Request,
     user_uuid: str,
     user: schemas.UserUpdate,
     db: Session = Depends(get_db),
@@ -329,7 +358,9 @@ def update_user(
 
 
 @router.post("/{user_uuid}/photo")
+@limiter.limit(UPLOAD_LIMIT)
 async def upload_photo(
+    request: Request,
     user_uuid: str,
     file: UploadFile = File(...),
     offset_x: Optional[float] = Form(0.0),
@@ -387,7 +418,9 @@ async def upload_photo(
 
 
 @router.delete("/{user_uuid}/photo")
+@limiter.limit(WRITE_LIMIT)
 def delete_photo(
+    request: Request,
     user_uuid: str,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
@@ -420,7 +453,9 @@ def delete_photo(
 
 
 @router.put("/{user_uuid}/photo-position")
+@limiter.limit(WRITE_LIMIT)
 def update_photo_position(
+    request: Request,
     user_uuid: str,
     offset_x: float = 0.0,
     offset_y: float = 0.0,

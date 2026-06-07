@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from datetime import datetime, date
 from collections import defaultdict
 from typing import List
+from app.auth.limiter import limiter, DASHBOARD_LIMIT
 
 router = APIRouter()
 
@@ -18,7 +19,10 @@ def get_db():
 
 
 @router.get("/stats/{user_uuid}", response_model=schemas.DashboardStats)
-def get_dashboard_stats(user_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(DASHBOARD_LIMIT)
+def get_dashboard_stats(
+    request: Request, user_uuid: str, db: Session = Depends(get_db)
+):
     attendance = (
         db.query(models.Attendance)
         .filter(
@@ -61,7 +65,10 @@ def get_dashboard_stats(user_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/attendance-trend/{user_uuid}")
-def get_attendance_trend(user_uuid: str, days: int = 90, db: Session = Depends(get_db)):
+@limiter.limit(DASHBOARD_LIMIT)
+def get_attendance_trend(
+    request: Request, user_uuid: str, days: int = 90, db: Session = Depends(get_db)
+):
     from datetime import timedelta
 
     today = date.today()

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List
+from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
 
 router = APIRouter()
 
@@ -16,12 +17,14 @@ def get_db():
 
 
 @router.get("/", response_model=List[schemas.RoleResponse])
-def list_roles(db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def list_roles(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Role).all()
 
 
 @router.get("/user/{user_uuid}", response_model=List[schemas.UserRoleResponse])
-def get_user_roles(user_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_user_roles(request: Request, user_uuid: str, db: Session = Depends(get_db)):
     return (
         db.query(models.UserRole)
         .filter(
@@ -32,7 +35,10 @@ def get_user_roles(user_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.put("/user/{user_uuid}")
-def update_user_roles(user_uuid: str, data: dict, db: Session = Depends(get_db)):
+@limiter.limit(WRITE_LIMIT)
+def update_user_roles(
+    request: Request, user_uuid: str, data: dict, db: Session = Depends(get_db)
+):
     role_ids = data.get("role_ids", [])
 
     # Archive old roles
@@ -57,7 +63,10 @@ def update_user_roles(user_uuid: str, data: dict, db: Session = Depends(get_db))
 
 
 @router.get("/user/{user_uuid}/history", response_model=List[schemas.UserRoleResponse])
-def get_user_role_history(user_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_user_role_history(
+    request: Request, user_uuid: str, db: Session = Depends(get_db)
+):
     return (
         db.query(models.UserRole)
         .filter(models.UserRole.user_uuid == user_uuid)
@@ -67,7 +76,8 @@ def get_user_role_history(user_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/users/by-role/{role}", response_model=List[schemas.UserResponse])
-def get_users_by_role(role: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_users_by_role(request: Request, role: str, db: Session = Depends(get_db)):
     role_obj = db.query(models.Role).filter(models.Role.name == role).first()
     if not role:
         return []

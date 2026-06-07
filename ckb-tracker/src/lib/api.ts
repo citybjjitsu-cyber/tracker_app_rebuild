@@ -387,28 +387,10 @@ export const kioskApi = {
   },
   verifyUserPin: async (pin: string) => {
     const response = await api.post('/kiosk/verify-user-pin', { pin });
-    if (response.data?.csrf_token) {
-      localStorage.setItem('csrf_token', response.data.csrf_token);
-    }
-    if (response.data?.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
-    }
-    if (response.data?.refresh_token) {
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-    }
     return response.data;
   },
   verifyPinForUser: async (userUuid: string, pin: string) => {
     const response = await api.post('/kiosk/verify-pin-for-user', { user_uuid: userUuid, pin });
-    if (response.data?.csrf_token) {
-      localStorage.setItem('csrf_token', response.data.csrf_token);
-    }
-    if (response.data?.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
-    }
-    if (response.data?.refresh_token) {
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-    }
     return response.data;
   },
   updatePin: async (currentPin: string, newPin: string) => {

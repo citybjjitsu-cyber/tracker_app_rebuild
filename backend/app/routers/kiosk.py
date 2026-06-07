@@ -26,7 +26,7 @@ from app.auth.jwt_utils import (
     revoke_all_user_tokens,
 )
 from app.auth.csrf import generate_csrf_token
-from app.auth.limiter import limiter
+from app.auth.limiter import limiter, AUTH_LIMIT, PIN_LIMIT, REGISTRATION_LIMIT
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -65,7 +65,7 @@ def get_db():
 
 
 @router.post("/unlock", response_model=schemas.KioskUnlockResponse)
-@limiter.limit("5/minute")
+@limiter.limit(AUTH_LIMIT)
 def kiosk_unlock(
     request: Request,
     data: schemas.LoginRequest,
@@ -118,7 +118,9 @@ def kiosk_unlock(
 
 
 @router.post("/lock")
+@limiter.limit(AUTH_LIMIT)
 def kiosk_lock(
+    request: Request,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
@@ -127,7 +129,9 @@ def kiosk_lock(
 
 
 @router.post("/verify-user-pin", response_model=schemas.KioskUserPinVerifyResponse)
+@limiter.limit(PIN_LIMIT)
 def verify_user_pin(
+    request: Request,
     data: schemas.KioskUserPinVerifyRequest,
     db: Session = Depends(get_db),
     kiosk_user: models.User = Depends(get_current_user),
@@ -191,7 +195,9 @@ def verify_user_pin(
 
 
 @router.post("/verify-pin-for-user")
+@limiter.limit(PIN_LIMIT)
 def verify_pin_for_user(
+    request: Request,
     data: schemas.KioskUserPinVerifyForUserRequest,
     response: Response,
     db: Session = Depends(get_db),
@@ -254,7 +260,8 @@ def verify_pin_for_user(
 
 
 @router.post("/verify-pin")
-def verify_pin(data: dict, db: Session = Depends(get_db)):
+@limiter.limit(PIN_LIMIT)
+def verify_pin(request: Request, data: dict, db: Session = Depends(get_db)):
     pin = data.get("pin")
 
     kiosk = db.query(models.KioskAuth).first()
@@ -270,7 +277,9 @@ def verify_pin(data: dict, db: Session = Depends(get_db)):
 
 
 @router.put("/update-pin")
+@limiter.limit(PIN_LIMIT)
 def update_pin(
+    request: Request,
     data: dict,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
@@ -296,7 +305,9 @@ def update_pin(
 
 
 @router.post("/setup")
+@limiter.limit(REGISTRATION_LIMIT)
 def setup_kiosk(
+    request: Request,
     data: dict,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),

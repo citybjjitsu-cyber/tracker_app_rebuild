@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
 from datetime import date
 from app.routers.auth import get_current_user
+from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, CSV_IMPORT_LIMIT
 
 router = APIRouter()
 
@@ -18,8 +19,11 @@ def get_db():
 
 
 @router.post("/", response_model=schemas.AttendanceResponse)
+@limiter.limit(WRITE_LIMIT)
 def create_attendance(
-    attendance: schemas.AttendanceCreate, db: Session = Depends(get_db)
+    request: Request,
+    attendance: schemas.AttendanceCreate,
+    db: Session = Depends(get_db),
 ):
     today = date.today()
 
@@ -40,7 +44,7 @@ def create_attendance(
         )
 
     db_attendance = models.Attendance(
-        **attendance.dict(), attendance_date=today, status="pending"
+        **attendance.model_dump(), attendance_date=today, status="pending"
     )
     db.add(db_attendance)
     db.commit()
@@ -49,7 +53,10 @@ def create_attendance(
 
 
 @router.get("/user/{user_uuid}", response_model=List[schemas.AttendanceResponse])
-def get_user_attendance(user_uuid: str, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_user_attendance(
+    request: Request, user_uuid: str, db: Session = Depends(get_db)
+):
     return (
         db.query(models.Attendance)
         .filter(models.Attendance.user_uuid == user_uuid)
@@ -59,8 +66,12 @@ def get_user_attendance(user_uuid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/class/{class_id}", response_model=List[schemas.AttendanceResponse])
+@limiter.limit(READ_LIMIT)
 def get_class_attendance(
-    class_id: int, date: Optional[str] = None, db: Session = Depends(get_db)
+    request: Request,
+    class_id: int,
+    date: Optional[str] = None,
+    db: Session = Depends(get_db),
 ):
     query = db.query(models.Attendance).filter(models.Attendance.class_id == class_id)
     if date:
@@ -69,7 +80,9 @@ def get_class_attendance(
 
 
 @router.post("/check-in")
+@limiter.limit(WRITE_LIMIT)
 def check_in(
+    request: Request,
     data: schemas.CheckInRequest,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
@@ -109,7 +122,9 @@ def check_in(
 
 
 @router.post("/bulk-check-in")
+@limiter.limit(CSV_IMPORT_LIMIT)
 def bulk_check_in(
+    request: Request,
     data: schemas.BulkCheckInRequest,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
@@ -154,7 +169,9 @@ def bulk_check_in(
 
 
 @router.post("/direct")
+@limiter.limit(WRITE_LIMIT)
 def direct_attendance(
+    request: Request,
     data: dict,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
@@ -181,7 +198,10 @@ def direct_attendance(
 
 
 @router.post("/{attendance_id}/confirm", response_model=schemas.AttendanceResponse)
-def confirm_attendance(attendance_id: int, db: Session = Depends(get_db)):
+@limiter.limit(WRITE_LIMIT)
+def confirm_attendance(
+    request: Request, attendance_id: int, db: Session = Depends(get_db)
+):
     attendance = (
         db.query(models.Attendance)
         .filter(models.Attendance.id == attendance_id)
@@ -196,7 +216,10 @@ def confirm_attendance(attendance_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{attendance_id}/cancel")
-def cancel_attendance(attendance_id: int, db: Session = Depends(get_db)):
+@limiter.limit(WRITE_LIMIT)
+def cancel_attendance(
+    request: Request, attendance_id: int, db: Session = Depends(get_db)
+):
     attendance = (
         db.query(models.Attendance)
         .filter(models.Attendance.id == attendance_id)
@@ -211,7 +234,9 @@ def cancel_attendance(attendance_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/bulk-confirm")
+@limiter.limit(CSV_IMPORT_LIMIT)
 def bulk_confirm(
+    request: Request,
     data: dict,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),

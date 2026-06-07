@@ -54,7 +54,7 @@ describe('kioskApi', () => {
     expect(apiModule.getKioskStaffToken()).toBeNull()
   })
 
-  it('verifyUserPin stores tokens in localStorage', async () => {
+  it('verifyUserPin calls POST /kiosk/verify-user-pin', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
@@ -71,9 +71,7 @@ describe('kioskApi', () => {
     const result = await apiModule.kioskApi.verifyUserPin('1234')
 
     expect(result.valid).toBe(true)
-    expect(localStorage.getItem('access_token')).toBe('access-123')
-    expect(localStorage.getItem('refresh_token')).toBe('refresh-123')
-    expect(localStorage.getItem('csrf_token')).toBe('csrf-123')
+    expect(axios.default.post).toHaveBeenCalledWith('/kiosk/verify-user-pin', { pin: '1234' })
   })
 })
 
@@ -1033,7 +1031,7 @@ describe('kioskApi (additional)', () => {
     expect(result.valid).toBe(true)
   })
 
-  it('verifyPinForUser calls POST /kiosk/verify-pin-for-user and stores tokens', async () => {
+  it('verifyPinForUser calls POST /kiosk/verify-pin-for-user', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
@@ -1044,9 +1042,6 @@ describe('kioskApi (additional)', () => {
 
     expect(axios.default.post).toHaveBeenCalledWith('/kiosk/verify-pin-for-user', { user_uuid: 'user-u1', pin: '1234' })
     expect(result.valid).toBe(true)
-    expect(localStorage.getItem('csrf_token')).toBe('ct')
-    expect(localStorage.getItem('access_token')).toBe('at')
-    expect(localStorage.getItem('refresh_token')).toBe('rt')
   })
 
   it('updatePin calls PUT /kiosk/update-pin', async () => {

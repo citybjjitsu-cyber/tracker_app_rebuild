@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
+from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
 
 router = APIRouter()
 
@@ -16,8 +17,11 @@ def get_db():
 
 
 @router.post("/", response_model=schemas.ClassScheduleResponse)
-def create_class(cls: schemas.ClassScheduleCreate, db: Session = Depends(get_db)):
-    db_class = models.ClassSchedule(**cls.dict())
+@limiter.limit(WRITE_LIMIT)
+def create_class(
+    request: Request, cls: schemas.ClassScheduleCreate, db: Session = Depends(get_db)
+):
+    db_class = models.ClassSchedule(**cls.model_dump())
     db.add(db_class)
     db.commit()
     db.refresh(db_class)
@@ -25,7 +29,8 @@ def create_class(cls: schemas.ClassScheduleCreate, db: Session = Depends(get_db)
 
 
 @router.get("/", response_model=List[schemas.ClassScheduleResponse])
-def list_classes(db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def list_classes(request: Request, db: Session = Depends(get_db)):
     return (
         db.query(models.ClassSchedule)
         .filter(models.ClassSchedule.is_current == True)
@@ -34,7 +39,8 @@ def list_classes(db: Session = Depends(get_db)):
 
 
 @router.get("/{class_id}", response_model=schemas.ClassScheduleResponse)
-def get_class(class_id: int, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_class(request: Request, class_id: int, db: Session = Depends(get_db)):
     cls = (
         db.query(models.ClassSchedule)
         .filter(
@@ -48,8 +54,12 @@ def get_class(class_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{class_uuid}", response_model=schemas.ClassScheduleResponse)
+@limiter.limit(WRITE_LIMIT)
 def update_class(
-    class_uuid: str, cls: schemas.ClassScheduleUpdate, db: Session = Depends(get_db)
+    request: Request,
+    class_uuid: str,
+    cls: schemas.ClassScheduleUpdate,
+    db: Session = Depends(get_db),
 ):
     db_class = (
         db.query(models.ClassSchedule)
@@ -62,7 +72,7 @@ def update_class(
     if not db_class:
         raise HTTPException(status_code=404, detail="Class not found")
 
-    for key, value in cls.dict().items():
+    for key, value in cls.model_dump().items():
         setattr(db_class, key, value)
 
     db.commit()

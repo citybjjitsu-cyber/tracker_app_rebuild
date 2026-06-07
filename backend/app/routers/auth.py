@@ -14,12 +14,13 @@ from app import models, schemas
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
-from app.auth.limiter import limiter
+from app.auth.limiter import limiter, AUTH_LIMIT, REFRESH_LIMIT, WRITE_LIMIT, READ_LIMIT
 import logging
 
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
+    MAX_SESSION_HOURS,
     COOKIE_HTTPONLY,
     COOKIE_SAMESITE,
     COOKIE_SECURE,
@@ -173,7 +174,7 @@ def clear_auth_cookies(response: Response):
 
 
 @router.post("/login")
-@limiter.limit("5/minute")
+@limiter.limit(AUTH_LIMIT)
 def login(
     request: Request,
     data: schemas.LoginRequest,
@@ -223,7 +224,7 @@ def login(
 
 
 @router.post("/teacher-login")
-@limiter.limit("5/minute")
+@limiter.limit(AUTH_LIMIT)
 def teacher_login(
     request: Request,
     data: schemas.LoginRequest,
@@ -278,6 +279,7 @@ def teacher_login(
 
 
 @router.post("/refresh")
+@limiter.limit(REFRESH_LIMIT)
 def refresh_token(
     request: Request,
     response: Response,
@@ -304,6 +306,19 @@ def refresh_token(
 
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+
+    # Enforce absolute session expiry
+    iat = payload.get("iat")
+    if iat:
+        issued_at = datetime.fromtimestamp(iat, tz=timezone.utc)
+        if datetime.now(timezone.utc) - issued_at > timedelta(hours=MAX_SESSION_HOURS):
+            revoke_token(db, jti)
+            raise HTTPException(
+                status_code=401, detail="Session expired, please log in again"
+            )
+
+    # Revoke old refresh token (rotation)
+    revoke_token(db, jti)
 
     roles = get_user_roles(db, user_uuid)
 
@@ -336,6 +351,7 @@ def refresh_token(
 
 
 @router.post("/logout")
+@limiter.limit(WRITE_LIMIT)
 def logout(
     response: Response,
     request: Request,
@@ -358,7 +374,9 @@ def logout(
 
 
 @router.post("/logout-all")
+@limiter.limit(WRITE_LIMIT)
 def logout_all(
+    request: Request,
     response: Response,
     access_token: Optional[str] = Cookie(None),
     db: Session = Depends(get_db),
@@ -373,8 +391,11 @@ def logout_all(
 
 
 @router.get("/me")
+@limiter.limit(READ_LIMIT)
 def get_current_user_info(
-    user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    request: Request,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     roles = get_user_roles(db, user.user_uuid)
     csrf_token = generate_csrf_token()
@@ -394,7 +415,8 @@ def get_current_user_info(
 
 
 @router.get("/csrf-token")
-def get_csrf_token(csrf_token: Optional[str] = Cookie(None)):
+@limiter.limit(READ_LIMIT)
+def get_csrf_token(request: Request, csrf_token: Optional[str] = Cookie(None)):
     if not csrf_token:
         return {"csrf_token": generate_csrf_token()}
     return {"csrf_token": csrf_token}

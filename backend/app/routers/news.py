@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import SessionLocal
 from app import models, schemas
 from app.routers.auth import get_admin_user
+from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
 
 router = APIRouter(prefix="/news", tags=["news"])
 
@@ -17,7 +18,10 @@ def get_db():
 
 
 @router.get("/", response_model=List[schemas.NewsResponse])
-def list_news(db: Session = Depends(get_db), published_only: bool = True):
+@limiter.limit(READ_LIMIT)
+def list_news(
+    request: Request, db: Session = Depends(get_db), published_only: bool = True
+):
     query = db.query(models.News)
     if published_only:
         query = query.filter(models.News.is_published == True)
@@ -25,7 +29,9 @@ def list_news(db: Session = Depends(get_db), published_only: bool = True):
 
 
 @router.post("/", response_model=schemas.NewsResponse)
+@limiter.limit(WRITE_LIMIT)
 def create_news(
+    request: Request,
     news: schemas.NewsCreate,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_admin_user),
@@ -42,7 +48,8 @@ def create_news(
 
 
 @router.get("/{news_id}", response_model=schemas.NewsResponse)
-def get_news(news_id: int, db: Session = Depends(get_db)):
+@limiter.limit(READ_LIMIT)
+def get_news(request: Request, news_id: int, db: Session = Depends(get_db)):
     news = db.query(models.News).filter(models.News.id == news_id).first()
     if not news:
         raise HTTPException(status_code=404, detail="News not found")
@@ -50,7 +57,9 @@ def get_news(news_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{news_id}", response_model=schemas.NewsResponse)
+@limiter.limit(WRITE_LIMIT)
 def update_news(
+    request: Request,
     news_id: int,
     news_update: schemas.NewsUpdate,
     db: Session = Depends(get_db),
@@ -73,7 +82,9 @@ def update_news(
 
 
 @router.delete("/{news_id}")
+@limiter.limit(WRITE_LIMIT)
 def delete_news(
+    request: Request,
     news_id: int,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_admin_user),

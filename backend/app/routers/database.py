@@ -4,11 +4,18 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app import models, schemas
 from app.routers.auth import get_admin_user
+from app.auth.limiter import (
+    limiter,
+    READ_LIMIT,
+    DB_EXPORT_LIMIT,
+    DB_RESET_LIMIT,
+    DB_RESTORE_LIMIT,
+)
 
 router = APIRouter()
 
@@ -76,7 +83,9 @@ def _export_all_data(db: Session) -> dict:
 
 
 @router.get("/stats", response_model=schemas.DbStatsResponse)
+@limiter.limit(READ_LIMIT)
 def get_stats(
+    request: Request,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
@@ -111,7 +120,9 @@ def get_stats(
 
 
 @router.get("/export-seed")
+@limiter.limit(DB_EXPORT_LIMIT)
 def export_seed(
+    request: Request,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
@@ -125,7 +136,9 @@ def export_seed(
 
 
 @router.get("/create-backup")
+@limiter.limit(DB_EXPORT_LIMIT)
 def create_backup(
+    request: Request,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
@@ -140,7 +153,9 @@ def create_backup(
 
 
 @router.post("/restore")
+@limiter.limit(DB_RESTORE_LIMIT)
 def restore_database(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
@@ -208,7 +223,9 @@ class _ResetRequest(BaseModel):
 
 
 @router.post("/reset")
+@limiter.limit(DB_RESET_LIMIT)
 def reset_database(
+    request: Request,
     body: Optional[_ResetRequest] = None,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
