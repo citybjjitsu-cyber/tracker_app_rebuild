@@ -40,6 +40,10 @@ class User(Base):
     created_date = Column(DateTime, default=datetime.utcnow)
     updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    @property
+    def has_password(self):
+        return self.password_hash is not None
+
     roles = relationship("UserRole", back_populates="user")
     attendance = relationship(
         "Attendance", back_populates="user", foreign_keys="Attendance.user_uuid"
@@ -284,6 +288,21 @@ class WebsiteTheme(Base):
     config = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    actor_uuid = Column(String, index=True, nullable=True)
+    action = Column(String, nullable=False, index=True)
+    resource_type = Column(String, nullable=False, index=True)
+    resource_uuid = Column(String, nullable=True)
+    detail = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    success = Column(Boolean, default=True)
 
 
 class News(Base):

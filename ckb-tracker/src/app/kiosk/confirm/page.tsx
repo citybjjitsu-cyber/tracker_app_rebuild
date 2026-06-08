@@ -47,9 +47,8 @@ export default function KioskConfirmPage() {
       successTimerRef.current = setTimeout(() => {
         resetSession();
       }, 5000);
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } }; message?: string };
-      setError(err?.response?.data?.detail || err?.message || 'Check-in failed. Please try again.');
+    } catch {
+      setError('Check-in failed. Please try again.');
     } finally {
       setLoading(false);
     }

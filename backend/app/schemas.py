@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from datetime import date, datetime
 from typing import Optional, List
 
@@ -38,6 +38,7 @@ class UserResponse(UserBase):
     image_offset_y: Optional[float] = None
     end_date: Optional[datetime] = None
     is_current: bool
+    has_password: bool = False
     effective_date: datetime
     created_date: datetime
     updated_date: datetime
@@ -187,8 +188,8 @@ class LessonBase(BaseModel):
     curriculum_id: int
     title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = Field(default=None, max_length=2000)
-    lesson_plan_url: Optional[str] = Field(default=None, max_length=500)
-    video_folder_url: Optional[str] = Field(default=None, max_length=500)
+    lesson_plan_url: Optional[HttpUrl] = Field(default=None, max_length=500)
+    video_folder_url: Optional[HttpUrl] = Field(default=None, max_length=500)
 
 
 class LessonCreate(LessonBase):
@@ -300,7 +301,7 @@ class FeedbackResponse(FeedbackBase):
 
 class LoginRequest(BaseModel):
     email: str = Field(max_length=255)
-    password: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
 
 
 class TokenResponse(BaseModel):
@@ -427,13 +428,39 @@ class DbStatsResponse(BaseModel):
     kiosk_pin_set: bool
 
 
+class AuditLogResponse(BaseModel):
+    id: int
+    timestamp: datetime
+    actor_uuid: Optional[str] = None
+    action: str
+    resource_type: str
+    resource_uuid: Optional[str] = None
+    detail: Optional[str] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    success: bool
+
+    class Config:
+        from_attributes = True
+
+
+class AuditLogListResponse(BaseModel):
+    items: List[AuditLogResponse]
+    total: int
+    page: int
+    per_page: int
+
+
+PIN_REGEX = r"^\d{4,8}$"
+
+
 class KioskUserPinVerifyRequest(BaseModel):
-    pin: str = Field(min_length=4, max_length=8)
+    pin: str = Field(min_length=4, max_length=8, pattern=PIN_REGEX)
 
 
 class KioskUserPinVerifyForUserRequest(BaseModel):
     user_uuid: str = Field(min_length=1, max_length=64)
-    pin: str = Field(min_length=4, max_length=8)
+    pin: str = Field(min_length=4, max_length=8, pattern=PIN_REGEX)
 
 
 class KioskUserResponse(UserBase):

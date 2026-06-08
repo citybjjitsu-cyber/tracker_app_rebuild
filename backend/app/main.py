@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from app.auth.limiter import limiter
+from app.auth.csrf import csrf_middleware_dispatch
 from slowapi.errors import RateLimitExceeded
 import os
 
@@ -35,6 +36,7 @@ from app.routers import (
     dashboard,
     news,
     comments,
+    audit,
 )
 
 
@@ -73,8 +75,50 @@ async def rate_limit_handler(request, exc):
 
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
+
+# CSRF validation middleware (must be before CORS for proper cookie access)
+@app.middleware("http")
+async def csrf_middleware(request: Request, call_next):
+    return await csrf_middleware_dispatch(request, call_next)
+
+
+# Request body size limit middleware
+MAX_JSON_BODY = 1_048_576  # 1 MB
+MAX_MULTIPART_BODY = 10_485_760  # 10 MB
+
+
+@app.middleware("http")
+async def limit_request_body(request: Request, call_next):
+    if request.method in ("POST", "PUT", "PATCH"):
+        content_length = request.headers.get("content-length")
+        if content_length:
+            size = int(content_length)
+            content_type = request.headers.get("content-type", "")
+            if "multipart/form-data" in content_type:
+                if size > MAX_MULTIPART_BODY:
+                    return Response(
+                        status_code=413,
+                        content='{"detail":"Request too large. Maximum 10 MB for uploads."}',
+                        media_type="application/json",
+                    )
+            elif size > MAX_JSON_BODY:
+                return Response(
+                    status_code=413,
+                    content='{"detail":"Request too large. Maximum 1 MB for JSON payloads."}',
+                    media_type="application/json",
+                )
+    return await call_next(request)
+
+
 # Security middleware - Trusted Host
-allowed_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+allowed_hosts_raw = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+allowed_hosts = allowed_hosts_raw.split(",")
+if "*" in allowed_hosts and os.getenv("ENVIRONMENT", "development") != "development":
+    import logging
+
+    logging.warning(
+        "ALLOWED_HOSTS contains '*' — TrustedHostMiddleware is disabled! Set specific hosts in production."
+    )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 # CORS middleware - configurable via environment
@@ -85,8 +129,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
 )
 
 
@@ -96,8 +140,9 @@ async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    if os.getenv("ENVIRONMENT") == "production":
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if os.getenv("HSTS_ENABLED", "False").lower() == "true":
         response.headers["Strict-Transport-Security"] = (
             "max-age=31536000; includeSubDomains"
         )
@@ -108,7 +153,10 @@ async def add_security_headers(request: Request, call_next):
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     import time
+    import logging
+    import uuid
 
+    request_id = str(uuid.uuid4())[:8]
     start_time = time.time()
 
     response = await call_next(request)
@@ -116,15 +164,16 @@ async def log_requests(request: Request, call_next):
     process_time = (time.time() - start_time) * 1000
     client_host = request.client.host if request.client else "unknown"
 
-    log_msg = f"{client_host} - {request.method} {request.url.path} - {response.status_code} - {process_time:.2f}ms"
+    log_msg = (
+        f"[{request_id}] {client_host} - {request.method} {request.url.path} "
+        f"- {response.status_code} - {process_time:.2f}ms"
+    )
 
-    if response.status_code >= 400:
-        import logging
-
+    if response.status_code >= 500:
+        logging.error(log_msg)
+    elif response.status_code >= 400:
         logging.warning(log_msg)
     else:
-        import logging
-
         logging.info(log_msg)
 
     return response
@@ -153,6 +202,7 @@ app.include_router(database.router, prefix="/database", tags=["Database"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(news.router, tags=["News"])
 app.include_router(comments.router, prefix="/comments", tags=["Comments"])
+app.include_router(audit.router, prefix="/audit", tags=["Audit"])
 app.include_router(themes.router, prefix="/themes", tags=["Themes"])
 
 # Serve uploaded photos statically

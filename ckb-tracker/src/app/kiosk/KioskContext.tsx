@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation';
 import { kioskApi, setKioskStaffToken } from '@/lib/api';
 import type { User } from '@/types';
 
-const IDLE_TIMEOUT_MS = 1800000;
-const STORAGE_UNLOCKED_KEY = 'kiosk_is_unlocked';
-const STORAGE_UNLOCKED_BY_KEY = 'kiosk_unlocked_by';
+const IDLE_TIMEOUT_MS = 60000;
 
 interface KioskContextType {
   isUnlocked: boolean;
@@ -34,23 +32,7 @@ export function KioskProvider({ children }: { children: ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [unlockedBy, setUnlockedBy] = useState<string | null>(null);
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem(STORAGE_UNLOCKED_KEY);
-    if (stored === 'true') {
-      setIsUnlocked(true);
-      const storedBy = sessionStorage.getItem(STORAGE_UNLOCKED_BY_KEY);
-      setUnlockedBy(storedBy);
-    }
-  }, []);
-  const [identifiedUser, setIdentifiedUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('kiosk_user');
-      if (stored) {
-        try { return JSON.parse(stored) as User; } catch { /* ignore */ }
-      }
-    }
-    return null;
-  });
+  const [identifiedUser, setIdentifiedUser] = useState<User | null>(null);
   const [selectedClassIds, setSelectedClassIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -76,9 +58,6 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     setUnlockedBy(null);
     setError('');
     clearIdleTimer();
-    sessionStorage.removeItem('kiosk_user');
-    sessionStorage.removeItem(STORAGE_UNLOCKED_KEY);
-    sessionStorage.removeItem(STORAGE_UNLOCKED_BY_KEY);
     router.push('/');
   }, [router, clearIdleTimer]);
 
@@ -87,7 +66,6 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     setSelectedClassIds([]);
     setError('');
     clearIdleTimer();
-    sessionStorage.removeItem('kiosk_user');
   }, [clearIdleTimer]);
 
   const unlockKiosk = useCallback(async (email: string, password: string) => {
@@ -97,13 +75,10 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     setError('');
     setIdentifiedUser(null);
     setSelectedClassIds([]);
-    sessionStorage.setItem(STORAGE_UNLOCKED_KEY, 'true');
-    sessionStorage.setItem(STORAGE_UNLOCKED_BY_KEY, `${data.user.first_name} ${data.user.last_name}`);
   }, []);
 
   const identifyUser = useCallback((user: User) => {
     setIdentifiedUser(user);
-    sessionStorage.setItem('kiosk_user', JSON.stringify(user));
     setSelectedClassIds([]);
     setError('');
   }, []);

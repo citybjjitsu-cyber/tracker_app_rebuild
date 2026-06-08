@@ -4,6 +4,7 @@ from app.database import SessionLocal
 from app import models, schemas
 from typing import List
 from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
+from app.services.audit import create_audit_log
 
 router = APIRouter()
 
@@ -59,6 +60,19 @@ def update_user_roles(
         db.add(user_role)
 
     db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="roles_update",
+        resource_type="user",
+        resource_uuid=user_uuid,
+        detail=f"Roles updated to {role_ids}",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return {"message": "Roles updated"}
 
 

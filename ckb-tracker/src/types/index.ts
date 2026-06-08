@@ -9,7 +9,7 @@ export interface User {
   first_name: string;
   last_name: string;
   email: string;
-  password_hash?: string;
+  has_password?: boolean;
   rank?: Rank;
   last_graded_date?: string;
   comments?: string;

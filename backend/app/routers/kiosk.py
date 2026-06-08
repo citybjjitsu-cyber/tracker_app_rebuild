@@ -27,6 +27,7 @@ from app.auth.jwt_utils import (
 )
 from app.auth.csrf import generate_csrf_token
 from app.auth.limiter import limiter, AUTH_LIMIT, PIN_LIMIT, REGISTRATION_LIMIT
+from app.services.audit import create_audit_log
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -109,6 +110,18 @@ def kiosk_unlock(
         datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
 
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="kiosk_unlock",
+        resource_type="kiosk",
+        actor_uuid=str(user.user_uuid),
+        detail="Kiosk unlocked",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return schemas.KioskUnlockResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -125,6 +138,19 @@ def kiosk_lock(
     user: models.User = Depends(get_current_user),
 ):
     revoke_all_user_tokens(db, user.user_uuid)
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="kiosk_lock",
+        resource_type="kiosk",
+        actor_uuid=str(user.user_uuid),
+        detail="Kiosk locked",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return {"message": "Kiosk locked"}
 
 
@@ -159,8 +185,21 @@ def verify_user_pin(
             matched_user = user
             break
 
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+
     if not matched_user:
         record_failed_attempt(data.pin)
+        create_audit_log(
+            db,
+            action="pin_verify_failed",
+            resource_type="kiosk",
+            actor_uuid=str(kiosk_user.user_uuid),
+            detail="PIN verification failed",
+            ip_address=client_host,
+            user_agent=user_agent,
+            success=False,
+        )
         return schemas.KioskUserPinVerifyResponse(valid=False)
 
     clear_pin_lockout(data.pin)
@@ -184,6 +223,17 @@ def verify_user_pin(
     )
 
     csrf_token = generate_csrf_token()
+
+    create_audit_log(
+        db,
+        action="pin_verify_success",
+        resource_type="kiosk",
+        actor_uuid=str(kiosk_user.user_uuid),
+        resource_uuid=str(matched_user.user_uuid),
+        detail="PIN verification successful",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
 
     return schemas.KioskUserPinVerifyResponse(
         valid=True,
@@ -221,7 +271,21 @@ def verify_pin_for_user(
         .first()
     )
 
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+
     if not user or not user.pin_hash:
+        create_audit_log(
+            db,
+            action="pin_for_user_failed",
+            resource_type="kiosk",
+            actor_uuid=str(kiosk_user.user_uuid),
+            resource_uuid=data.user_uuid,
+            detail="PIN for user failed: no PIN set",
+            ip_address=client_host,
+            user_agent=user_agent,
+            success=False,
+        )
         return {"valid": False}
 
     if pwd_context.verify(data.pin, user.pin_hash):
@@ -248,6 +312,17 @@ def verify_pin_for_user(
         csrf_token = generate_csrf_token()
         set_auth_cookies(response, access_token, refresh_token, csrf_token)
 
+        create_audit_log(
+            db,
+            action="pin_for_user_success",
+            resource_type="kiosk",
+            actor_uuid=str(kiosk_user.user_uuid),
+            resource_uuid=data.user_uuid,
+            detail="PIN for user successful",
+            ip_address=client_host,
+            user_agent=user_agent,
+        )
+
         return {
             "valid": True,
             "csrf_token": csrf_token,
@@ -256,6 +331,17 @@ def verify_pin_for_user(
         }
 
     record_failed_attempt(lockout_key)
+    create_audit_log(
+        db,
+        action="pin_for_user_failed",
+        resource_type="kiosk",
+        actor_uuid=str(kiosk_user.user_uuid),
+        resource_uuid=data.user_uuid,
+        detail="PIN for user failed: wrong PIN",
+        ip_address=client_host,
+        user_agent=user_agent,
+        success=False,
+    )
     return {"valid": False}
 
 
@@ -263,16 +349,26 @@ def verify_pin_for_user(
 @limiter.limit(PIN_LIMIT)
 def verify_pin(request: Request, data: dict, db: Session = Depends(get_db)):
     pin = data.get("pin")
+    lockout_key = "legacy-kiosk"
+
+    remaining = check_pin_lockout(lockout_key)
+    if remaining is not None:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Try again in {remaining} seconds.",
+            headers={"Retry-After": str(remaining)},
+        )
 
     kiosk = db.query(models.KioskAuth).first()
     if not kiosk:
-        # Default PIN: 1234
-        if pin == "1234":
-            return {"valid": True}
+        record_failed_attempt(lockout_key)
         return {"valid": False}
 
     if pwd_context.verify(pin, kiosk.pin_hash):
+        clear_pin_lockout(lockout_key)
         return {"valid": True}
+
+    record_failed_attempt(lockout_key)
     return {"valid": False}
 
 

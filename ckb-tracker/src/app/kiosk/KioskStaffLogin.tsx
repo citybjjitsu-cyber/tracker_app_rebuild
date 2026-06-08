@@ -21,10 +21,8 @@ export function KioskStaffLogin({ onCancel }: KioskStaffLoginProps) {
     setIsLoading(true);
     try {
       await unlockKiosk(email, password);
-    } catch (err: unknown) {
-      const errObj = err as { response?: { data?: { detail?: string } }; message?: string };
-      const message = errObj?.response?.data?.detail || errObj?.message || 'Invalid credentials';
-      setError(message);
+    } catch {
+      setError('Invalid credentials');
     } finally {
       setIsLoading(false);
     }

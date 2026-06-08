@@ -22,7 +22,6 @@ vi.mock('@/lib/api', () => ({
 describe('KioskContext', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    sessionStorage.clear()
   })
 
   function Wrapper({ children }: { children: React.ReactNode }) {

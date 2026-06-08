@@ -36,6 +36,7 @@ from app.auth.jwt_utils import (
     is_token_valid,
 )
 from app.auth.csrf import generate_csrf_token
+from app.services.audit import create_audit_log
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -216,6 +217,18 @@ def login(
     csrf_token = generate_csrf_token()
     set_auth_cookies(response, access_token, refresh_token, csrf_token)
 
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="login",
+        resource_type="auth",
+        actor_uuid=str(user.user_uuid),
+        detail="User login",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return {
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
@@ -270,6 +283,18 @@ def teacher_login(
 
     csrf_token = generate_csrf_token()
     set_auth_cookies(response, access_token, refresh_token, csrf_token)
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="teacher_login",
+        resource_type="auth",
+        actor_uuid=str(user.user_uuid),
+        detail="Teacher login",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
 
     return {
         "user": schemas.UserResponse.model_validate(user),
@@ -343,6 +368,18 @@ def refresh_token(
     csrf_token = generate_csrf_token()
     set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
 
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="token_refresh",
+        resource_type="auth",
+        actor_uuid=str(user_uuid),
+        detail="Token refreshed",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return {
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
@@ -370,6 +407,21 @@ def logout(
             revoke_token(db, payload.get("jti"))
 
     clear_auth_cookies(response)
+
+    payload = decode_token(access_token) if access_token else None
+    actor_uuid = str(payload.get("sub")) if payload else None
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="logout",
+        resource_type="auth",
+        actor_uuid=actor_uuid,
+        detail="User logout",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return {"message": "Logged out successfully"}
 
 
@@ -387,6 +439,21 @@ def logout_all(
             revoke_all_user_tokens(db, payload.get("sub"))
 
     clear_auth_cookies(response)
+
+    payload = decode_token(access_token) if access_token else None
+    actor_uuid = str(payload.get("sub")) if payload else None
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="logout_all",
+        resource_type="auth",
+        actor_uuid=actor_uuid,
+        detail="Logged out from all devices",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return {"message": "Logged out from all devices"}
 
 
@@ -412,6 +479,20 @@ def get_current_user_info(
     set_auth_cookies(MockResponse(), "", "", csrf_token)
 
     return response
+
+
+@router.get("/check-password/{user_uuid}")
+@limiter.limit(READ_LIMIT)
+def check_password(
+    request: Request,
+    user_uuid: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    user = db.query(models.User).filter(models.User.user_uuid == user_uuid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"has_password": user.password_hash is not None}
 
 
 @router.get("/csrf-token")

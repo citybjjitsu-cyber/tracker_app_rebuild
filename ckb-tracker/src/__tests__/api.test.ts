@@ -23,7 +23,7 @@ beforeEach(() => {
 })
 
 describe('kioskApi', () => {
-  it('unlock stores staff token in sessionStorage', async () => {
+  it('unlock stores staff token in memory', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
@@ -34,15 +34,14 @@ describe('kioskApi', () => {
     const result = await apiModule.kioskApi.unlock('staff@test.com', 'pass123')
 
     expect(result.access_token).toBe('test-token')
-    expect(sessionStorage.getItem('kiosk_staff_token')).toBe('test-token')
     expect(apiModule.getKioskStaffToken()).toBe('test-token')
   })
 
   it('lock clears staff token', async () => {
-    sessionStorage.setItem('kiosk_staff_token', 'some-token')
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
+    apiModule.setKioskStaffToken('some-token')
     vi.mocked(axios.default.post).mockResolvedValue({
       data: { message: 'Kiosk locked' },
     })
@@ -50,7 +49,6 @@ describe('kioskApi', () => {
     const result = await apiModule.kioskApi.lock()
 
     expect(result.message).toBe('Kiosk locked')
-    expect(sessionStorage.getItem('kiosk_staff_token')).toBeNull()
     expect(apiModule.getKioskStaffToken()).toBeNull()
   })
 
@@ -994,15 +992,14 @@ describe('axios interceptor', () => {
     apiModule.setKioskStaffToken(null)
   })
 
-  it('sets Authorization header with access token when no kiosk token', async () => {
-    localStorage.setItem('access_token', 'access-token-1')
+  it('does not set Authorization when no kiosk token', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
     const handler = axios.default.interceptors.request.use.mock.calls[0][0]
     const config = { method: 'get', headers: {}, url: '/test' }
     const result = handler(config)
-    expect(result.headers['Authorization']).toBe('Bearer access-token-1')
+    expect(result.headers['Authorization']).toBeUndefined()
   })
 })
 
@@ -1071,15 +1068,14 @@ describe('commentsApi (additional branch)', () => {
 })
 
 describe('token management', () => {
-  it('setKioskStaffToken persists in module and sessionStorage', async () => {
+  it('setKioskStaffToken persists in memory only', async () => {
     const apiModule = await import('@/lib/api')
 
     apiModule.setKioskStaffToken('token-1')
     expect(apiModule.getKioskStaffToken()).toBe('token-1')
-    expect(sessionStorage.getItem('kiosk_staff_token')).toBe('token-1')
+    expect(sessionStorage.getItem('kiosk_staff_token')).toBeNull()
 
     apiModule.setKioskStaffToken(null)
     expect(apiModule.getKioskStaffToken()).toBeNull()
-    expect(sessionStorage.getItem('kiosk_staff_token')).toBeNull()
   })
 })

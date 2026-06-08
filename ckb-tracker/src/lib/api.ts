@@ -22,20 +22,11 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-// Staff kiosk token — stored in memory + sessionStorage (cross-navigation persistence)
+// Staff kiosk token — stored in memory only
 let kioskStaffToken: string | null = null;
-
-if (typeof window !== 'undefined') {
-  kioskStaffToken = sessionStorage.getItem('kiosk_staff_token');
-}
 
 export function setKioskStaffToken(token: string | null) {
   kioskStaffToken = token;
-  if (token) {
-    sessionStorage.setItem('kiosk_staff_token', token);
-  } else {
-    sessionStorage.removeItem('kiosk_staff_token');
-  }
 }
 
 export function getKioskStaffToken(): string | null {
@@ -58,11 +49,6 @@ api.interceptors.request.use((config) => {
   const kioskToken = getKioskStaffToken();
   if (kioskToken) {
     config.headers['Authorization'] = `Bearer ${kioskToken}`;
-  } else {
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    if (accessToken) {
-      config.headers['Authorization'] = `Bearer ${accessToken}`;
-    }
   }
   return config;
 });

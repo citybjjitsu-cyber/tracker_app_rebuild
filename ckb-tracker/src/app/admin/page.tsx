@@ -494,7 +494,7 @@ export default function AdminPage() {
   const handleCheckPassword = async (uuid: string) => {
     try {
       const status = await usersApi.get(uuid);
-      return !!status.password_hash;
+      return !!status.has_password;
     } catch {
       return false;
     }
@@ -2243,7 +2243,7 @@ export default function AdminPage() {
                       </td>
                       <td className="p-3 text-sm text-slate-500 dark:text-slate-400">{u.email}</td>
                       <td className="p-3">
-                        {u.password_hash ? (
+                        {u.has_password ? (
                           <span className="text-green-600 dark:text-green-400">✅ Active</span>
                         ) : (
                           <span className="text-red-500 dark:text-red-400">❌ No Password</span>

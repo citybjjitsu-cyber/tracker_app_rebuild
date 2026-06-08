@@ -67,9 +67,9 @@ function KioskContent() {
           setPinValue('');
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { detail?: string }; status?: number } };
+        const err = error as { response?: { status?: number } };
         if (err?.response?.status === 429) {
-          setPinError(err?.response?.data?.detail || 'Too many attempts. Please wait.');
+          setPinError('Too many attempts. Please wait.');
         } else {
           setPinError('Verification failed. Try again.');
         }

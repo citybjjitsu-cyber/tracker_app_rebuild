@@ -6,6 +6,7 @@ from typing import List, Optional
 from datetime import date
 from app.routers.auth import get_current_user
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, CSV_IMPORT_LIMIT
+from app.services.audit import create_audit_log
 
 router = APIRouter()
 
@@ -24,6 +25,7 @@ def create_attendance(
     request: Request,
     attendance: schemas.AttendanceCreate,
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
     today = date.today()
 
@@ -49,13 +51,30 @@ def create_attendance(
     db.add(db_attendance)
     db.commit()
     db.refresh(db_attendance)
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="check_in",
+        resource_type="attendance",
+        actor_uuid=str(user.user_uuid),
+        resource_uuid=attendance.user_uuid,
+        detail=f"Check-in to class {attendance.class_id}",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return db_attendance
 
 
 @router.get("/user/{user_uuid}", response_model=List[schemas.AttendanceResponse])
 @limiter.limit(READ_LIMIT)
 def get_user_attendance(
-    request: Request, user_uuid: str, db: Session = Depends(get_db)
+    request: Request,
+    user_uuid: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
     return (
         db.query(models.Attendance)
@@ -72,6 +91,7 @@ def get_class_attendance(
     class_id: int,
     date: Optional[str] = None,
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.Attendance).filter(models.Attendance.class_id == class_id)
     if date:
@@ -118,11 +138,25 @@ def check_in(
     db.add(db_attendance)
     db.commit()
     db.refresh(db_attendance)
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="check_in",
+        resource_type="attendance",
+        actor_uuid=str(user.user_uuid),
+        resource_uuid=data.user_uuid,
+        detail=f"Check-in to class {data.class_id}",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return db_attendance
 
 
 @router.post("/bulk-check-in")
-@limiter.limit(CSV_IMPORT_LIMIT)
+@limiter.limit(WRITE_LIMIT)
 def bulk_check_in(
     request: Request,
     data: schemas.BulkCheckInRequest,
@@ -200,7 +234,10 @@ def direct_attendance(
 @router.post("/{attendance_id}/confirm", response_model=schemas.AttendanceResponse)
 @limiter.limit(WRITE_LIMIT)
 def confirm_attendance(
-    request: Request, attendance_id: int, db: Session = Depends(get_db)
+    request: Request,
+    attendance_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
     attendance = (
         db.query(models.Attendance)
@@ -212,13 +249,30 @@ def confirm_attendance(
 
     attendance.status = "confirmed"
     db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="attendance_confirm",
+        resource_type="attendance",
+        actor_uuid=str(user.user_uuid),
+        resource_uuid=str(attendance_id),
+        detail=f"Attendance {attendance_id} confirmed",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return attendance
 
 
 @router.delete("/{attendance_id}/cancel")
 @limiter.limit(WRITE_LIMIT)
 def cancel_attendance(
-    request: Request, attendance_id: int, db: Session = Depends(get_db)
+    request: Request,
+    attendance_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
     attendance = (
         db.query(models.Attendance)
@@ -230,6 +284,20 @@ def cancel_attendance(
 
     db.delete(attendance)
     db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="attendance_cancel",
+        resource_type="attendance",
+        actor_uuid=str(user.user_uuid),
+        resource_uuid=str(attendance_id),
+        detail=f"Attendance {attendance_id} cancelled",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return {"message": "Attendance cancelled"}
 
 

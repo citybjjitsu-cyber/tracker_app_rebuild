@@ -20,6 +20,7 @@ from typing import List, Optional
 import uuid
 import os
 import shutil
+from PIL import Image
 from app.routers.auth import get_current_user, get_admin_user
 from app.auth.limiter import (
     limiter,
@@ -30,6 +31,10 @@ from app.auth.limiter import (
     CSV_EXPORT_LIMIT,
     UPLOAD_LIMIT,
 )
+from app.services.audit import create_audit_log
+
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5 MB
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -87,6 +92,19 @@ def create_user(
         user_role = models.UserRole(user_uuid=user_uuid, role_id=student_role.id)
         db.add(user_role)
         db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="user_create",
+        resource_type="user",
+        actor_uuid=str(admin.user_uuid),
+        resource_uuid=user_uuid,
+        detail=f"Created user {user.first_name} {user.last_name} ({user.email})",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
 
     return db_user
 
@@ -185,7 +203,14 @@ async def import_users_csv(
     skipped = 0
     errors = []
 
-    for row_num, row in enumerate(reader, start=2):
+    rows = list(reader)
+    if len(rows) > 500:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV import limited to 500 rows. File has {len(rows)} rows.",
+        )
+
+    for row_num, row in enumerate(rows, start=2):
         try:
             first_name = row.get("first_name", "").strip()
             last_name = row.get("last_name", "").strip()
@@ -324,6 +349,20 @@ def update_user(
             db_user.pin_hash = pwd_context.hash(user.pin)
         db.commit()
         db.refresh(db_user)
+
+        client_host = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent")
+        create_audit_log(
+            db,
+            action="user_update_password_pin",
+            resource_type="user",
+            actor_uuid=str(admin.user_uuid),
+            resource_uuid=user_uuid,
+            detail="Password/PIN updated",
+            ip_address=client_host,
+            user_agent=user_agent,
+        )
+
         return db_user
 
     # Archive old record
@@ -354,6 +393,20 @@ def update_user(
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="user_update",
+        resource_type="user",
+        actor_uuid=str(admin.user_uuid),
+        resource_uuid=user_uuid,
+        detail="User profile updated",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
     return new_user
 
 
@@ -376,9 +429,33 @@ async def upload_photo(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Validate file type
-    if file.content_type and not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
+    # Read file content for validation
+    contents = await file.read()
+    if len(contents) > MAX_PHOTO_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Photo too large. Maximum size is {MAX_PHOTO_SIZE // (1024 * 1024)} MB.",
+        )
+
+    # Validate file extension
+    if file.filename:
+        ext = os.path.splitext(file.filename)[1].lower()
+    else:
+        ext = ""
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(sorted(ALLOWED_IMAGE_EXTENSIONS))}",
+        )
+
+    # Validate file content is a real image
+    try:
+        import io as io_module
+
+        img = Image.open(io_module.BytesIO(contents))
+        img.verify()
+    except Exception:
+        raise HTTPException(status_code=400, detail="File is not a valid image")
 
     # Create uploads directory
     uploads_dir = os.path.join(
@@ -386,9 +463,8 @@ async def upload_photo(
     )
     os.makedirs(uploads_dir, exist_ok=True)
 
-    # Generate unique filename
-    file_ext = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
-    filename = f"{user_uuid}{file_ext}"
+    # Generate unique filename (sanitized extension)
+    filename = f"{user_uuid}{ext}"
     file_path = os.path.join(uploads_dir, filename)
 
     # Delete old photo if exists
@@ -399,9 +475,9 @@ async def upload_photo(
         if os.path.exists(old_path):
             os.remove(old_path)
 
-    # Save new file
+    # Save validated content
     with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(contents)
 
     # Update user profile_image_url and offsets
     user.profile_image_url = f"/uploads/photos/{filename}"
