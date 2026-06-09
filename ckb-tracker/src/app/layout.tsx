@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AppLayout } from "@/components/AppLayout";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "CKB Tracker",
@@ -26,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} dark`}>
-      <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased">
+    <html lang="en" className="dark">
+      <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased font-sans">
         <ThemeProvider>
           <AuthProvider>
             <AppLayout>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { Input } from '@/components/ui/Input';
@@ -100,9 +101,9 @@ export default function LoginPage() {
           </Button>
 
           <div className="text-center pt-2">
-            <a href="/" className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors">
+            <Link href="/" className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors">
               ← Back to home
-            </a>
+            </Link>
           </div>
         </form>
       </div>

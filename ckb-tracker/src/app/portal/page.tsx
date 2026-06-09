@@ -64,16 +64,18 @@ export default function PortalPage() {
 
   useEffect(() => { loadData(); loadTeachers(); }, []);
 
-  const loadTeachers = async () => {
+  const handleLogout = () => { if (confirm('Are you sure you want to log out?')) logout(); };
+
+  async function loadTeachers() {
     try {
       const allUsers = await usersApi.list();
       const teacherMap: Record<string, string> = {};
       allUsers.forEach(u => { if (u.user_uuid && u.first_name) teacherMap[u.user_uuid] = `${u.first_name} ${u.last_name || ''}`.trim(); });
       setTeachers(teacherMap);
     } catch (error) { console.error('Error loading teachers:', error); }
-  };
+  }
 
-  const loadComments = async () => {
+  async function loadComments() {
     if (!user) return;
     setIsLoadingComments(true);
     try {
@@ -81,11 +83,9 @@ export default function PortalPage() {
       setComments(data);
     } catch (error) { console.error('Error loading comments:', error); }
     finally { setIsLoadingComments(false); }
-  };
+  }
 
-  const handleLogout = () => { if (confirm('Are you sure you want to log out?')) logout(); };
-
-  const loadData = async () => {
+  async function loadData() {
     if (!user) return;
     try {
       const [statsData, trendData, attendanceData, feedbackData, termsData, targetsData] = await Promise.all([

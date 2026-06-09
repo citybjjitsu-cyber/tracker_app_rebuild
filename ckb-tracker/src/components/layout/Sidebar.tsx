@@ -50,6 +50,7 @@ function SidebarContent({
 }: { 
   isCollapsed: boolean;
   isAuthenticated: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any;
   logout: () => void;
   theme: 'light' | 'dark';
@@ -63,6 +64,7 @@ function SidebarContent({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

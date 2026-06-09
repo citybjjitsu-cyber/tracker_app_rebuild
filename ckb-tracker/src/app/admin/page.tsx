@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -10,7 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
-import { useChartColors } from '@/hooks/useChartColors';
+
 import {
   usersApi,
   classesApi,
@@ -30,13 +30,11 @@ import {
   api,
 } from '@/lib/api';
 import { formatDate, DAYS_OF_WEEK } from '@/lib/utils';
-import { Camera, LogOut, Newspaper, Plus, Shield, X } from 'lucide-react';
-import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme } from '@/types';
+import { Camera, LogOut, Plus, Shield, X } from 'lucide-react';
+import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback } from '@/types';
 
 export default function AdminPage() {
   const { user, isAdmin, isAuthenticated, isLoading, login, logout } = useAuth();
-  const router = useRouter();
-  const { colors } = useChartColors();
   const [activeTab, setActiveTab] = useState('users');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [users, setUsers] = useState<User[]>([]);
@@ -95,17 +93,17 @@ export default function AdminPage() {
   const [passwordForm, setPasswordForm] = useState({ password: '', confirm_password: '' });
   const [photoMethod, setPhotoMethod] = useState<'upload' | 'camera'>('upload');
   const [classInstanceForm, setClassInstanceForm] = useState({ class_id: '', date: '', lesson_id: '', teacher_uuid: '' });
-  const [classInstances, setClassInstances] = useState<any[]>([]);
+  const [classInstances, setClassInstances] = useState<ClassInstance[]>([]);
   const [teachers, setTeachers] = useState<User[]>([]);
   const [teacherAssignmentForm, setTeacherAssignmentForm] = useState({ class_id: '', date: '', teacher_uuid: '' });
-  const [studentPasswordStatus, setStudentPasswordStatus] = useState<{ hasPassword: boolean } | null>(null);
+
   const [kioskPin, setKioskPin] = useState({ current: '', newPin: '', confirm: '' });
-  const [dbStats, setDbStats] = useState<any>(null);
-  const [feedbackStats, setFeedbackStats] = useState<any>(null);
-  const [performanceStats, setPerformanceStats] = useState<any>(null);
+  const [dbStats, setDbStats] = useState<Record<string, unknown> | null>(null);
+  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
+  const [performanceStats, setPerformanceStats] = useState<{ stats: DashboardStats; trend: AttendanceTrend[] } | null>(null);
   const [selectedStudentAnalytics, setSelectedStudentAnalytics] = useState<User | null>(null);
   const [feedbackFilters, setFeedbackFilters] = useState({ startDate: '', endDate: '', classes: '', rating: 'all' });
-  const [feedbackList, setFeedbackList] = useState<any[]>([]);
+  const [feedbackList, setFeedbackList] = useState<ClassFeedback[]>([]);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [newsItems, setNewsItems] = useState<News[]>([]);
   const [newsForm, setNewsForm] = useState({ title: '', content: '', is_published: false });
@@ -116,7 +114,7 @@ export default function AdminPage() {
   const [editingTheme, setEditingTheme] = useState<WebsiteTheme | null>(null);
   const [themeConfigEditor, setThemeConfigEditor] = useState('');
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvImportResult, setCsvImportResult] = useState<any | null>(null);
+  const [csvImportResult, setCsvImportResult] = useState<Record<string, unknown> | null>(null);
   const [isImportingCsv, setIsImportingCsv] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -167,6 +165,7 @@ export default function AdminPage() {
     if (activeTab === 'feedback') {
       loadFeedbackAnalytics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   useEffect(() => {
@@ -181,7 +180,7 @@ export default function AdminPage() {
     }
   }, [activeTab]);
 
-  const loadNews = async () => {
+  async function loadNews() {
     try {
       const data = await newsApi.list(false);
       setNewsItems(data);
@@ -190,7 +189,7 @@ export default function AdminPage() {
     }
   };
 
-  const loadThemes = async () => {
+  async function loadThemes() {
     try {
       const data = await themesApi.list();
       setThemes(data);
@@ -277,9 +276,9 @@ export default function AdminPage() {
         cameraStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [cameraStream]);
 
-  const loadAllData = async () => {
+  async function loadAllData() {
     try {
       const [usersData, classesData, rolesData, termsData, targetsData, curriculaData, lessonsData, gymsData, typesData] = await Promise.all([
         usersApi.list(),
@@ -311,7 +310,7 @@ export default function AdminPage() {
     e.preventDefault();
     try {
       await login(loginForm.email, loginForm.password, true);
-    } catch (error) {
+    } catch {
       alert('Invalid admin credentials');
     }
   };
@@ -480,6 +479,7 @@ export default function AdminPage() {
     }
     setIsProcessing(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await usersApi.update(selectedUser.user_uuid, { password: passwordForm.password } as any);
       alert('Password reset successfully');
       setPasswordForm({ password: '', confirm_password: '' });
@@ -488,15 +488,6 @@ export default function AdminPage() {
       alert('Failed to reset password');
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleCheckPassword = async (uuid: string) => {
-    try {
-      const status = await usersApi.get(uuid);
-      return !!status.has_password;
-    } catch {
-      return false;
     }
   };
 
@@ -673,8 +664,9 @@ export default function AdminPage() {
         rank: newUserForm.rank,
         nicknames: newUserForm.nicknames || undefined,
         comments: newUserForm.comments || undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
-
+    
       if (newUserPhoto) {
         await usersApi.uploadPhoto(user.user_uuid, newUserPhoto);
       }
@@ -730,7 +722,7 @@ export default function AdminPage() {
     }
   };
 
-  const loadClassInstances = async () => {
+  async function loadClassInstances() {
     try {
       const data = await classInstancesApi.list();
       setClassInstances(data);
@@ -739,7 +731,7 @@ export default function AdminPage() {
     }
   };
 
-  const loadTeachers = async () => {
+  async function loadTeachers() {
     try {
       const allUsers = await usersApi.list();
       setTeachers(allUsers.filter(u => u.rank === 'Black' || u.rank === 'Brown'));
@@ -770,7 +762,7 @@ export default function AdminPage() {
     }
   };
 
-  const loadDbStats = async () => {
+  async function loadDbStats() {
     try {
       const res = await api.get('/database/stats');
       setDbStats(res.data);
@@ -779,7 +771,7 @@ export default function AdminPage() {
     }
   };
 
-  const loadFeedbackAnalytics = async () => {
+  async function loadFeedbackAnalytics() {
     try {
       const stats = await feedbackApi.getAdminStats({
         start_date: feedbackFilters.startDate || undefined,
@@ -2062,7 +2054,7 @@ export default function AdminPage() {
                     <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
                       <h4 className="font-medium mb-4 text-slate-900 dark:text-white">Attendance Trend (Last 90 Days)</h4>
                       <div className="space-y-2">
-                        {performanceStats.trend.slice(0, 14).map((day: any) => (
+                        {performanceStats.trend.slice(0, 14).map((day: AttendanceTrend) => (
                           <div key={day.date} className="flex items-center gap-4">
                             <span className="text-sm text-slate-500 dark:text-slate-400 w-24">{day.date}</span>
                             <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-4">
@@ -2173,8 +2165,8 @@ export default function AdminPage() {
                                   {item.user?.first_name} {item.user?.last_name}
                                 </td>
                                 <td className="p-3">
-                                  <span className={item.rating === 'positive' ? 'text-green-600' : 'text-red-600'}>
-                                    {item.rating === 'positive' ? '👍 Positive' : '👎 Negative'}
+                                  <span className={item.rating === 'thumbs_up' ? 'text-green-600' : 'text-red-600'}>
+                                    {item.rating === 'thumbs_up' ? '👍 Positive' : '👎 Negative'}
                                   </span>
                                 </td>
                                 <td className="p-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">
@@ -2193,7 +2185,7 @@ export default function AdminPage() {
                 )}
               </div>
             ) : (
-              <p className="text-slate-500 dark:text-slate-400">Click "Search Feedback" to load data...</p>
+              <p className="text-slate-500 dark:text-slate-400">Click &ldquo;Search Feedback&rdquo; to load data...</p>
             )}
           </CardContent>
         </Card>
@@ -2330,19 +2322,19 @@ export default function AdminPage() {
             <CardContent>
               <div className="grid grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <p className="text-2xl font-bold">{dbStats?.size || 'N/A'}</p>
+                  <p className="text-2xl font-bold">{String(dbStats?.size ?? 'N/A')}</p>
                   <p className="text-sm text-slate-500">Size</p>
                 </div>
                 <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <p className="text-2xl font-bold">{dbStats?.total_users || 0}</p>
+                  <p className="text-2xl font-bold">{String(dbStats?.total_users ?? 0)}</p>
                   <p className="text-sm text-slate-500">Users</p>
                 </div>
                 <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <p className="text-2xl font-bold">{dbStats?.total_attendance || 0}</p>
+                  <p className="text-2xl font-bold">{String(dbStats?.total_attendance ?? 0)}</p>
                   <p className="text-sm text-slate-500">Attendance</p>
                 </div>
                 <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <p className="text-2xl font-bold">{dbStats?.total_classes || 0}</p>
+                  <p className="text-2xl font-bold">{String(dbStats?.total_classes ?? 0)}</p>
                   <p className="text-sm text-slate-500">Classes</p>
                 </div>
               </div>
@@ -2370,7 +2362,7 @@ export default function AdminPage() {
                       a.download = 'seed-data.json';
                       a.click();
                       URL.revokeObjectURL(url);
-                    } catch (error) {
+                    } catch {
                       alert('Failed to export seed');
                     }
                   }}
@@ -2392,7 +2384,7 @@ export default function AdminPage() {
                       a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
                       a.click();
                       URL.revokeObjectURL(url);
-                    } catch (error) {
+                    } catch {
                       alert('Failed to create backup');
                     }
                   }}
@@ -2430,7 +2422,7 @@ export default function AdminPage() {
                         } else {
                           alert('Restore failed');
                         }
-                      } catch (error) {
+                      } catch {
                         alert('Restore failed');
                       }
                     }}
@@ -2464,7 +2456,7 @@ export default function AdminPage() {
                           loadAllData();
                           loadDbStats();
                         }
-                      } catch (error) {
+                      } catch {
                         alert('Reset failed');
                       }
                     }}
@@ -2487,7 +2479,7 @@ export default function AdminPage() {
                           loadAllData();
                           loadDbStats();
                         }
-                      } catch (error) {
+                      } catch {
                         alert('Seed failed');
                       }
                     }}
@@ -2563,10 +2555,10 @@ export default function AdminPage() {
                 {csvImportResult && (
                   <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-2">
                     <p className="text-sm font-medium text-slate-900 dark:text-white">Import Results:</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">Created: {csvImportResult.created}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">Updated: {csvImportResult.updated}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">Skipped: {csvImportResult.skipped}</p>
-                    {csvImportResult.errors.length > 0 && (
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Created: {String(csvImportResult.created ?? 0)}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Updated: {String(csvImportResult.updated ?? 0)}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Skipped: {String(csvImportResult.skipped ?? 0)}</p>
+                    {Array.isArray(csvImportResult.errors) && csvImportResult.errors.length > 0 && (
                       <div>
                         <p className="text-sm font-medium text-red-600 dark:text-red-400 mt-2">Errors:</p>
                         <ul className="text-xs text-slate-600 dark:text-slate-300 list-disc pl-5">

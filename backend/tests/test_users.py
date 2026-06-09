@@ -209,15 +209,23 @@ def test_upload_photo_not_image(client, headers, db_session):
         data={"offset_x": 0.0, "offset_y": 0.0},
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "File must be an image"
+    assert (
+        response.json()["detail"]
+        == "Invalid file type. Allowed: .gif, .jpeg, .jpg, .png, .webp"
+    )
 
 
 def test_upload_photo_success(client, headers, db_session):
+    import io
+    from PIL import Image
+
     _add_admin_role(db_session)
+    buf = io.BytesIO()
+    Image.new("RGB", (1, 1), color="red").save(buf, "JPEG")
     response = client.post(
         f"/users/{STUDENT_UUID}/photo",
         headers=headers,
-        files={"file": ("photo.jpg", b"fake-image-data", "image/jpeg")},
+        files={"file": ("photo.jpg", buf.getvalue(), "image/jpeg")},
         data={"offset_x": 0.2, "offset_y": -0.1},
     )
     assert response.status_code == 200

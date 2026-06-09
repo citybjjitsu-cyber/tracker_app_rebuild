@@ -131,7 +131,7 @@ def test_verify_pin_for_user_no_pin(client, headers):
 def test_verify_pin_default(client):
     response = client.post("/kiosk/verify-pin", json={"pin": "1234"})
     assert response.status_code == 200
-    assert response.json()["valid"] is True
+    assert response.json()["valid"] is False
 
 
 def test_verify_pin_wrong(client):

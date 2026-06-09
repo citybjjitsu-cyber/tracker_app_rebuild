@@ -102,8 +102,9 @@ def test_logout_clears_cookies(client):
         json={"email": "staff@test.com", "password": STAFF_PASSWORD},
     )
     assert login_resp.status_code == 200
+    csrf_token = login_resp.json()["csrf_token"]
 
-    response = client.post("/auth/logout")
+    response = client.post("/auth/logout", headers={"X-CSRF-Token": csrf_token})
     assert response.status_code == 200
     assert response.json()["message"] == "Logged out successfully"
 
@@ -114,8 +115,9 @@ def test_logout_all(client):
         json={"email": "staff@test.com", "password": STAFF_PASSWORD},
     )
     assert login_resp.status_code == 200
+    csrf_token = login_resp.json()["csrf_token"]
 
-    response = client.post("/auth/logout-all")
+    response = client.post("/auth/logout-all", headers={"X-CSRF-Token": csrf_token})
     assert response.status_code == 200
     assert response.json()["message"] == "Logged out from all devices"
 
@@ -126,8 +128,9 @@ def test_refresh_token(client):
         json={"email": "staff@test.com", "password": STAFF_PASSWORD},
     )
     assert login_resp.status_code == 200
+    csrf_token = login_resp.json()["csrf_token"]
 
-    response = client.post("/auth/refresh")
+    response = client.post("/auth/refresh", headers={"X-CSRF-Token": csrf_token})
     assert response.status_code == 200
     data = response.json()
     assert "user" in data

@@ -129,6 +129,8 @@ export interface ClassFeedback {
   comment?: string;
   created_at: string;
   updated_at: string;
+  class_instance?: { class_date: string; class_schedule?: { class_name: string } };
+  user?: { first_name: string; last_name: string };
 }
 
 export interface Term {

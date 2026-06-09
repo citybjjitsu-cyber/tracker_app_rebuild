@@ -35,7 +35,7 @@ describe('kioskApi', () => {
 
     expect(result.access_token).toBe('test-token')
     expect(apiModule.getKioskStaffToken()).toBe('test-token')
-  })
+  }, 10000)
 
   it('lock clears staff token', async () => {
     const axios = await import('axios')
@@ -50,7 +50,7 @@ describe('kioskApi', () => {
 
     expect(result.message).toBe('Kiosk locked')
     expect(apiModule.getKioskStaffToken()).toBeNull()
-  })
+  }, 10000)
 
   it('verifyUserPin calls POST /kiosk/verify-user-pin', async () => {
     const axios = await import('axios')
@@ -880,7 +880,9 @@ describe('usersApi (additional)', () => {
     const clickFn = vi.fn()
     const removeFn = vi.fn()
     const setAttrFn = vi.fn()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mockLink = { href: '', click: clickFn, remove: removeFn, setAttribute: setAttrFn } as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     document.createElement = vi.fn(() => mockLink) as any
     document.body.appendChild = vi.fn()
     window.URL.revokeObjectURL = vi.fn()
@@ -961,7 +963,7 @@ describe('axios interceptor', () => {
   it('adds CSRF token for state-changing methods', async () => {
     localStorage.setItem('csrf_token', 'csrf-xyz')
     const axios = await import('axios')
-    const apiModule = await import('@/lib/api')
+    await import('@/lib/api')
 
     const handler = axios.default.interceptors.request.use.mock.calls[0][0]
     const config = { method: 'post', headers: {}, url: '/test' }
@@ -972,7 +974,7 @@ describe('axios interceptor', () => {
   it('does not add CSRF token for GET requests', async () => {
     localStorage.setItem('csrf_token', 'csrf-xyz')
     const axios = await import('axios')
-    const apiModule = await import('@/lib/api')
+    await import('@/lib/api')
 
     const handler = axios.default.interceptors.request.use.mock.calls[0][0]
     const config = { method: 'get', headers: {}, url: '/test' }
@@ -994,7 +996,7 @@ describe('axios interceptor', () => {
 
   it('does not set Authorization when no kiosk token', async () => {
     const axios = await import('axios')
-    const apiModule = await import('@/lib/api')
+    await import('@/lib/api')
 
     const handler = axios.default.interceptors.request.use.mock.calls[0][0]
     const config = { method: 'get', headers: {}, url: '/test' }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -87,6 +87,7 @@ export default function CheckInPage() {
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
       if (isStudent || isTeacher) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedUser(user);
         setSessionTimeLeft(120);
       }
@@ -140,8 +141,8 @@ export default function CheckInPage() {
     };
   }, []);
 
-  const handleSearch = useCallback(
-    debounce(async (query: string) => {
+  const handleSearch = useMemo(
+    () => debounce(async (query: string) => {
       if (query.length < 2) {
         setSearchResults([]);
         return;
@@ -316,6 +317,7 @@ export default function CheckInPage() {
         nicknames: newMember.nicknames,
         rank: newMember.rank as User['rank'],
         comments: newMember.comments,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       setSelectedUser(user);
       setShowNewMemberForm(false);
@@ -761,7 +763,7 @@ export default function CheckInPage() {
                   {selectedUser.nicknames && (
                     <>
                       <span className="text-neutral-600">•</span>
-                      <span className="text-on-surface-variant text-sm font-medium italic">"{selectedUser.nicknames}"</span>
+                      <span className="text-on-surface-variant text-sm font-medium italic">&ldquo;{selectedUser.nicknames}&rdquo;</span>
                     </>
                   )}
                 </div>

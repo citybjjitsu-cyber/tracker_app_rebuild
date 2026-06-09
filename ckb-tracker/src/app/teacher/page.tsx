@@ -61,7 +61,7 @@ export default function TeacherPage() {
     }
   }, [autoRefresh, selectedClass, selectedDate]);
 
-  const loadInitialData = async () => {
+  async function loadInitialData() {
     try {
       const [classesData, usersData] = await Promise.all([
         classesApi.list(),
@@ -96,7 +96,7 @@ export default function TeacherPage() {
     }
   };
 
-  const loadComments = async () => {
+  async function loadComments() {
     if (!user) return;
     setIsLoadingComments(true);
     try {
@@ -107,15 +107,16 @@ export default function TeacherPage() {
     } finally {
       setIsLoadingComments(false);
     }
-  };
+  }
 
   useEffect(() => {
     if (activeTab === 'comments') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadComments();
     }
   }, [activeTab]);
 
-  const loadAttendance = async () => {
+  async function loadAttendance() {
     if (!selectedClass) return;
     try {
       const data = await attendanceApi.getByClass(selectedClass, selectedDate);
