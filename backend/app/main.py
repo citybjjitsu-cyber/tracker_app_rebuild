@@ -9,11 +9,12 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
 from app.auth.limiter import limiter
 from app.auth.csrf import csrf_middleware_dispatch
 from slowapi.errors import RateLimitExceeded
 import os
+import logging
 
 from app.database import engine, SessionLocal
 from app import models
@@ -65,8 +66,6 @@ app.state.limiter = limiter
 
 
 async def rate_limit_handler(request, exc):
-    from starlette.responses import JSONResponse
-
     return JSONResponse(
         status_code=429,
         content={"detail": "Rate limit exceeded. Please try again later."},
@@ -74,6 +73,24 @@ async def rate_limit_handler(request, exc):
 
 
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers,
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logging.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 # CSRF validation middleware (must be before CORS for proper cookie access)
@@ -146,6 +163,9 @@ async def add_security_headers(request: Request, call_next):
         response.headers["Strict-Transport-Security"] = (
             "max-age=31536000; includeSubDomains"
         )
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+    )
     return response
 
 
@@ -153,7 +173,6 @@ async def add_security_headers(request: Request, call_next):
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     import time
-    import logging
     import uuid
 
     request_id = str(uuid.uuid4())[:8]

@@ -384,4 +384,39 @@ Placeholder for additional features discovered during testing and deployment.
 
 ---
 
+## RECENT UPDATES (June 9, 2026) — Part 2: Pre-Deployment Security & Quality
+
+### Phase 6: Security Review (Pre-Deployment Items)
+
+**Goal:** Implement all security-related code changes that don't require a deployed environment.
+
+#### Backend Changes
+
+- ✅ **Global exception handler** (`backend/app/main.py`) — Added `@app.exception_handler(HTTPException)` with header passthrough and `@app.exception_handler(Exception)` catch-all to prevent stack trace leaks in production
+- ✅ **Content-Security-Policy header** (`backend/app/main.py`) — Added `default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` to security headers middleware (defense-in-depth for API responses)
+- ✅ **Password complexity validation** (`backend/app/schemas.py`) — Added `field_validator("password")` to `UserCreate` and `UserUpdate` enforcing: uppercase, lowercase, digit, and special character (minimum 8 chars was already enforced)
+- ✅ **Pydantic constraint hardening** (`backend/app/schemas.py`) — Added `ge=0, le=1000` to `ClassScheduleBase.points`, `min_length=1` to `FeedbackBase.rating`, `min_length=1, max_length=50` to `AttendanceUpdate.status`, `min_length=1, max_length=64` to `AttendanceUpdate.confirmed_by`
+- ✅ **DATABASE_URL configurable** (`backend/app/database.py`) — Changed from hardcoded `sqlite:///./ckb_tracker.db` to `os.getenv("DATABASE_URL", "sqlite:///./ckb_tracker.db")` so it can be overridden via env var
+- ✅ **Secret generation script** (`backend/scripts/generate_secrets.py`) — New: generates cryptographically secure `JWT_SECRET_KEY` and CSRF tokens via `secrets` module
+- ✅ **Retry-After passthrough fix** (`backend/app/main.py`) — Custom `HTTPException` handler now passes `exc.headers` through, fixing kiosk PIN lockout 429 responses that include `Retry-After`
+- ✅ **CSRF audit** — Already implemented (double-submit cookie pattern, constant-time comparison, Bearer token exemption)
+- ✅ **Session management** — Already implemented (server-side JTI blacklisting, rotate on refresh, 24h absolute session cap)
+- ✅ **Rate limiting** — Already implemented (12 tiers, per-endpoint decorators)
+- ✅ **Audit logging** — Already implemented (13+ event types, admin-queryable endpoint)
+- ✅ **Photo upload validation** — Already implemented (PIL verify, extension whitelist, 5MB limit)
+- ✅ **Hardcoded secrets** — None found; all via env vars with dev fallback to `secrets.token_urlsafe()`
+
+#### Frontend Changes
+
+- ✅ **npm audit fix** (`ckb-tracker/package.json`) — Updated Next.js from `^16.1.7` to `^16.2.7`, fixing 1 high and 1 moderate vulnerability
+- ✅ **XSS audit** — No `dangerouslySetInnerHTML` usage found anywhere in the codebase
+- ✅ **Supabase key audit** — Only `NEXT_PUBLIC_SUPABASE_ANON_KEY` used client-side (safe); no `service_role` key exposure
+
+#### .env.example Audit
+- ✅ Added `COOKIE_SAMESITE` variable with documentation
+- ✅ `DATABASE_URL` now actually read from env (was documented but ignored)
+- ✅ Updated JWT secret generation instructions to reference `generate_secrets.py` script
+
+---
+
 *Last Updated: June 9, 2026*

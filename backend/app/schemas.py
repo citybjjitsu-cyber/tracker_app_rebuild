@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+import re
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from datetime import date, datetime
 from typing import Optional, List
 
@@ -18,6 +19,21 @@ class UserCreate(UserBase):
     pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
     profile_image_url: Optional[str] = Field(default=None, max_length=500)
 
+    @field_validator("password")
+    @classmethod
+    def validate_password_complexity(cls, v):
+        if v is None:
+            return v
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
+
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
@@ -29,6 +45,21 @@ class UserUpdate(BaseModel):
     last_graded_date: Optional[date] = None
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
     pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_complexity(cls, v):
+        if v is None:
+            return v
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
 
 
 class UserResponse(UserBase):
@@ -104,7 +135,7 @@ class ClassScheduleBase(BaseModel):
     day: Optional[str] = Field(default=None, max_length=20)
     time: Optional[str] = Field(default=None, max_length=20)
     description: Optional[str] = Field(default=None, max_length=2000)
-    points: float = 1.0
+    points: float = Field(default=1.0, ge=0, le=1000)
     gym_id: Optional[int] = None
     class_type_id: Optional[int] = None
 
@@ -257,8 +288,8 @@ class AttendanceCreate(AttendanceBase):
 
 
 class AttendanceUpdate(BaseModel):
-    status: Optional[str] = None
-    confirmed_by: Optional[str] = None
+    status: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    confirmed_by: Optional[str] = Field(default=None, min_length=1, max_length=64)
 
 
 class AttendanceResponse(AttendanceBase):
@@ -278,7 +309,7 @@ class AttendanceResponse(AttendanceBase):
 
 class FeedbackBase(BaseModel):
     attendance_id: int
-    rating: str = Field(max_length=50)
+    rating: str = Field(min_length=1, max_length=50)
     comment: Optional[str] = Field(default=None, max_length=2000)
 
 

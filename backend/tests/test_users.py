@@ -111,7 +111,7 @@ def test_update_user_password_reset(client, headers, db_session):
     _add_admin_role(db_session)
     response = client.put(
         f"/users/{STAFF_UUID}",
-        json={"password": "newpassword123"},
+        json={"password": "NewPass123!"},
         headers=headers,
     )
     assert response.status_code == 200
@@ -120,7 +120,7 @@ def test_update_user_password_reset(client, headers, db_session):
 
     unlock = client.post(
         "/kiosk/unlock",
-        json={"email": "staff@test.com", "password": "newpassword123"},
+        json={"email": "staff@test.com", "password": "NewPass123!"},
     )
     assert unlock.status_code == 200
 
