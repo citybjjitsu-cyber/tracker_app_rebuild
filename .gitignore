@@ -66,3 +66,10 @@ kiosk-page.yml
 
 # Credentials
 creds.md
+
+# Deployment plan
+deployment_phases.md
+
+# Supabase CLI local config
+supabase/
+.supabase/
