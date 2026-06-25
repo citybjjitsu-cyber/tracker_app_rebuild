@@ -1,7 +1,13 @@
 # CKB Tracker Backend — Render Blueprint
 # Docs: https://render.com/docs/blueprint-spec
-# Use: Import this file via Render Dashboard → Blueprint
-# Or: Configure manually as a Web Service using these values
+
+databases:
+  - name: ckb-tracker-db-dev
+    databaseName: ckb_tracker
+    user: ckb_tracker
+    plan: free
+    postgresMajorVersion: 16
+    ipAllowList: []
 
 services:
   - type: web
@@ -12,7 +18,9 @@ services:
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: ckb-tracker-db-dev
+          property: connectionString
       - key: JWT_SECRET_KEY
         sync: false
       - key: CORS_ORIGINS
