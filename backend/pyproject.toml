@@ -18,11 +18,26 @@ dependencies = [
     "email-validator>=2.2.0",
 ]
 
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = ["E402"]
+
+[tool.ruff.lint.per-file-ignores]
+"seed_complete_data.py" = ["F841", "S311"]
+"app/routers/__init__.py" = ["F401"]
+"tests/*" = ["S101", "S105"]
+"scripts/*" = ["S105"]
+"app/auth/config.py" = ["S105"]
+"app/schemas.py" = ["S105"]
+
 [tool.uv]
 dev-dependencies = [
     "httpx>=0.28.1",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
+    "ruff>=0.11.0",
 ]
 
 [tool.pytest.ini_options]

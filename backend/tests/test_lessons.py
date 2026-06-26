@@ -1,5 +1,4 @@
 import pytest
-from datetime import datetime
 from app.routers.lessons import get_db as lessons_get_db
 from app import models
 

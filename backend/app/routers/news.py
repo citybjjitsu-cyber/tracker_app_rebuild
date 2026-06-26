@@ -24,7 +24,7 @@ def list_news(
 ):
     query = db.query(models.News)
     if published_only:
-        query = query.filter(models.News.is_published == True)
+        query = query.filter(models.News.is_published)
     return query.order_by(models.News.created_at.desc()).all()
 
 

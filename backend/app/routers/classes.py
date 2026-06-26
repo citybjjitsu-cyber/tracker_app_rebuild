@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
-from typing import List, Optional
+from typing import List
 from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
 
 router = APIRouter()
@@ -33,7 +33,7 @@ def create_class(
 def list_classes(request: Request, db: Session = Depends(get_db)):
     return (
         db.query(models.ClassSchedule)
-        .filter(models.ClassSchedule.is_current == True)
+        .filter(models.ClassSchedule.is_current)
         .all()
     )
 
@@ -44,7 +44,7 @@ def get_class(request: Request, class_id: int, db: Session = Depends(get_db)):
     cls = (
         db.query(models.ClassSchedule)
         .filter(
-            models.ClassSchedule.id == class_id, models.ClassSchedule.is_current == True
+            models.ClassSchedule.id == class_id, models.ClassSchedule.is_current
         )
         .first()
     )
@@ -65,7 +65,7 @@ def update_class(
         db.query(models.ClassSchedule)
         .filter(
             models.ClassSchedule.class_uuid == class_uuid,
-            models.ClassSchedule.is_current == True,
+            models.ClassSchedule.is_current,
         )
         .first()
     )

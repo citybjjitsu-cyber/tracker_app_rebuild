@@ -2,9 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
-from datetime import datetime, date
+from datetime import date
 from collections import defaultdict
-from typing import List
 from app.auth.limiter import limiter, DASHBOARD_LIMIT
 
 router = APIRouter()

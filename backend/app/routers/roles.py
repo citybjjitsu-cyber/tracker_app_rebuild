@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
@@ -29,7 +29,7 @@ def get_user_roles(request: Request, user_uuid: str, db: Session = Depends(get_d
     return (
         db.query(models.UserRole)
         .filter(
-            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current == True
+            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current
         )
         .all()
     )
@@ -46,7 +46,7 @@ def update_user_roles(
     old_roles = (
         db.query(models.UserRole)
         .filter(
-            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current == True
+            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current
         )
         .all()
     )
@@ -99,7 +99,7 @@ def get_users_by_role(request: Request, role: str, db: Session = Depends(get_db)
     user_roles = (
         db.query(models.UserRole)
         .filter(
-            models.UserRole.role_id == role_obj.id, models.UserRole.is_current == True
+            models.UserRole.role_id == role_obj.id, models.UserRole.is_current
         )
         .all()
     )
@@ -107,6 +107,6 @@ def get_users_by_role(request: Request, role: str, db: Session = Depends(get_db)
     user_uuids = [ur.user_uuid for ur in user_roles]
     return (
         db.query(models.User)
-        .filter(models.User.user_uuid.in_(user_uuids), models.User.is_current == True)
+        .filter(models.User.user_uuid.in_(user_uuids), models.User.is_current)
         .all()
     )

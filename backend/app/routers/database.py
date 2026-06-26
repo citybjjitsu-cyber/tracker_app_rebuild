@@ -51,9 +51,7 @@ def _export_all_data(db: Session) -> dict:
         if obj is None:
             return None
         if hasattr(obj, "__table__"):
-            return {
-                c.name: serialize(getattr(obj, c.name)) for c in obj.__table__.columns
-            }
+            return {c.name: serialize(getattr(obj, c.name)) for c in obj.__table__.columns}
         if isinstance(obj, (datetime,)):
             return obj.isoformat()
         if hasattr(obj, "isoformat"):
@@ -71,7 +69,7 @@ def _export_all_data(db: Session) -> dict:
         "terms": [serialize(t) for t in terms],
         "term_targets": [serialize(tt) for tt in term_targets],
         "curricula": [serialize(cu) for cu in curricula],
-        "lessons": [serialize(l) for l in lessons],
+        "lessons": [serialize(lesson) for lesson in lessons],
         "class_instances": [serialize(ci) for ci in class_instances],
         "attendance": [serialize(a) for a in attendance],
         "feedback": [serialize(f) for f in feedback],
@@ -89,9 +87,7 @@ def get_stats(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
-    db_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ckb_tracker.db"
-    )
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ckb_tracker.db")
     try:
         size_bytes = os.path.getsize(db_path)
         if size_bytes > 1024 * 1024:
@@ -107,12 +103,8 @@ def get_stats(
     kiosk_pin_set = kiosk is not None
 
     return schemas.DbStatsResponse(
-        total_users=db.query(models.User)
-        .filter(models.User.is_current == True)
-        .count(),
-        total_classes=db.query(models.ClassSchedule)
-        .filter(models.ClassSchedule.is_current == True)
-        .count(),
+        total_users=db.query(models.User).filter(models.User.is_current).count(),
+        total_classes=db.query(models.ClassSchedule).filter(models.ClassSchedule.is_current).count(),
         total_attendance=db.query(models.Attendance).count(),
         size=size_str,
         kiosk_pin_set=kiosk_pin_set,

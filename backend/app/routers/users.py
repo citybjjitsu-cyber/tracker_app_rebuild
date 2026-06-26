@@ -4,7 +4,6 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
-    status,
     UploadFile,
     File,
     Form,
@@ -19,7 +18,6 @@ from datetime import datetime, date
 from typing import List, Optional
 import uuid
 import os
-import shutil
 from PIL import Image
 from app.routers.auth import get_current_user, get_admin_user
 from app.auth.limiter import (
@@ -112,7 +110,7 @@ def create_user(
 @router.get("/", response_model=List[schemas.UserResponse])
 @limiter.limit(READ_LIMIT)
 def list_users(request: Request, db: Session = Depends(get_db)):
-    return db.query(models.User).filter(models.User.is_current == True).all()
+    return db.query(models.User).filter(models.User.is_current).all()
 
 
 @router.get("/search", response_model=List[schemas.UserResponse], dependencies=[])
@@ -121,7 +119,7 @@ def search_users(request: Request, query: str, db: Session = Depends(get_db)):
     return (
         db.query(models.User)
         .filter(
-            models.User.is_current == True,
+            models.User.is_current,
             (models.User.first_name.ilike(f"%{query}%"))
             | (models.User.last_name.ilike(f"%{query}%"))
             | (models.User.email.ilike(f"%{query}%")),
@@ -137,7 +135,7 @@ def export_users_csv(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    users = db.query(models.User).filter(models.User.is_current == True).all()
+    users = db.query(models.User).filter(models.User.is_current).all()
 
     output = io.StringIO()
     fieldnames = [
@@ -225,7 +223,7 @@ async def import_users_csv(
 
             existing_user = (
                 db.query(models.User)
-                .filter(models.User.email == email, models.User.is_current == True)
+                .filter(models.User.email == email, models.User.is_current)
                 .first()
             )
 
@@ -311,7 +309,7 @@ async def import_users_csv(
 def get_user(request: Request, user_uuid: str, db: Session = Depends(get_db)):
     user = (
         db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
         .first()
     )
     if not user:
@@ -330,7 +328,7 @@ def update_user(
 ):
     db_user = (
         db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
         .first()
     )
     if not db_user:
@@ -423,7 +421,7 @@ async def upload_photo(
 ):
     user = (
         db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
         .first()
     )
     if not user:
@@ -503,7 +501,7 @@ def delete_photo(
 ):
     user = (
         db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
         .first()
     )
     if not user:
@@ -541,7 +539,7 @@ def update_photo_position(
     """Update just the photo position offsets without uploading a new photo."""
     user = (
         db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
         .first()
     )
     if not user:

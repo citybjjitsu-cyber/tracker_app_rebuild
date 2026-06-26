@@ -4,10 +4,9 @@ from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
+from typing import Optional
 from collections import defaultdict
 import time
-import logging
 from app.routers.auth import (
     get_current_user,
     set_auth_cookies,
@@ -17,7 +16,6 @@ from app.routers.auth import (
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
-    CSRF_TOKEN_COOKIE_NAME,
 )
 from app.auth.jwt_utils import (
     create_access_token,
@@ -75,7 +73,7 @@ def kiosk_unlock(
 ):
     user = (
         db.query(models.User)
-        .filter(models.User.email == data.email, models.User.is_current == True)
+        .filter(models.User.email == data.email, models.User.is_current)
         .first()
     )
 
@@ -174,7 +172,7 @@ def verify_user_pin(
         db.query(models.User)
         .filter(
             models.User.pin_hash.isnot(None),
-            models.User.is_current == True,
+            models.User.is_current,
         )
         .all()
     )
@@ -266,7 +264,7 @@ def verify_pin_for_user(
         db.query(models.User)
         .filter(
             models.User.user_uuid == data.user_uuid,
-            models.User.is_current == True,
+            models.User.is_current,
         )
         .first()
     )

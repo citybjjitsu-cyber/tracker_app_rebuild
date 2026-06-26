@@ -20,7 +20,7 @@ def _add_admin_role(db_session):
         .filter(
             models.UserRole.user_uuid == STAFF_UUID,
             models.UserRole.role_id == admin_role.id,
-            models.UserRole.is_current == True,
+            models.UserRole.is_current,
         )
         .first()
     )

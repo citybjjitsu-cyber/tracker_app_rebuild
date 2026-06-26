@@ -32,7 +32,7 @@ def list_themes(request: Request, db: Session = Depends(get_db)):
 def get_active_theme(request: Request, db: Session = Depends(get_db)):
     theme = (
         db.query(models.WebsiteTheme)
-        .filter(models.WebsiteTheme.is_active == True)
+        .filter(models.WebsiteTheme.is_active)
         .first()
     )
     if not theme:

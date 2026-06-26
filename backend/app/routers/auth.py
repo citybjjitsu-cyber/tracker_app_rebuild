@@ -6,7 +6,6 @@ from fastapi import (
     Request,
     Cookie,
     Header,
-    status,
 )
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
@@ -15,13 +14,11 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from app.auth.limiter import limiter, AUTH_LIMIT, REFRESH_LIMIT, WRITE_LIMIT, READ_LIMIT
-import logging
 
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
     MAX_SESSION_HOURS,
-    COOKIE_HTTPONLY,
     COOKIE_SAMESITE,
     COOKIE_SECURE,
     CSRF_TOKEN_COOKIE_NAME,
@@ -60,7 +57,7 @@ def get_user_roles(db, user_uuid: str) -> List[dict]:
     user_roles = (
         db.query(models.UserRole)
         .filter(
-            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current == True
+            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current
         )
         .all()
     )
@@ -105,7 +102,7 @@ def get_current_user(
     user_uuid = payload.get("sub")
     user = (
         db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
         .first()
     )
 
@@ -122,7 +119,7 @@ def get_admin_user(
         db.query(models.UserRole)
         .filter(
             models.UserRole.user_uuid == user.user_uuid,
-            models.UserRole.is_current == True,
+            models.UserRole.is_current,
         )
         .join(models.Role)
         .filter(models.Role.name == "Admin")
@@ -184,7 +181,7 @@ def login(
 ):
     user = (
         db.query(models.User)
-        .filter(models.User.email == data.email, models.User.is_current == True)
+        .filter(models.User.email == data.email, models.User.is_current)
         .first()
     )
 
@@ -246,7 +243,7 @@ def teacher_login(
 ):
     user = (
         db.query(models.User)
-        .filter(models.User.email == data.email, models.User.is_current == True)
+        .filter(models.User.email == data.email, models.User.is_current)
         .first()
     )
 
@@ -325,7 +322,7 @@ def refresh_token(
     user_uuid = payload.get("sub")
     user = (
         db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current == True)
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
         .first()
     )
 

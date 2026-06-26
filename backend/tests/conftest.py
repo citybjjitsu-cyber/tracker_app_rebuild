@@ -15,7 +15,6 @@ from app.main import app
 from app.routers.kiosk import get_db, clear_pin_lockout
 from app.routers.attendance import get_db as att_get_db
 from app.routers.auth import get_db as auth_get_db
-from datetime import datetime, timedelta, timezone
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

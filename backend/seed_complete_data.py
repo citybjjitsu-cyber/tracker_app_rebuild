@@ -19,7 +19,7 @@ from app.models import (
     News,
 )
 from passlib.context import CryptContext
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 import random
 import uuid
 import json
@@ -175,7 +175,7 @@ def seed_data():
                 db.query(ClassSchedule)
                 .filter(
                     ClassSchedule.class_name == cls_data["class_name"],
-                    ClassSchedule.is_current == True,
+                    ClassSchedule.is_current,
                 )
                 .first()
             )
@@ -396,7 +396,7 @@ def seed_data():
             is_current = user_data.pop("is_current", True)
             existing = (
                 db.query(User)
-                .filter(User.email == user_data["email"], User.is_current == True)
+                .filter(User.email == user_data["email"], User.is_current)
                 .first()
             )
             if not existing:

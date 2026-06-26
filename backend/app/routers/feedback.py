@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
