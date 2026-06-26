@@ -45,18 +45,18 @@ from app.routers import (
 async def lifespan(application: FastAPI):
     db = SessionLocal()
     try:
-        existing_tablet_role = (
-            db.query(models.Role).filter(models.Role.name == "Tablet").first()
-        )
-        if existing_tablet_role is None:
-            user_count = db.query(models.User).count()
-            if user_count == 0:
-                db.close()
-                logging.info("Database is empty. Auto-seeding with demo data...")
-                from seed_complete_data import seed_data
+        user_count = db.query(models.User).count()
+        if user_count == 0:
+            db.close()
+            logging.info("Database is empty. Auto-seeding with demo data...")
+            from seed_complete_data import seed_data
 
-                seed_data()
-            else:
+            seed_data()
+        else:
+            existing_tablet_role = (
+                db.query(models.Role).filter(models.Role.name == "Tablet").first()
+            )
+            if existing_tablet_role is None:
                 tablet_role = models.Role(
                     name="Tablet", description="Tablet-only user for check-in kiosk"
                 )
