@@ -21,8 +21,10 @@ jobs:
           enable-cache: true
       - name: Install dependencies
         run: uv sync
+      - name: Check Python version
+        run: python --version && uv --version
       - name: Run tests with coverage
-        run: uv run pytest tests/ --cov=app --cov-report=term --cov-report=html
+        run: uv run pytest tests/ -v --tb=short --cov=app --cov-report=term --cov-report=html 2>&1
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
@@ -41,10 +43,12 @@ jobs:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: ckb-tracker/package-lock.json
+      - name: Check Node/npm versions
+        run: node --version && npm --version
       - name: Install dependencies
-        run: npm ci
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Run tests with coverage
-        run: npm run test -- --coverage
+        run: npm run test -- --coverage 2>&1
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
