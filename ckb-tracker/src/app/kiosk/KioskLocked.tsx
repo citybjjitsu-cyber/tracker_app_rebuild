@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { KioskStaffLogin } from './KioskStaffLogin';
 import { newsApi } from '@/lib/api';
-import { Shield, Search, Newspaper, LogIn } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
+import { Shield, Search, Newspaper, LogIn, Sun, Moon } from 'lucide-react';
 import type { News } from '@/types';
 
 export function KioskLocked() {
+  const { theme, toggleTheme } = useTheme();
   const [showLogin, setShowLogin] = useState(false);
   const [news, setNews] = useState<News[]>([]);
 
@@ -20,7 +22,14 @@ export function KioskLocked() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-12 w-full max-w-lg mx-auto">
+    <div className="relative flex flex-col items-center gap-12 w-full max-w-lg mx-auto">
+      <button
+        onClick={toggleTheme}
+        className="absolute top-0 right-0 p-2 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all"
+        title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      >
+        {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+      </button>
       <div className="flex flex-col items-center gap-4">
         <div className="w-20 h-20 bg-[var(--primary)] rounded-2xl flex items-center justify-center shadow-2xl shadow-[var(--primary)]/20">
           <Shield className="w-10 h-10 text-white" />

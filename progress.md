@@ -419,4 +419,43 @@ Placeholder for additional features discovered during testing and deployment.
 
 ---
 
-*Last Updated: June 9, 2026*
+---
+
+## RECENT UPDATES (June 25, 2026) — Deployment Pipeline
+
+**Goal:** Deploy CKB Tracker to production-like dev environment on Vercel (frontend) + Render (backend + PostgreSQL) with GitHub Actions CI/CD.
+
+### Frontend — Vercel (`https://ckb-tracker.vercel.app`) ✅ LIVE
+- ✅ Vercel project created and deployed — root dir `ckb-tracker`, framework Next.js, 12 routes compiled
+- ✅ `vercel.json` created with `github.enabled: false`
+- ✅ `package.json` — added `engines` field, SWC binary moved to `optionalDependencies`
+- ✅ `NEXT_PUBLIC_API_URL` = `https://ckb-tracker-api-dev.onrender.com` set for Production, Preview, Development
+- ⚠️ **Issue fixed**: Production URL was returning 404 due to ghost project domain mapping — deleted and recreated project
+- ✅ Project ID: `prj_zm6WDzPldgSVPArzEXvy7mZ72zlf`, Team ID: `team_aTWDJm3L7yTC2r7k6Rl8uNJb`
+
+### Backend — Render (`https://ckb-tracker-api-dev.onrender.com`) ✅ LIVE
+- ✅ Render Blueprint (`backend/render.yaml`) with web service + PostgreSQL database
+- ✅ Post-deployment: triggered deploy hook to verify CI pipeline
+- ✅ Render Blueprint branch updated from `feature/repo-cleanup` to `main`
+- ✅ Deploy hook URL captured: `https://api.render.com/deploy/srv-d8ueescm0tmc73a4qr10?key=QOENIgDPEYQ`
+
+### CI/CD — GitHub Actions ✅ Configured
+- ✅ `.github/workflows/test.yml` — broadened to run on all branches (not just `main`)
+- ✅ `.github/workflows/deploy.yml` — new: tests + deploy on push to `main` (Vercel + Render)
+- ✅ 4 GitHub secrets set: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RENDER_DEPLOY_HOOK_DEV`
+
+### Documentation
+- ✅ `deploy_steps.md` — step-by-step deployment guide for developers (local dev → feature branch → CI → PR → merge → deploy)
+
+### Database
+- Render PostgreSQL connected and tables created via SQLAlchemy `create_all`
+- **Database is empty** — no seed data exists. All tables are empty.
+
+### Environment URLs
+| Service | URL |
+|---------|-----|
+| Frontend | `https://ckb-tracker.vercel.app` |
+| Backend API | `https://ckb-tracker-api-dev.onrender.com` |
+| GitHub | `https://github.com/citybjjitsu-cyber/tracker_app_rebuild` |
+
+*Last Updated: June 25, 2026*

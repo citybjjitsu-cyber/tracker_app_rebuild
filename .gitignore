@@ -73,3 +73,5 @@ deployment_phases.md
 # Supabase CLI local config
 supabase/
 .supabase/
+.vercel
+.env*
