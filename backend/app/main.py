@@ -48,12 +48,20 @@ async def lifespan(application: FastAPI):
         existing_tablet_role = (
             db.query(models.Role).filter(models.Role.name == "Tablet").first()
         )
-        if not existing_tablet_role:
-            tablet_role = models.Role(
-                name="Tablet", description="Tablet-only user for check-in kiosk"
-            )
-            db.add(tablet_role)
-            db.commit()
+        if existing_tablet_role is None:
+            user_count = db.query(models.User).count()
+            if user_count == 0:
+                db.close()
+                logging.info("Database is empty. Auto-seeding with demo data...")
+                from seed_complete_data import seed_data
+
+                seed_data()
+            else:
+                tablet_role = models.Role(
+                    name="Tablet", description="Tablet-only user for check-in kiosk"
+                )
+                db.add(tablet_role)
+                db.commit()
     finally:
         db.close()
     yield
