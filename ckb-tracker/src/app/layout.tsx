@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { KioskProvider } from "@/app/kiosk/KioskContext";
 import { AppLayout } from "@/components/AppLayout";
 
 export const metadata: Metadata = {
@@ -27,9 +28,11 @@ export default function RootLayout({
       <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased font-sans">
         <ThemeProvider>
           <AuthProvider>
-            <AppLayout>
-              {children}
-            </AppLayout>
+            <KioskProvider>
+              <AppLayout>
+                {children}
+              </AppLayout>
+            </KioskProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

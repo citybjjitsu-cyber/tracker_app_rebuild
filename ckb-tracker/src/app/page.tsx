@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { KioskProvider, useKiosk } from '@/app/kiosk/KioskContext';
+import { useKiosk } from '@/app/kiosk/KioskContext';
 import { KioskLocked } from '@/app/kiosk/KioskLocked';
 import { usersApi, kioskApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
@@ -63,6 +63,7 @@ function KioskContent() {
         const result = await kioskApi.verifyPinForUser(selectedUser.user_uuid, newPin);
         if (result.valid) {
           identifyUser(selectedUser);
+          await new Promise<void>(resolve => setTimeout(resolve, 0));
           router.push('/kiosk/select');
         } else {
           setPinError('Invalid PIN. Please try again.');
@@ -356,10 +357,8 @@ function KioskContent() {
 
 export default function HomePage() {
   return (
-    <KioskProvider>
-      <div className="min-h-screen bg-[var(--background)] flex flex-col">
-        <KioskContent />
-      </div>
-    </KioskProvider>
+    <div className="min-h-screen bg-[var(--background)] flex flex-col">
+      <KioskContent />
+    </div>
   );
 }
