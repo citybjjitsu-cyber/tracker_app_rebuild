@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import List, Optional
 import uuid
 import os
@@ -163,12 +163,8 @@ def export_users_csv(
                 "rank": user.rank,
                 "nicknames": user.nicknames or "",
                 "comments": user.comments or "",
-                "last_graded_date": user.last_graded_date.isoformat()
-                if user.last_graded_date
-                else "",
-                "created_date": user.created_date.isoformat()
-                if user.created_date
-                else "",
+                "last_graded_date": user.last_graded_date.isoformat() if user.last_graded_date else "",
+                "created_date": user.created_date.isoformat() if user.created_date else "",
                 "profile_image_url": user.profile_image_url or "",
             }
         )
@@ -215,17 +211,11 @@ async def import_users_csv(
             email = row.get("email", "").strip()
 
             if not first_name or not last_name or not email:
-                errors.append(
-                    f"Row {row_num}: Missing required fields (first_name, last_name, email)"
-                )
+                errors.append(f"Row {row_num}: Missing required fields (first_name, last_name, email)")
                 skipped += 1
                 continue
 
-            existing_user = (
-                db.query(models.User)
-                .filter(models.User.email == email, models.User.is_current)
-                .first()
-            )
+            existing_user = db.query(models.User).filter(models.User.email == email, models.User.is_current).first()
 
             rank = row.get("rank", "White").strip() or "White"
             if rank not in ["White", "Blue", "Purple", "Brown", "Black"]:
@@ -237,9 +227,7 @@ async def import_users_csv(
             last_graded_date = None
             if row.get("last_graded_date", "").strip():
                 try:
-                    last_graded_date = date.fromisoformat(
-                        row["last_graded_date"].strip()
-                    )
+                    last_graded_date = date.fromisoformat(row["last_graded_date"].strip())
                 except ValueError:
                     pass
 
@@ -253,12 +241,7 @@ async def import_users_csv(
                 updated += 1
             else:
                 user_uuid = row.get("user_uuid", "").strip()
-                if (
-                    not user_uuid
-                    or db.query(models.User)
-                    .filter(models.User.user_uuid == user_uuid)
-                    .first()
-                ):
+                if not user_uuid or db.query(models.User).filter(models.User.user_uuid == user_uuid).first():
                     user_uuid = str(uuid.uuid4())
 
                 password_hash = None
@@ -279,13 +262,9 @@ async def import_users_csv(
                 db.add(new_user)
                 db.flush()
 
-                student_role = (
-                    db.query(models.Role).filter(models.Role.name == "Student").first()
-                )
+                student_role = db.query(models.Role).filter(models.Role.name == "Student").first()
                 if student_role:
-                    user_role = models.UserRole(
-                        user_uuid=user_uuid, role_id=student_role.id
-                    )
+                    user_role = models.UserRole(user_uuid=user_uuid, role_id=student_role.id)
                     db.add(user_role)
 
                 created += 1
@@ -307,11 +286,7 @@ async def import_users_csv(
 @router.get("/{user_uuid}", response_model=schemas.UserResponse)
 @limiter.limit(READ_LIMIT)
 def get_user(request: Request, user_uuid: str, db: Session = Depends(get_db)):
-    user = (
-        db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
-        .first()
-    )
+    user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -326,11 +301,7 @@ def update_user(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
-    db_user = (
-        db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
-        .first()
-    )
+    db_user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -364,7 +335,7 @@ def update_user(
         return db_user
 
     # Archive old record
-    db_user.end_date = datetime.utcnow()
+    db_user.end_date = datetime.now(timezone.utc)
     db_user.is_current = False
 
     password_hash = db_user.password_hash
@@ -374,18 +345,14 @@ def update_user(
     # Create new record (use old values as fallback)
     new_user = models.User(
         user_uuid=user_uuid,
-        first_name=user.first_name
-        if user.first_name is not None
-        else db_user.first_name,
+        first_name=user.first_name if user.first_name is not None else db_user.first_name,
         last_name=user.last_name if user.last_name is not None else db_user.last_name,
         email=user.email if user.email is not None else db_user.email,
         password_hash=password_hash,
         rank=user.rank if user.rank is not None else db_user.rank,
         nicknames=user.nicknames if user.nicknames is not None else db_user.nicknames,
         comments=user.comments if user.comments is not None else db_user.comments,
-        last_graded_date=user.last_graded_date
-        if user.last_graded_date is not None
-        else db_user.last_graded_date,
+        last_graded_date=user.last_graded_date if user.last_graded_date is not None else db_user.last_graded_date,
         profile_image_url=db_user.profile_image_url,
     )
     db.add(new_user)
@@ -419,11 +386,7 @@ async def upload_photo(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
-    user = (
-        db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
-        .first()
-    )
+    user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -456,9 +419,7 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="File is not a valid image")
 
     # Create uploads directory
-    uploads_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads", "photos"
-    )
+    uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads", "photos")
     os.makedirs(uploads_dir, exist_ok=True)
 
     # Generate unique filename (sanitized extension)
@@ -499,11 +460,7 @@ def delete_photo(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
-    user = (
-        db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
-        .first()
-    )
+    user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -537,11 +494,7 @@ def update_photo_position(
     admin: models.User = Depends(get_admin_user),
 ):
     """Update just the photo position offsets without uploading a new photo."""
-    user = (
-        db.query(models.User)
-        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
-        .first()
-    )
+    user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

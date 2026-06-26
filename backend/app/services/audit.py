@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app import models
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -16,7 +16,7 @@ def create_audit_log(
     success: bool = True,
 ) -> models.AuditLog:
     entry = models.AuditLog(
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         actor_uuid=actor_uuid,
         action=action,
         resource_type=resource_type,

@@ -11,17 +11,19 @@ from sqlalchemy import (
     Date,
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_uuid = Column(
-        String, unique=True, index=True, default=lambda: f"{datetime.now().timestamp()}"
-    )
+    user_uuid = Column(String, unique=True, index=True, default=lambda: f"{datetime.now().timestamp()}")
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
@@ -35,28 +37,20 @@ class User(Base):
     image_offset_x = Column(Float, default=0.0)
     image_offset_y = Column(Float, default=0.0)
     is_current = Column(Boolean, default=True)
-    effective_date = Column(DateTime, default=datetime.utcnow)
+    effective_date = Column(DateTime, default=_utcnow)
     end_date = Column(DateTime)
-    created_date = Column(DateTime, default=datetime.utcnow)
-    updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = Column(DateTime, default=_utcnow)
+    updated_date = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     @property
     def has_password(self):
         return self.password_hash is not None
 
     roles = relationship("UserRole", back_populates="user")
-    attendance = relationship(
-        "Attendance", back_populates="user", foreign_keys="Attendance.user_uuid"
-    )
-    feedback = relationship(
-        "ClassFeedback", back_populates="user", foreign_keys="ClassFeedback.user_uuid"
-    )
-    comments_authored = relationship(
-        "Comment", back_populates="author", foreign_keys="Comment.author_uuid"
-    )
-    comments_targeted = relationship(
-        "Comment", back_populates="target_user", foreign_keys="Comment.target_user_uuid"
-    )
+    attendance = relationship("Attendance", back_populates="user", foreign_keys="Attendance.user_uuid")
+    feedback = relationship("ClassFeedback", back_populates="user", foreign_keys="ClassFeedback.user_uuid")
+    comments_authored = relationship("Comment", back_populates="author", foreign_keys="Comment.author_uuid")
+    comments_targeted = relationship("Comment", back_populates="target_user", foreign_keys="Comment.target_user_uuid")
 
 
 class Role(Base):
@@ -74,10 +68,10 @@ class UserRole(Base):
     user_uuid = Column(String, ForeignKey("users.user_uuid"))
     role_id = Column(Integer, ForeignKey("roles.id"))
     is_current = Column(Boolean, default=True)
-    effective_date = Column(DateTime, default=datetime.utcnow)
+    effective_date = Column(DateTime, default=_utcnow)
     end_date = Column(DateTime)
-    created_date = Column(DateTime, default=datetime.utcnow)
-    updated_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_date = Column(DateTime, default=_utcnow)
+    updated_date = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     user = relationship("User", back_populates="roles")
     role = relationship("Role")
@@ -102,9 +96,7 @@ class ClassSchedule(Base):
     __tablename__ = "classes"
 
     id = Column(Integer, primary_key=True, index=True)
-    class_uuid = Column(
-        String, unique=True, index=True, default=lambda: str(uuid.uuid4())
-    )
+    class_uuid = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
     class_name = Column(String, nullable=False)
     day = Column(String)
     time = Column(String)
@@ -113,16 +105,14 @@ class ClassSchedule(Base):
     gym_id = Column(Integer, ForeignKey("gym_locations.id"))
     class_type_id = Column(Integer, ForeignKey("class_types.id"))
     is_current = Column(Boolean, default=True)
-    effective_date = Column(DateTime, default=datetime.utcnow)
+    effective_date = Column(DateTime, default=_utcnow)
     end_date = Column(DateTime)
-    created_date = Column(DateTime, default=datetime.utcnow)
+    created_date = Column(DateTime, default=_utcnow)
 
     gym = relationship("GymLocation")
     class_type = relationship("ClassType")
     attendance = relationship("Attendance", back_populates="class_schedule")
-    curriculum = relationship(
-        "Curriculum", back_populates="class_schedule", uselist=False
-    )
+    curriculum = relationship("Curriculum", back_populates="class_schedule", uselist=False)
 
 
 class Term(Base):
@@ -132,7 +122,7 @@ class Term(Base):
     term_name = Column(String, unique=True, nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
     targets = relationship("TermTarget", back_populates="term")
 
@@ -155,8 +145,8 @@ class Curriculum(Base):
     class_id = Column(Integer, ForeignKey("classes.id"), unique=True)
     name = Column(String)
     description = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     class_schedule = relationship("ClassSchedule", back_populates="curriculum")
     lessons = relationship("Lesson", back_populates="curriculum")
@@ -171,8 +161,8 @@ class Lesson(Base):
     description = Column(Text)
     lesson_plan_url = Column(String)
     video_folder_url = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     curriculum = relationship("Curriculum", back_populates="lessons")
 
@@ -185,8 +175,8 @@ class ClassInstance(Base):
     class_date = Column(Date, nullable=False)
     teacher_uuid = Column(String, ForeignKey("users.user_uuid"))
     lesson_id = Column(Integer, ForeignKey("lessons.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     attendance = relationship("Attendance", back_populates="class_instance")
     feedback = relationship("ClassFeedback", back_populates="class_instance")
@@ -201,8 +191,8 @@ class Attendance(Base):
     class_instance_id = Column(Integer, ForeignKey("class_instances.id"))
     teacher_uuid = Column(String, ForeignKey("users.user_uuid"))
     user_role_id = Column(Integer, ForeignKey("user_roles.id"))
-    attendance_date = Column(Date, default=datetime.utcnow().date)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    attendance_date = Column(Date, default=lambda: _utcnow().date())
+    created_at = Column(DateTime, default=_utcnow)
     status = Column(String, default="confirmed")
     confirmed_by = Column(String, ForeignKey("users.user_uuid"))
     confirmed_at = Column(DateTime)
@@ -227,13 +217,11 @@ class ClassFeedback(Base):
     class_instance_id = Column(Integer, ForeignKey("class_instances.id"))
     rating = Column(String)
     comment = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     user = relationship("User", back_populates="feedback", foreign_keys=[user_uuid])
-    attendance = relationship(
-        "Attendance", back_populates="feedback", foreign_keys=[attendance_id]
-    )
+    attendance = relationship("Attendance", back_populates="feedback", foreign_keys=[attendance_id])
     class_instance = relationship("ClassInstance", back_populates="feedback")
 
 
@@ -247,15 +235,11 @@ class Comment(Base):
     target_user_uuid = Column(String, ForeignKey("users.user_uuid"), nullable=True)
     content = Column(Text, nullable=False)
     rating = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
-    author = relationship(
-        "User", back_populates="comments_authored", foreign_keys=[author_uuid]
-    )
-    target_user = relationship(
-        "User", back_populates="comments_targeted", foreign_keys=[target_user_uuid]
-    )
+    author = relationship("User", back_populates="comments_authored", foreign_keys=[author_uuid])
+    target_user = relationship("User", back_populates="comments_targeted", foreign_keys=[target_user_uuid])
     parent = relationship("Comment", remote_side=[id], backref="replies")
 
 
@@ -264,8 +248,8 @@ class KioskAuth(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     pin_hash = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
 
 class SessionToken(Base):
@@ -276,7 +260,7 @@ class SessionToken(Base):
     user_uuid = Column(String, ForeignKey("users.user_uuid"))
     token_type = Column(String)
     expires_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
 
 class WebsiteTheme(Base):
@@ -286,15 +270,15 @@ class WebsiteTheme(Base):
     name = Column(String, unique=True, nullable=False)
     is_active = Column(Boolean, default=False)
     config = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    timestamp = Column(DateTime, default=_utcnow, index=True)
     actor_uuid = Column(String, index=True, nullable=True)
     action = Column(String, nullable=False, index=True)
     resource_type = Column(String, nullable=False, index=True)
@@ -312,5 +296,5 @@ class News(Base):
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     is_published = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)

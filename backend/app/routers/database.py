@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel
@@ -59,7 +59,7 @@ def _export_all_data(db: Session) -> dict:
         return obj
 
     return {
-        "exported_at": datetime.utcnow().isoformat(),
+        "exported_at": datetime.now(timezone.utc).isoformat(),
         "roles": [serialize(r) for r in roles],
         "users": [serialize(u) for u in users],
         "user_roles": [serialize(ur) for ur in user_roles],
@@ -137,7 +137,7 @@ def create_backup(
     from fastapi.responses import JSONResponse
 
     data = _export_all_data(db)
-    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     return JSONResponse(
         content=data,
         headers={"Content-Disposition": f"attachment; filename=backup-{date_str}.json"},

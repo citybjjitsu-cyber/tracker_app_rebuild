@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_validator
 from datetime import date, datetime
 from typing import Optional, List
 
@@ -74,8 +74,7 @@ class UserResponse(UserBase):
     created_date: datetime
     updated_date: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleResponse(BaseModel):
@@ -83,8 +82,7 @@ class RoleResponse(BaseModel):
     name: str = Field(max_length=50)
     description: Optional[str] = Field(default=None, max_length=500)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserRoleResponse(BaseModel):
@@ -95,8 +93,7 @@ class UserRoleResponse(BaseModel):
     effective_date: datetime
     role: Optional[RoleResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class GymLocationBase(BaseModel):
@@ -111,8 +108,7 @@ class GymLocationCreate(GymLocationBase):
 class GymLocationResponse(GymLocationBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClassTypeBase(BaseModel):
@@ -126,8 +122,7 @@ class ClassTypeCreate(ClassTypeBase):
 class ClassTypeResponse(ClassTypeBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClassScheduleBase(BaseModel):
@@ -157,8 +152,7 @@ class ClassScheduleResponse(ClassScheduleBase):
     gym: Optional[GymLocationResponse] = None
     class_type: Optional[ClassTypeResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TermBase(BaseModel):
@@ -175,8 +169,7 @@ class TermResponse(TermBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TermTargetBase(BaseModel):
@@ -192,8 +185,7 @@ class TermTargetCreate(TermTargetBase):
 class TermTargetResponse(TermTargetBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CurriculumBase(BaseModel):
@@ -211,8 +203,7 @@ class CurriculumResponse(CurriculumBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LessonBase(BaseModel):
@@ -236,8 +227,7 @@ class LessonResponse(LessonBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ClassInstanceBase(BaseModel):
@@ -261,8 +251,7 @@ class ClassInstanceResponse(ClassInstanceBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AttendanceBase(BaseModel):
@@ -303,8 +292,7 @@ class AttendanceResponse(AttendanceBase):
     user: Optional[UserResponse] = None
     class_schedule: Optional[ClassScheduleResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FeedbackBase(BaseModel):
@@ -326,8 +314,7 @@ class FeedbackResponse(FeedbackBase):
     user: Optional["UserResponse"] = None
     class_instance: Optional["ClassInstanceResponse"] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LoginRequest(BaseModel):
@@ -394,8 +381,7 @@ class CommentResponse(CommentBase):
     replies: List["CommentResponse"] = []
     reply_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 CommentResponse.model_rebuild()
@@ -422,8 +408,7 @@ class ThemeResponse(ThemeBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class NewsBase(BaseModel):
@@ -447,8 +432,7 @@ class NewsResponse(NewsBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DbStatsResponse(BaseModel):
@@ -471,8 +455,7 @@ class AuditLogResponse(BaseModel):
     user_agent: Optional[str] = None
     success: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AuditLogListResponse(BaseModel):
@@ -505,8 +488,7 @@ class KioskUserResponse(UserBase):
     created_date: datetime
     updated_date: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class KioskUserPinVerifyResponse(BaseModel):

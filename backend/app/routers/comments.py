@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT
 
 router = APIRouter()
@@ -100,11 +100,7 @@ def build_comment_tree(comments) -> List[dict]:
 
 
 def _collect_reply_ids(parent_id, db: Session, ids: set):
-    replies = (
-        db.query(models.Comment)
-        .filter(models.Comment.parent_comment_id == parent_id)
-        .all()
-    )
+    replies = db.query(models.Comment).filter(models.Comment.parent_comment_id == parent_id).all()
     for r in replies:
         ids.add(r.id)
         _collect_reply_ids(r.id, db, ids)
@@ -119,16 +115,12 @@ def create_comment(
     db: Session = Depends(get_db),
 ):
     if comment.parent_comment_id:
-        parent = (
-            db.query(models.Comment)
-            .filter(models.Comment.id == comment.parent_comment_id)
-            .first()
-        )
+        parent = db.query(models.Comment).filter(models.Comment.id == comment.parent_comment_id).first()
         if not parent:
             raise HTTPException(status_code=404, detail="Parent comment not found")
 
         db_comment = models.Comment(
-            comment_uuid=str(datetime.utcnow().timestamp()),
+            comment_uuid=str(datetime.now(timezone.utc).timestamp()),
             author_uuid=author_uuid,
             content=comment.content,
             rating=None,
@@ -141,16 +133,12 @@ def create_comment(
                 detail="target_user_uuid is required for top-level posts",
             )
 
-        target_user = (
-            db.query(models.User)
-            .filter(models.User.user_uuid == comment.target_user_uuid)
-            .first()
-        )
+        target_user = db.query(models.User).filter(models.User.user_uuid == comment.target_user_uuid).first()
         if not target_user:
             raise HTTPException(status_code=404, detail="Target user not found")
 
         db_comment = models.Comment(
-            comment_uuid=str(datetime.utcnow().timestamp()),
+            comment_uuid=str(datetime.now(timezone.utc).timestamp()),
             author_uuid=author_uuid,
             content=comment.content,
             rating=comment.rating,
@@ -161,16 +149,10 @@ def create_comment(
     db.commit()
     db.refresh(db_comment)
 
-    db_comment.author = (
-        db.query(models.User)
-        .filter(models.User.user_uuid == db_comment.author_uuid)
-        .first()
-    )
+    db_comment.author = db.query(models.User).filter(models.User.user_uuid == db_comment.author_uuid).first()
     if db_comment.target_user_uuid:
         db_comment.target_user = (
-            db.query(models.User)
-            .filter(models.User.user_uuid == db_comment.target_user_uuid)
-            .first()
+            db.query(models.User).filter(models.User.user_uuid == db_comment.target_user_uuid).first()
         )
 
     return db_comment
@@ -280,35 +262,21 @@ def update_comment(
     author_uuid: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    comment = (
-        db.query(models.Comment)
-        .filter(models.Comment.comment_uuid == comment_uuid)
-        .first()
-    )
+    comment = db.query(models.Comment).filter(models.Comment.comment_uuid == comment_uuid).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
     if comment.author_uuid != author_uuid:
-        raise HTTPException(
-            status_code=403, detail="Not authorized to edit this comment"
-        )
+        raise HTTPException(status_code=403, detail="Not authorized to edit this comment")
 
     comment.content = update_data.content
-    comment.updated_at = datetime.utcnow()
+    comment.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(comment)
 
-    comment.author = (
-        db.query(models.User)
-        .filter(models.User.user_uuid == comment.author_uuid)
-        .first()
-    )
+    comment.author = db.query(models.User).filter(models.User.user_uuid == comment.author_uuid).first()
     if comment.target_user_uuid:
-        comment.target_user = (
-            db.query(models.User)
-            .filter(models.User.user_uuid == comment.target_user_uuid)
-            .first()
-        )
+        comment.target_user = db.query(models.User).filter(models.User.user_uuid == comment.target_user_uuid).first()
 
     return comment
 
@@ -321,23 +289,17 @@ def delete_comment(
     author_uuid: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    comment = (
-        db.query(models.Comment)
-        .filter(models.Comment.comment_uuid == comment_uuid)
-        .first()
-    )
+    comment = db.query(models.Comment).filter(models.Comment.comment_uuid == comment_uuid).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
     if comment.author_uuid != author_uuid:
-        raise HTTPException(
-            status_code=403, detail="Not authorized to delete this comment"
-        )
+        raise HTTPException(status_code=403, detail="Not authorized to delete this comment")
 
     if comment.parent_comment_id is None:
-        db.query(models.Comment).filter(
-            models.Comment.parent_comment_id == comment.id
-        ).delete(synchronize_session=False)
+        db.query(models.Comment).filter(models.Comment.parent_comment_id == comment.id).delete(
+            synchronize_session=False
+        )
 
     db.delete(comment)
     db.commit()
