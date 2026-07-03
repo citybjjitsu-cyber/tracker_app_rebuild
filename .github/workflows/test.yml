@@ -28,27 +28,33 @@ jobs:
       - name: Check Python version
         run: python --version && uv --version
       - name: Run tests first (without coverage) to isolate failure
-        run: uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1
+        run: |
+          uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1 | tee pytest-output.txt
+          exit ${PIPESTATUS[0]}
       - name: Then run with coverage
         if: success()
-        run: uv run pytest tests/ --cov=app --cov-report=term --cov-report=html --junitxml=test-results-cov.xml 2>&1
-      - name: Publish test results as annotations
-        if: always()
-        uses: dorny/test-reporter@v3
-        with:
-          name: Backend Test Results
-          path: backend/test-results.xml
-          reporter: java-junit
-          fail-on-error: false
-          only-summary: false
-      - name: Debug - show test-results.xml
+        run: |
+          uv run pytest tests/ --cov=app --cov-report=term --cov-report=html --junitxml=test-results-cov.xml 2>&1 | tee pytest-output-cov.txt
+          exit ${PIPESTATUS[0]}
+      - name: Debug - show test-results.xml and pytest output
         if: always()
         run: |
-          echo "===== test-results.xml ====="
-          cat test-results.xml 2>&1 || echo "(no test-results.xml)"
-          echo ""
-          echo "===== coverage test-results (if exists) ====="
-          cat test-results-cov.xml 2>&1 || echo "(no test-results-cov.xml)"
+          echo "## Backend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '### test-results.xml (JUnit)' >> $GITHUB_STEP_SUMMARY
+          echo '```xml' >> $GITHUB_STEP_SUMMARY
+          cat test-results.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo "(test-results.xml not found)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '### pytest output' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat pytest-output.txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo "(pytest-output.txt not found)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '### coverage test-results (if exists)' >> $GITHUB_STEP_SUMMARY
+          echo '```xml' >> $GITHUB_STEP_SUMMARY
+          cat test-results-cov.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo "(test-results-cov.xml not found)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
