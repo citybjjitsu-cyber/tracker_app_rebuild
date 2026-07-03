@@ -27,44 +27,22 @@ jobs:
         run: |
           uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1 | tee pytest-output.txt
           exit ${PIPESTATUS[0]}
-      - name: Show failures as annotations
-        if: failure()
-        run: |
-          echo "::notice title=Test Results::View full output at: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
-          python -c "
-import xml.etree.ElementTree as ET
-import sys
-tree = ET.parse('test-results.xml')
-root = tree.getroot()
-count = 0
-for suite in root.findall('.//testcase'):
-    failure = suite.find('failure')
-    if failure is not None:
-        count += 1
-        name = suite.get('classname', '') + '.' + suite.get('name', '')
-        msg = (failure.get('message', '') or '')[:200]
-        print(f'::error title={name}::{msg}')
-if count == 0:
-    print('::warning::No tests failed in JUnit. Exit code 1 may be from coverage threshold or a crash.')
-"
-      - name: Publish failure details to gist
+      - name: Publish failure output to gist
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "### pytest-output.txt (last 100 lines)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -100 pytest-output.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          GIST_URL=$(gh gist create --public --filename "pytest-output-${{ github.run_id }}.txt" \
-            --desc "CI Failure: pytest output for ${{ github.repository }} run ${{ github.run_id }}" \
-            pytest-output.txt 2>&1) && \
-          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/statuses \
-            --field state='failure' \
+          GIST_URL=$(gh gist create --public \
+            --filename "pytest-output-${{ github.run_id }}.txt" \
+            --desc "CI Failure: ${{ github.repository }} run ${{ github.run_id }}" \
+            pytest-output.txt)
+          echo "::notice title=Full pytest output::$GIST_URL"
+          echo "Gist URL: $GIST_URL" >> $GITHUB_STEP_SUMMARY
+          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/statuses" \
+            --field state=failure \
             --field target_url="$GIST_URL" \
-            --field description='Test failures - click for details' \
-            --field context='pytest-output' && \
-          echo "::notice title=Pytest output gist::$GIST_URL"
+            --field description='Test failures - click for gist' \
+            --field context=pytest-output
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
