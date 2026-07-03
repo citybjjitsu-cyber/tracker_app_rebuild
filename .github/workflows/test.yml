@@ -23,11 +23,19 @@ jobs:
         run: uv sync
       - name: Check Python version
         run: python --version && uv --version
-      - name: Run tests with coverage
-        run: uv run pytest tests/ -v --tb=long --cov=app --cov-report=term --cov-report=html --junitxml=test-results.xml 2>&1
+      - name: Run tests first (without coverage) to isolate failure
+        run: uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1
+      - name: Then run with coverage
+        if: success()
+        run: uv run pytest tests/ --cov=app --cov-report=term --cov-report=html --junitxml=test-results-cov.xml 2>&1
       - name: Debug - show test-results.xml
         if: always()
-        run: cat test-results.xml 2>&1 || echo "test-results.xml not found"
+        run: |
+          echo "===== test-results.xml ====="
+          cat test-results.xml 2>&1 || echo "(no test-results.xml)"
+          echo ""
+          echo "===== coverage test-results (if exists) ====="
+          cat test-results-cov.xml 2>&1 || echo "(no test-results-cov.xml)"
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
