@@ -36,24 +36,42 @@ jobs:
         run: |
           uv run pytest tests/ --cov=app --cov-report=term --cov-report=html --junitxml=test-results-cov.xml 2>&1 | tee pytest-output-cov.txt
           exit ${PIPESTATUS[0]}
-      - name: Debug - show test-results.xml and pytest output
+      - name: Parse JUnit XML and create annotations on failure
+        if: failure()
+        run: |
+          python -c "
+import xml.etree.ElementTree as ET
+tree = ET.parse('test-results.xml')
+root = tree.getroot()
+count = 0
+for suite in root.findall('.//testcase'):
+    failure = suite.find('failure')
+    if failure is not None:
+        count += 1
+        name = suite.get('classname', '') + '.' + suite.get('name', '')
+        msg = (failure.get('message', '') or '')[:200]
+        print('::error title=FAILED::' + name + ': ' + msg)
+if count == 0:
+    print('::warning::No JUnit failures - process may have crashed')
+"
+      - name: Debug - show test-results.xml
         if: always()
         run: |
-          echo "## Backend Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '## Backend Test Results' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
           echo '### test-results.xml (JUnit)' >> $GITHUB_STEP_SUMMARY
           echo '```xml' >> $GITHUB_STEP_SUMMARY
-          cat test-results.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo "(test-results.xml not found)" >> $GITHUB_STEP_SUMMARY
+          cat test-results.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo '(no file)' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
           echo '### pytest output' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          cat pytest-output.txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo "(pytest-output.txt not found)" >> $GITHUB_STEP_SUMMARY
+          cat pytest-output.txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo '(no file)' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '### coverage test-results (if exists)' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '### coverage (if exists)' >> $GITHUB_STEP_SUMMARY
           echo '```xml' >> $GITHUB_STEP_SUMMARY
-          cat test-results-cov.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo "(test-results-cov.xml not found)" >> $GITHUB_STEP_SUMMARY
+          cat test-results-cov.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo '(no file)' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
       - name: Upload test results
         if: always()
