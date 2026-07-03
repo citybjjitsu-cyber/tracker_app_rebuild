@@ -7,6 +7,10 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
     defaults:
       run:
         working-directory: backend
@@ -28,6 +32,15 @@ jobs:
       - name: Then run with coverage
         if: success()
         run: uv run pytest tests/ --cov=app --cov-report=term --cov-report=html --junitxml=test-results-cov.xml 2>&1
+      - name: Publish test results as annotations
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: Backend Test Results
+          path: backend/test-results.xml
+          reporter: java-junit
+          fail-on-error: false
+          only-summary: false
       - name: Debug - show test-results.xml
         if: always()
         run: |
