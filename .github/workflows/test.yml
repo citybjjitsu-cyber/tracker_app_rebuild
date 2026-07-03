@@ -27,58 +27,43 @@ jobs:
         run: uv sync
       - name: Check Python version
         run: python --version && uv --version
-      - name: Run tests first (without coverage) to isolate failure
+      - name: Run tests grouped by file, stopping on first failure
         run: |
-          uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1 | tee pytest-output.txt
-          exit ${PIPESTATUS[0]}
-      - name: Then run with coverage
+          failed=""
+          for test_file in tests/test_*.py; do
+            echo "::group::$test_file"
+            echo "Running: $test_file"
+            uv run pytest "$test_file" -v --tb=long --junitxml="junit-${test_file##*/}.xml" 2>&1
+            rc=$?
+            if [ $rc -eq 0 ]; then
+              echo "PASSED: $test_file"
+            else
+              echo "FAILED: $test_file (exit code: $rc)"
+              echo "::error title=Test Failure::$test_file failed on Linux/Python 3.12 (exit code: $rc)"
+              failed="$test_file"
+              echo "::endgroup::"
+              exit $rc
+            fi
+            echo "::endgroup::"
+          done
+          echo "All tests passed!"
+      - name: Run all tests with coverage (if all passed)
         if: success()
         run: |
-          uv run pytest tests/ --cov=app --cov-report=term --cov-report=html --junitxml=test-results-cov.xml 2>&1 | tee pytest-output-cov.txt
-          exit ${PIPESTATUS[0]}
-      - name: Parse JUnit XML and create annotations on failure
+          uv run pytest tests/ --cov=app --cov-report=term --cov-report=html 2>&1
+      - name: Debug - show JUnit XML on failure
         if: failure()
         run: |
-          python -c "
-import xml.etree.ElementTree as ET
-tree = ET.parse('test-results.xml')
-root = tree.getroot()
-count = 0
-for suite in root.findall('.//testcase'):
-    failure = suite.find('failure')
-    if failure is not None:
-        count += 1
-        name = suite.get('classname', '') + '.' + suite.get('name', '')
-        msg = (failure.get('message', '') or '')[:200]
-        print('::error title=FAILED::' + name + ': ' + msg)
-if count == 0:
-    print('::warning::No JUnit failures - process may have crashed')
-"
-      - name: Debug - show test-results.xml
-        if: always()
-        run: |
-          echo '## Backend Test Results' >> $GITHUB_STEP_SUMMARY
+          echo '## Test Failure Details' >> $GITHUB_STEP_SUMMARY
           echo '' >> $GITHUB_STEP_SUMMARY
-          echo '### test-results.xml (JUnit)' >> $GITHUB_STEP_SUMMARY
-          echo '```xml' >> $GITHUB_STEP_SUMMARY
-          cat test-results.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo '(no file)' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-          echo '### pytest output' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat pytest-output.txt >> $GITHUB_STEP_SUMMARY 2>&1 || echo '(no file)' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-          echo '### coverage (if exists)' >> $GITHUB_STEP_SUMMARY
-          echo '```xml' >> $GITHUB_STEP_SUMMARY
-          cat test-results-cov.xml >> $GITHUB_STEP_SUMMARY 2>&1 || echo '(no file)' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-test-results
-          path: backend/test-results.xml
+          for xml in junit-*.xml; do
+            if [ -f "$xml" ]; then
+              echo "### $xml" >> $GITHUB_STEP_SUMMARY
+              echo '```xml' >> $GITHUB_STEP_SUMMARY
+              cat "$xml" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          done
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
