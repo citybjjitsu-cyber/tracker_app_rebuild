@@ -24,6 +24,8 @@ jobs:
       - name: Check Python version
         run: python --version && uv --version
       - name: Run tests
+        env:
+          ALLOWED_HOSTS: '*'
         run: |
           uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1 | tee pytest-output.txt
           exit ${PIPESTATUS[0]}
@@ -36,7 +38,6 @@ jobs:
             tail -80 pytest-output.txt
             echo '```'
           } >> $GITHUB_STEP_SUMMARY
-          echo "Full output uploaded as artifact: backend-test-results"
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

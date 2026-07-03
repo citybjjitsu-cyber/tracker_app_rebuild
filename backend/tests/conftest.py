@@ -3,6 +3,7 @@ import os
 import tempfile
 
 os.environ["ENVIRONMENT"] = "test"
+os.environ["ALLOWED_HOSTS"] = "*"
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -153,9 +154,7 @@ def client(db_session):
 
 @pytest.fixture
 def headers(client):
-    response = client.post(
-        "/kiosk/unlock", json={"email": "staff@test.com", "password": STAFF_PASSWORD}
-    )
+    response = client.post("/kiosk/unlock", json={"email": "staff@test.com", "password": STAFF_PASSWORD})
     assert response.status_code == 200
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
