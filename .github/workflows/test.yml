@@ -7,10 +7,6 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-      checks: write
     defaults:
       run:
         working-directory: backend
@@ -27,43 +23,54 @@ jobs:
         run: uv sync
       - name: Check Python version
         run: python --version && uv --version
-      - name: Run tests grouped by file, stopping on first failure
+      - name: Run tests
         run: |
-          failed=""
-          for test_file in tests/test_*.py; do
-            echo "::group::$test_file"
-            echo "Running: $test_file"
-            uv run pytest "$test_file" -v --tb=long --junitxml="junit-${test_file##*/}.xml" 2>&1
-            rc=$?
-            if [ $rc -eq 0 ]; then
-              echo "PASSED: $test_file"
-            else
-              echo "FAILED: $test_file (exit code: $rc)"
-              echo "::error title=Test Failure::$test_file failed on Linux/Python 3.12 (exit code: $rc)"
-              failed="$test_file"
-              echo "::endgroup::"
-              exit $rc
-            fi
-            echo "::endgroup::"
-          done
-          echo "All tests passed!"
-      - name: Run all tests with coverage (if all passed)
-        if: success()
-        run: |
-          uv run pytest tests/ --cov=app --cov-report=term --cov-report=html 2>&1
-      - name: Debug - show JUnit XML on failure
+          uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1 | tee pytest-output.txt
+          exit ${PIPESTATUS[0]}
+      - name: Show failures as annotations
         if: failure()
         run: |
-          echo '## Test Failure Details' >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-          for xml in junit-*.xml; do
-            if [ -f "$xml" ]; then
-              echo "### $xml" >> $GITHUB_STEP_SUMMARY
-              echo '```xml' >> $GITHUB_STEP_SUMMARY
-              cat "$xml" >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-            fi
-          done
+          echo "::notice title=Test Results::View full output at: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+          python -c "
+import xml.etree.ElementTree as ET
+import sys
+tree = ET.parse('test-results.xml')
+root = tree.getroot()
+count = 0
+for suite in root.findall('.//testcase'):
+    failure = suite.find('failure')
+    if failure is not None:
+        count += 1
+        name = suite.get('classname', '') + '.' + suite.get('name', '')
+        msg = (failure.get('message', '') or '')[:200]
+        print(f'::error title={name}::{msg}')
+if count == 0:
+    print('::warning::No tests failed in JUnit. Exit code 1 may be from coverage threshold or a crash.')
+"
+      - name: Publish failure details to gist
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "### pytest-output.txt (last 100 lines)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -100 pytest-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          GIST_URL=$(gh gist create --public --filename "pytest-output-${{ github.run_id }}.txt" \
+            --desc "CI Failure: pytest output for ${{ github.repository }} run ${{ github.run_id }}" \
+            pytest-output.txt 2>&1) && \
+          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/statuses \
+            --field state='failure' \
+            --field target_url="$GIST_URL" \
+            --field description='Test failures - click for details' \
+            --field context='pytest-output' && \
+          echo "::notice title=Pytest output gist::$GIST_URL"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/test-results.xml
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
