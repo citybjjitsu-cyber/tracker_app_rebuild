@@ -27,22 +27,16 @@ jobs:
         run: |
           uv run pytest tests/ -v --tb=long --junitxml=test-results.xml 2>&1 | tee pytest-output.txt
           exit ${PIPESTATUS[0]}
-      - name: Publish failure output to gist
+      - name: Write failure output to job summary
         if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          GIST_URL=$(gh gist create --public \
-            --filename "pytest-output-${{ github.run_id }}.txt" \
-            --desc "CI Failure: ${{ github.repository }} run ${{ github.run_id }}" \
-            pytest-output.txt)
-          echo "::notice title=Full pytest output::$GIST_URL"
-          echo "Gist URL: $GIST_URL" >> $GITHUB_STEP_SUMMARY
-          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/statuses" \
-            --field state=failure \
-            --field target_url="$GIST_URL" \
-            --field description='Test failures - click for gist' \
-            --field context=pytest-output
+          {
+            echo "## Test Failures (last 80 lines)"
+            echo '```'
+            tail -80 pytest-output.txt
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+          echo "Full output uploaded as artifact: backend-test-results"
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
