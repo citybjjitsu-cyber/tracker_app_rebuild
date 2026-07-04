@@ -70,30 +70,7 @@ export async function mockKioskLock(page: Page) {
   })
 }
 
-export async function mockPinVerify(page: Page, valid: boolean, user?: MockUser) {
-  await page.route('**/kiosk/verify-user-pin', async route => {
-    if (!valid) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ valid: false }),
-      })
-    } else {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          valid: true,
-          user: user || STUDENT_USER,
-          access_token: 'mock-student-access-token',
-          refresh_token: 'mock-student-refresh-token',
-        }),
-      })
-    }
-  })
-}
-
-export async function mockPinForUser(page: Page, valid: boolean) {
+export async function mockPinVerify(page: Page, valid: boolean) {
   await page.route('**/kiosk/verify-pin-for-user', async route => {
     await route.fulfill({
       status: 200,
@@ -101,6 +78,41 @@ export async function mockPinForUser(page: Page, valid: boolean) {
       body: JSON.stringify({ valid }),
     })
   })
+}
+
+export async function mockUsersSearch(page: Page, users: MockUser[]) {
+  await page.route('**/users/search*', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(users),
+    })
+  })
+}
+
+export async function goThroughKioskPinFlow(page: Page, user: MockUser, pin: string) {
+  const findBtn = page.getByRole('button', { name: /find your name/i })
+  if (await findBtn.isVisible({ timeout: 5000 })) {
+    await findBtn.click()
+    await page.waitForTimeout(300)
+  }
+
+  const searchInput = page.locator('input[placeholder="Type your name..."]')
+  if (await searchInput.isVisible({ timeout: 5000 })) {
+    await searchInput.fill(user.first_name)
+    await page.waitForTimeout(500)
+  }
+
+  const userBtn = page.getByText(new RegExp(`${user.first_name} ${user.last_name}`, 'i')).first()
+  if (await userBtn.isVisible({ timeout: 5000 })) {
+    await userBtn.click()
+    await page.waitForTimeout(300)
+  }
+
+  for (const digit of pin) {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+    await page.waitForTimeout(100)
+  }
 }
 
 export async function mockAuthLogin(page: Page, user: MockUser, roleNames: string[], status = 200) {

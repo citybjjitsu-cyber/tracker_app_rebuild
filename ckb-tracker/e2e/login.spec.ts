@@ -8,7 +8,6 @@ import {
   waitForPageReady,
   ADMIN_USER,
   TEACHER_USER,
-  STUDENT_USER,
 } from './helpers'
 
 test.describe('Login', () => {

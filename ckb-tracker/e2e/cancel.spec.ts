@@ -4,6 +4,7 @@ const BASE = 'http://127.0.0.1:8000'
 
 test.describe('Cancel Pending Check-In', () => {
   let staffToken: string
+  let studentUuid: string
   let attendanceId: number
 
   test.beforeAll(async ({ request }) => {
@@ -13,12 +14,18 @@ test.describe('Cancel Pending Check-In', () => {
       })
       if (res.status() === 200) {
         staffToken = (await res.json()).access_token
-        return
+        break
       }
       if (res.status() === 429) {
         await new Promise(r => setTimeout(r, 2000))
       }
     }
+
+    const userRes = await request.post(`${BASE}/kiosk/verify-user-pin`, {
+      data: { pin: '1001' },
+      headers: { Authorization: `Bearer ${staffToken}` },
+    })
+    studentUuid = (await userRes.json()).user.user_uuid
   })
 
   test('cancel nonexistent attendance returns 404', async ({ request }) => {
@@ -30,7 +37,7 @@ test.describe('Cancel Pending Check-In', () => {
 
   test('create and cancel pending attendance', async ({ request }) => {
     const createRes = await request.post(`${BASE}/attendance/`, {
-      data: { user_uuid: 'student-uuid-0000-0000-000000000002', class_id: 1 },
+      data: { user_uuid: studentUuid, class_id: 1 },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     expect(createRes.status()).toBe(200)

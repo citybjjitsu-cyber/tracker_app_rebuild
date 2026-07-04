@@ -4,6 +4,7 @@ const BASE = 'http://127.0.0.1:8000'
 
 test.describe('Student PIN Flow', () => {
   let staffToken: string
+  let studentUuid: string
 
   test.beforeAll(async ({ request }) => {
     for (let i = 0; i < 3; i++) {
@@ -12,12 +13,19 @@ test.describe('Student PIN Flow', () => {
       })
       if (res.status() === 200) {
         staffToken = (await res.json()).access_token
-        return
+        break
       }
       if (res.status() === 429) {
         await new Promise(r => setTimeout(r, 2000))
       }
     }
+
+    const userRes = await request.post(`${BASE}/kiosk/verify-user-pin`, {
+      data: { pin: '1001' },
+      headers: { Authorization: `Bearer ${staffToken}` },
+    })
+    const body = await userRes.json()
+    studentUuid = body.user.user_uuid
   })
 
   test('verify valid student PIN returns user and tokens', async ({ request }) => {
@@ -52,7 +60,7 @@ test.describe('Student PIN Flow', () => {
 
   test('verify-pin-for-user with valid data', async ({ request }) => {
     const res = await request.post(`${BASE}/kiosk/verify-pin-for-user`, {
-      data: { user_uuid: 'student-uuid-0000-0000-000000000002', pin: '1001' },
+      data: { user_uuid: studentUuid, pin: '1001' },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     expect(res.status()).toBe(200)
@@ -62,7 +70,7 @@ test.describe('Student PIN Flow', () => {
 
   test('verify-pin-for-user with invalid pin', async ({ request }) => {
     const res = await request.post(`${BASE}/kiosk/verify-pin-for-user`, {
-      data: { user_uuid: 'student-uuid-0000-0000-000000000002', pin: '0000' },
+      data: { user_uuid: studentUuid, pin: '0000' },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     expect(res.status()).toBe(200)

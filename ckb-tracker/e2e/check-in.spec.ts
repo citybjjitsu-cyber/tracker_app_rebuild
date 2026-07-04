@@ -4,6 +4,7 @@ const BASE = 'http://127.0.0.1:8000'
 
 test.describe('Teacher Bypass Check-In Flow', () => {
   let staffToken: string
+  let studentUuid: string
   let attendanceId: number
 
   test.beforeAll(async ({ request }) => {
@@ -13,12 +14,18 @@ test.describe('Teacher Bypass Check-In Flow', () => {
       })
       if (res.status() === 200) {
         staffToken = (await res.json()).access_token
-        return
+        break
       }
       if (res.status() === 429) {
         await new Promise(r => setTimeout(r, 2000))
       }
     }
+
+    const userRes = await request.post(`${BASE}/kiosk/verify-user-pin`, {
+      data: { pin: '1001' },
+      headers: { Authorization: `Bearer ${staffToken}` },
+    })
+    studentUuid = (await userRes.json()).user.user_uuid
   })
 
   test('unlock kiosk with staff credentials', async ({ request }) => {
@@ -34,7 +41,7 @@ test.describe('Teacher Bypass Check-In Flow', () => {
 
   test('bulk check-in creates pending attendance', async ({ request }) => {
     const res = await request.post(`${BASE}/attendance/bulk-check-in`, {
-      data: { user_uuid: 'student-uuid-0000-0000-000000000002', class_ids: [1] },
+      data: { user_uuid: studentUuid, class_ids: [1] },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     expect(res.status()).toBe(200)
