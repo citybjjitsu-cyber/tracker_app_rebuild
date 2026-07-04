@@ -69,6 +69,10 @@ test.describe('Kiosk Core', () => {
     await waitForPageReady(page)
     await unlockKioskViaUi(page)
 
+    const findBtn = page.getByRole('button', { name: /find your name/i })
+    await findBtn.click()
+    await page.waitForTimeout(500)
+
     const searchInput = page.locator('input[placeholder="Type your name..."]').first()
     await expect(searchInput).toBeVisible({ timeout: 5000 })
   })
@@ -77,14 +81,13 @@ test.describe('Kiosk Core', () => {
     await setupKioskTest(page)
     await page.goto('/')
     await waitForPageReady(page)
+    await unlockKioskViaUi(page)
 
-    const findBtn = page.getByText(/find|search|student/i).first()
-    if (await findBtn.isVisible()) {
-      await findBtn.click()
-      await page.waitForTimeout(500)
-    }
+    const findBtn = page.getByRole('button', { name: /find your name/i })
+    await findBtn.click()
+    await page.waitForTimeout(500)
 
-    const searchInput = page.locator('input[placeholder*="search" i], input[type="search"]').first()
+    const searchInput = page.locator('input[placeholder="Type your name..."]').first()
     if (await searchInput.isVisible({ timeout: 5000 })) {
       await searchInput.fill('John')
       await page.waitForTimeout(500)
