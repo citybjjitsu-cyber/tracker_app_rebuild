@@ -32,8 +32,8 @@ ignore = ["E402"]
 "app/auth/config.py" = ["S105"]
 "app/schemas.py" = ["S105"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "httpx>=0.28.1",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",

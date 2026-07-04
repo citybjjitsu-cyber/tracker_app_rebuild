@@ -80,6 +80,8 @@ jobs:
       - name: Install dependencies
         run: uv sync
       - name: Run tests with coverage
+        env:
+          ALLOWED_HOSTS: '*'
         run: uv run pytest tests/ -v --tb=short --cov=app --cov-report=term --cov-report=html 2>&1
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -118,9 +120,10 @@ jobs:
     environment: ${{ github.event.inputs.environment == 'production' && 'production' || '' }}
     steps:
       - name: Trigger Render deploy hook
+        env:
+          DEPLOY_URL: ${{ github.event.inputs.environment == 'production' && secrets.RENDER_DEPLOY_HOOK_PROD || secrets.RENDER_DEPLOY_HOOK_DEV }}
         run: |
-          DEPLOY_URL="${{ secrets.RENDER_DEPLOY_HOOK_DEV }}"
-          echo "Triggering Render deploy..."
+          echo "Triggering Render deploy (${{ github.event.inputs.environment }})..."
           curl -s -X POST "$DEPLOY_URL"
         timeout-minutes: 5
 
