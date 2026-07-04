@@ -1,0 +1,383 @@
+import { Page, expect } from '@playwright/test'
+
+export const BASE_URL = 'http://127.0.0.1:8000'
+
+export interface MockUser {
+  user_uuid: string
+  first_name: string
+  last_name: string
+  email: string
+  rank: string
+  nicknames?: string
+  profile_image_url?: string
+}
+
+export const KIOSK_USER: MockUser = {
+  user_uuid: 'kiosk-uuid-0000-0000-000000000001',
+  first_name: 'Kiosk',
+  last_name: 'Service',
+  email: 'kiosk@ckbtracker.com',
+  rank: 'White',
+}
+
+export const ADMIN_USER: MockUser = {
+  user_uuid: 'admin-uuid-0000-0000-000000000002',
+  first_name: 'Admin',
+  last_name: 'User',
+  email: 'admin@example.com',
+  rank: 'Black',
+}
+
+export const STUDENT_USER: MockUser = {
+  user_uuid: 'student-uuid-0000-0000-000000000003',
+  first_name: 'John',
+  last_name: 'Smith',
+  email: 'john@example.com',
+  rank: 'Blue',
+  nicknames: 'J-Smitty',
+}
+
+export const TEACHER_USER: MockUser = {
+  user_uuid: 'teacher-uuid-0000-0000-000000000004',
+  first_name: 'Mike',
+  last_name: 'Johnson',
+  email: 'mike@example.com',
+  rank: 'Black',
+}
+
+export async function mockKioskUnlock(page: Page) {
+  await page.route('**/kiosk/unlock', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        access_token: 'mock-kiosk-access-token',
+        refresh_token: 'mock-kiosk-refresh-token',
+        user: KIOSK_USER,
+        roles: [{ id: 5, name: 'Kiosk', description: 'Kiosk role' }],
+      }),
+    })
+  })
+}
+
+export async function mockKioskLock(page: Page) {
+  await page.route('**/kiosk/lock', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Kiosk locked' }),
+    })
+  })
+}
+
+export async function mockPinVerify(page: Page, valid: boolean, user?: MockUser) {
+  await page.route('**/kiosk/verify-user-pin', async route => {
+    if (!valid) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ valid: false }),
+      })
+    } else {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          valid: true,
+          user: user || STUDENT_USER,
+          access_token: 'mock-student-access-token',
+          refresh_token: 'mock-student-refresh-token',
+        }),
+      })
+    }
+  })
+}
+
+export async function mockPinForUser(page: Page, valid: boolean) {
+  await page.route('**/kiosk/verify-pin-for-user', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ valid }),
+    })
+  })
+}
+
+export async function mockAuthLogin(page: Page, user: MockUser, roleNames: string[], status = 200) {
+  await page.route('**/auth/login', async route => {
+    if (status !== 200) {
+      await route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Invalid credentials' }),
+      })
+      return
+    }
+    const roles = roleNames.map((name, i) => ({ id: i + 1, name }))
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: {
+        'Set-Cookie': [
+          'access_token=mock-access-token; Path=/; HttpOnly; SameSite=Lax',
+          'refresh_token=mock-refresh-token; Path=/auth/refresh; HttpOnly; SameSite=Lax',
+          'csrf_token=mock-csrf-token; Path=/; SameSite=Lax',
+        ].join(', '),
+      },
+      body: JSON.stringify({
+        user,
+        roles,
+        csrf_token: 'mock-csrf-token',
+      }),
+    })
+  })
+}
+
+export async function mockAuthMe(page: Page, user: MockUser | null, roleNames: string[]) {
+  await page.route('**/auth/me', async route => {
+    if (!user) {
+      await route.fulfill({ status: 401 })
+      return
+    }
+    const roles = roleNames.map((name, i) => ({ id: i + 1, name }))
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        user,
+        roles,
+        csrf_token: 'mock-csrf-token',
+      }),
+    })
+  })
+}
+
+export async function mockAuthLogout(page: Page) {
+  await page.route('**/auth/logout', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Logged out' }),
+    })
+  })
+  await page.route('**/auth/logout-all', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Logged out' }),
+    })
+  })
+}
+
+export async function mockBulkCheckIn(page: Page) {
+  await page.route('**/attendance/bulk-check-in', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Check-in successful', count: 1 }),
+    })
+  })
+}
+
+export async function mockAttendanceConfirm(page: Page) {
+  await page.route(/\/attendance\/\d+\/confirm/, async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Attendance confirmed' }),
+    })
+  })
+  await page.route('**/attendance/bulk-confirm', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Bulk confirm successful', count: 2 }),
+    })
+  })
+}
+
+export async function mockAttendanceCancel(page: Page) {
+  await page.route(/\/attendance\/\d+\/cancel/, async route => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'Cancelled' }) })
+  })
+}
+
+export async function mockCreateAttendanceDirect(page: Page) {
+  await page.route('**/attendance/direct', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Check-in recorded' }),
+    })
+  })
+}
+
+export async function mockUserCreate(page: Page) {
+  await page.route('**/users/', async route => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ user_uuid: 'new-user-uuid', ...ADMIN_USER }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+}
+
+export async function mockUserUpdate(page: Page) {
+  await page.route(/\/users\/[^/]+$/, async route => {
+    if (route.request().method() === 'PUT') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...ADMIN_USER }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+}
+
+export async function mockFeedbackSubmit(page: Page) {
+  await page.route('**/feedback/', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Feedback submitted' }),
+    })
+  })
+}
+
+export async function mockCommentCreate(page: Page) {
+  await page.route('**/comments/', async route => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 1, content: 'Comment created' }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+}
+
+export async function mockClassCreate(page: Page) {
+  await page.route('**/classes/', async route => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 99, class_name: 'New Class' }),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+}
+
+export async function mockThemeMutations(page: Page) {
+  await page.route('**/themes/**', async route => {
+    const method = route.request().method()
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'OK' }) })
+    } else {
+      await route.continue()
+    }
+  })
+}
+
+export async function mockNewsMutations(page: Page) {
+  await page.route('**/news/**', async route => {
+    const method = route.request().method()
+    if (['POST', 'PUT', 'DELETE'].includes(method)) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'OK' }) })
+    } else {
+      await route.continue()
+    }
+  })
+}
+
+export async function mockCsvImport(page: Page) {
+  await page.route('**/users/import-csv', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'CSV import completed', created: 3, updated: 0, skipped: 0, errors: [] }),
+    })
+  })
+}
+
+export async function mockKioskUpdatePin(page: Page) {
+  await page.route('**/kiosk/update-pin', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'PIN updated' }),
+    })
+  })
+}
+
+export async function clearAuthState(page: Page) {
+  await page.evaluate(() => {
+    localStorage.removeItem('csrf_token')
+    localStorage.removeItem('kiosk_state')
+    sessionStorage.clear()
+  })
+  await page.context().clearCookies()
+}
+
+export async function setupKioskTest(page: Page) {
+  await clearAuthState(page)
+  await mockKioskUnlock(page)
+  await mockKioskLock(page)
+  await mockPinVerify(page, true, STUDENT_USER)
+  await mockBulkCheckIn(page)
+}
+
+export async function setupAdminTest(page: Page) {
+  await clearAuthState(page)
+  await mockAuthLogin(page, ADMIN_USER, ['Admin', 'Teacher'])
+  await mockAuthMe(page, ADMIN_USER, ['Admin', 'Teacher'])
+  await mockAuthLogout(page)
+  await mockUserCreate(page)
+  await mockUserUpdate(page)
+  await mockClassCreate(page)
+  await mockThemeMutations(page)
+  await mockNewsMutations(page)
+  await mockCsvImport(page)
+  await mockKioskUpdatePin(page)
+  await mockFeedbackSubmit(page)
+  await mockCommentCreate(page)
+}
+
+export async function setupTeacherTest(page: Page) {
+  await clearAuthState(page)
+  await mockAuthLogin(page, TEACHER_USER, ['Teacher'])
+  await mockAuthMe(page, TEACHER_USER, ['Teacher'])
+  await mockAuthLogout(page)
+  await mockAttendanceConfirm(page)
+  await mockAttendanceCancel(page)
+  await mockCreateAttendanceDirect(page)
+  await mockFeedbackSubmit(page)
+  await mockCommentCreate(page)
+}
+
+export async function setupStudentPortalTest(page: Page) {
+  await clearAuthState(page)
+  await mockAuthLogin(page, STUDENT_USER, ['Student'])
+  await mockAuthMe(page, STUDENT_USER, ['Student'])
+  await mockAuthLogout(page)
+  await mockFeedbackSubmit(page)
+  await mockCommentCreate(page)
+}
+
+export async function waitForPageReady(page: Page) {
+  await page.waitForLoadState('networkidle')
+}
+
+export async function expectVisible(page: Page, text: string) {
+  await expect(page.getByText(text, { exact: false }).first()).toBeVisible()
+}
