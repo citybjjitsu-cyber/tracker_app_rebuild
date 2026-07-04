@@ -106,6 +106,9 @@ jobs:
       - name: Run Playwright e2e tests
         env:
           ALLOWED_HOSTS: '*'
+          E2E_KIOSK_EMAIL: ${{ secrets.E2E_KIOSK_EMAIL }}
+          E2E_KIOSK_PASSWORD: ${{ secrets.E2E_KIOSK_PASSWORD }}
+          E2E_STUDENT_PIN: ${{ secrets.E2E_STUDENT_PIN }}
         run: npx playwright test --reporter=list 2>&1
       - name: Upload Playwright report
         if: always()

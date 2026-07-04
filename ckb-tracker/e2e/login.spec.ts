@@ -9,6 +9,7 @@ import {
   ADMIN_USER,
   TEACHER_USER,
 } from './helpers'
+import { E2E_TEACHER_PASSWORD } from './config'
 
 test.describe('Login', () => {
   test.beforeEach(async ({ page }) => {
@@ -59,7 +60,7 @@ test.describe('Login', () => {
     const emailInput = page.locator('input[type="email"]').first()
     const passwordInput = page.locator('input[type="password"]').first()
     await emailInput.fill(TEACHER_USER.email)
-    await passwordInput.fill('password123')
+    await passwordInput.fill(E2E_TEACHER_PASSWORD)
     const signInBtn = page.getByRole('button', { name: /sign in|login/i }).first()
     await signInBtn.click()
     await page.waitForTimeout(1000)

@@ -8,6 +8,7 @@ import {
   waitForPageReady,
   KIOSK_USER,
 } from './helpers'
+import { E2E_KIOSK_PASSWORD } from './config'
 
 test.describe('Kiosk Core', () => {
   test.beforeEach(async ({ page }) => {
@@ -54,7 +55,7 @@ test.describe('Kiosk Core', () => {
 
     if (await emailInput.isVisible()) {
       await emailInput.fill(KIOSK_USER.email)
-      await passwordInput.fill('kiosk123')
+      await passwordInput.fill(E2E_KIOSK_PASSWORD)
       const submitBtn = page.getByRole('button', { name: /unlock|submit|sign in|log in/i }).first()
       await submitBtn.click()
       await page.waitForTimeout(1000)

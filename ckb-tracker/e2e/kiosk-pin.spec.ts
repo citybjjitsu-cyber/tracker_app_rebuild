@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
-
-const BASE = 'http://127.0.0.1:8000'
+import { E2E_KIOSK_EMAIL, E2E_KIOSK_PASSWORD, E2E_STUDENT_PIN, E2E_API_BASE } from './config'
 
 test.describe('Student PIN Flow', () => {
   let staffToken: string
@@ -8,8 +7,8 @@ test.describe('Student PIN Flow', () => {
 
   test.beforeAll(async ({ request }) => {
     for (let i = 0; i < 3; i++) {
-      const res = await request.post(`${BASE}/kiosk/unlock`, {
-        data: { email: 'kiosk@ckbtracker.com', password: 'kiosk123' },
+      const res = await request.post(`${E2E_API_BASE}/kiosk/unlock`, {
+        data: { email: E2E_KIOSK_EMAIL, password: E2E_KIOSK_PASSWORD },
       })
       if (res.status() === 200) {
         staffToken = (await res.json()).access_token
@@ -20,8 +19,8 @@ test.describe('Student PIN Flow', () => {
       }
     }
 
-    const userRes = await request.post(`${BASE}/kiosk/verify-user-pin`, {
-      data: { pin: '1001' },
+    const userRes = await request.post(`${E2E_API_BASE}/kiosk/verify-user-pin`, {
+      data: { pin: E2E_STUDENT_PIN },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     const body = await userRes.json()
@@ -29,8 +28,8 @@ test.describe('Student PIN Flow', () => {
   })
 
   test('verify valid student PIN returns user and tokens', async ({ request }) => {
-    const res = await request.post(`${BASE}/kiosk/verify-user-pin`, {
-      data: { pin: '1001' },
+    const res = await request.post(`${E2E_API_BASE}/kiosk/verify-user-pin`, {
+      data: { pin: E2E_STUDENT_PIN },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     expect(res.status()).toBe(200)
@@ -41,7 +40,7 @@ test.describe('Student PIN Flow', () => {
   })
 
   test('verify invalid PIN returns valid false', async ({ request }) => {
-    const res = await request.post(`${BASE}/kiosk/verify-user-pin`, {
+    const res = await request.post(`${E2E_API_BASE}/kiosk/verify-user-pin`, {
       data: { pin: '9999' },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
@@ -52,15 +51,15 @@ test.describe('Student PIN Flow', () => {
   })
 
   test('verify user pin requires auth', async ({ request }) => {
-    const res = await request.post(`${BASE}/kiosk/verify-user-pin`, {
+    const res = await request.post(`${E2E_API_BASE}/kiosk/verify-user-pin`, {
       data: { pin: '1234' },
     })
     expect(res.status()).toBe(401)
   })
 
   test('verify-pin-for-user with valid data', async ({ request }) => {
-    const res = await request.post(`${BASE}/kiosk/verify-pin-for-user`, {
-      data: { user_uuid: studentUuid, pin: '1001' },
+    const res = await request.post(`${E2E_API_BASE}/kiosk/verify-pin-for-user`, {
+      data: { user_uuid: studentUuid, pin: E2E_STUDENT_PIN },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     expect(res.status()).toBe(200)
@@ -69,7 +68,7 @@ test.describe('Student PIN Flow', () => {
   })
 
   test('verify-pin-for-user with invalid pin', async ({ request }) => {
-    const res = await request.post(`${BASE}/kiosk/verify-pin-for-user`, {
+    const res = await request.post(`${E2E_API_BASE}/kiosk/verify-pin-for-user`, {
       data: { user_uuid: studentUuid, pin: '0000' },
       headers: { Authorization: `Bearer ${staffToken}` },
     })

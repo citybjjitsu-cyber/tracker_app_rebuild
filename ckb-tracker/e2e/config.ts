@@ -1,0 +1,5 @@
+export const E2E_KIOSK_EMAIL = process.env.E2E_KIOSK_EMAIL || 'kiosk@ckbtracker.com'
+export const E2E_KIOSK_PASSWORD = process.env.E2E_KIOSK_PASSWORD || 'kiosk123'
+export const E2E_STUDENT_PIN = process.env.E2E_STUDENT_PIN || '1001'
+export const E2E_TEACHER_PASSWORD = process.env.E2E_TEACHER_PASSWORD || 'password123'
+export const E2E_API_BASE = process.env.E2E_API_BASE || 'http://127.0.0.1:8000'

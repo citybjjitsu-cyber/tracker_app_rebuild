@@ -1,6 +1,7 @@
 import { Page, expect } from '@playwright/test'
+import { E2E_KIOSK_EMAIL, E2E_KIOSK_PASSWORD, E2E_API_BASE } from './config'
 
-export const BASE_URL = 'http://127.0.0.1:8000'
+export const BASE_URL = E2E_API_BASE
 
 export interface MockUser {
   user_uuid: string
@@ -16,7 +17,7 @@ export const KIOSK_USER: MockUser = {
   user_uuid: 'kiosk-uuid-0000-0000-000000000001',
   first_name: 'Kiosk',
   last_name: 'Service',
-  email: 'kiosk@ckbtracker.com',
+  email: E2E_KIOSK_EMAIL,
   rank: 'White',
 }
 
@@ -419,8 +420,8 @@ export async function unlockKioskViaUi(page: Page) {
   }
   const emailInput = page.getByPlaceholder('you@example.com')
   if (await emailInput.isVisible({ timeout: 5000 })) {
-    await emailInput.fill('kiosk@ckbtracker.com')
-    await page.getByPlaceholder('Enter your password').fill('kiosk123')
+    await emailInput.fill(E2E_KIOSK_EMAIL)
+    await page.getByPlaceholder('Enter your password').fill(E2E_KIOSK_PASSWORD)
     await page.getByRole('button', { name: /unlock/i }).click()
     await page.waitForTimeout(1000)
   }
