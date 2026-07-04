@@ -6,10 +6,18 @@ test.describe('PIN Lockout', () => {
   let staffToken: string
 
   test.beforeAll(async ({ request }) => {
-    const res = await request.post(`${BASE}/kiosk/unlock`, {
-      data: { email: 'staff@test.com', password: 'password123' },
-    })
-    staffToken = (await res.json()).access_token
+    for (let i = 0; i < 3; i++) {
+      const res = await request.post(`${BASE}/kiosk/unlock`, {
+        data: { email: 'kiosk@ckbtracker.com', password: 'kiosk123' },
+      })
+      if (res.status() === 200) {
+        staffToken = (await res.json()).access_token
+        return
+      }
+      if (res.status() === 429) {
+        await new Promise(r => setTimeout(r, 2000))
+      }
+    }
   })
 
   test('3 wrong PINs triggers 429 lockout', async ({ request }) => {

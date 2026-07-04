@@ -19,7 +19,7 @@ test.describe('Kiosk Core', () => {
     await page.goto('/')
     await waitForPageReady(page)
     await expect(page.locator('h1, h2').first()).toBeVisible()
-    await expect(page.getByText(/staff|sign in|login/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /staff sign in/i })).toBeVisible()
   })
 
   test('locked state has a login link', async ({ page }) => {

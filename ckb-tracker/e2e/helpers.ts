@@ -152,6 +152,22 @@ export async function mockAuthMe(page: Page, user: MockUser | null, roleNames: s
   })
 }
 
+export async function mockAuthMeConditional(page: Page, user: MockUser, roleNames: string[]) {
+  await page.route('**/auth/me', async route => {
+    const cookie = route.request().headers()['cookie'] || ''
+    if (!cookie.includes('access_token=mock-access-token') && !cookie.includes('access_token=')) {
+      await route.fulfill({ status: 401 })
+      return
+    }
+    const roles = roleNames.map((name, i) => ({ id: i + 1, name }))
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ user, roles, csrf_token: 'mock-csrf-token' }),
+    })
+  })
+}
+
 export async function mockAuthLogout(page: Page) {
   await page.route('**/auth/logout', async route => {
     await route.fulfill({
@@ -381,6 +397,21 @@ export async function setupStudentPortalTest(page: Page) {
 
 export async function waitForPageReady(page: Page) {
   await page.waitForLoadState('networkidle')
+}
+
+export async function unlockKioskViaUi(page: Page) {
+  const staffBtn = page.getByRole('button', { name: /staff sign in/i })
+  if (await staffBtn.isVisible({ timeout: 5000 })) {
+    await staffBtn.click()
+    await page.waitForTimeout(500)
+  }
+  const emailInput = page.getByPlaceholder('you@example.com')
+  if (await emailInput.isVisible({ timeout: 5000 })) {
+    await emailInput.fill('kiosk@ckbtracker.com')
+    await page.getByPlaceholder('Enter your password').fill('kiosk123')
+    await page.getByRole('button', { name: /unlock/i }).click()
+    await page.waitForTimeout(1000)
+  }
 }
 
 export async function expectVisible(page: Page, text: string) {

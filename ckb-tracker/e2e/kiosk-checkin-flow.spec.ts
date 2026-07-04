@@ -4,6 +4,7 @@ import {
   mockPinVerify,
   mockBulkCheckIn,
   clearAuthState,
+  unlockKioskViaUi,
   waitForPageReady,
   STUDENT_USER,
 } from './helpers'
@@ -13,6 +14,7 @@ test.describe('Kiosk Check-In Flow', () => {
     await setupKioskTest(page)
     await page.goto('/')
     await waitForPageReady(page)
+    await unlockKioskViaUi(page)
   })
 
   test('class selection page shows after pin verification', async ({ page }) => {

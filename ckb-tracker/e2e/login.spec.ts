@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import {
   mockAuthLogin,
   mockAuthMe,
+  mockAuthMeConditional,
   mockAuthLogout,
   clearAuthState,
   waitForPageReady,
@@ -37,7 +38,7 @@ test.describe('Login', () => {
 
   test('admin login redirects to admin dashboard', async ({ page }) => {
     await mockAuthLogin(page, ADMIN_USER, ['Admin', 'Teacher'])
-    await mockAuthMe(page, ADMIN_USER, ['Admin', 'Teacher'])
+    await mockAuthMeConditional(page, ADMIN_USER, ['Admin', 'Teacher'])
     await page.goto('/login')
     await waitForPageReady(page)
 
@@ -52,7 +53,7 @@ test.describe('Login', () => {
 
   test('teacher login redirects to teacher dashboard', async ({ page }) => {
     await mockAuthLogin(page, TEACHER_USER, ['Teacher'])
-    await mockAuthMe(page, TEACHER_USER, ['Teacher'])
+    await mockAuthMeConditional(page, TEACHER_USER, ['Teacher'])
     await page.goto('/login')
     await waitForPageReady(page)
 
