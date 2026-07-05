@@ -520,27 +520,6 @@ npx playwright test
 
 ---
 
-## Demo Accounts
-
-These are auto-seeded on first startup:
-
-| Account | Email | Password | PIN | Role |
-|---------|-------|----------|-----|------|
-| Kiosk | kiosk@ckbtracker.com | kiosk123 | 1007 | Kiosk |
-| Admin | admin@example.com | admin123 | 1005 | Admin + Teacher |
-| Teacher | mike@example.com | password123 | 1003 | Teacher |
-| Teacher | sarah@example.com | password123 | 1004 | Teacher |
-| Tablet | tablet@example.com | tablet123 | 1006 | Tablet |
-| Student | john@example.com | password123 | 1001 | Student |
-| Student | jane@example.com | password123 | 1002 | Student |
-| Student | david@example.com | password123 | 1012 | Student |
-| Student | emily@example.com | password123 | 1008 | Student |
-| Student | chris@example.com | password123 | 1009 | Student |
-| Student | lisa@example.com | password123 | 1010 | Student |
-| Student | tom@example.com | password123 | 1011 | Student |
-| No-PIN | nopin@example.com | password123 | — | Student |
-| Inactive | inactive@example.com | password123 | 1099 | Student (inactive) |
-
 ### Check-In Flow by User Type
 
 | Who | PIN Required? | Notes |
