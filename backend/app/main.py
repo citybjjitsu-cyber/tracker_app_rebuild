@@ -37,6 +37,8 @@ from app.routers import (
     news,
     comments,
     audit,
+    rank_tiers,
+    points_adjustments,
 )
 
 
@@ -44,6 +46,61 @@ from app.routers import (
 async def lifespan(application: FastAPI):
     db = SessionLocal()
     try:
+        # Seed rank tiers
+        existing_tiers = db.query(models.RankTier).count()
+        if existing_tiers == 0:
+            ranks = ["White", "Blue", "Purple", "Brown", "Black", "Coral", "Red"]
+            sort_order = 0
+            for rank in ranks:
+                for degree in range(5):
+                    if degree == 0:
+                        display_name = f"{rank} Belt"
+                    else:
+                        degree_suffix = (
+                            "1st" if degree == 1 else "2nd" if degree == 2 else "3rd" if degree == 3 else "4th"
+                        )
+                        display_name = f"{rank} Belt {degree_suffix} Degree"
+
+                    is_terminal = rank == "Red" and degree == 4
+                    tier = models.RankTier(
+                        rank=rank,
+                        degree=degree,
+                        display_name=display_name,
+                        target_points=None if is_terminal else 500.0,
+                        sort_order=sort_order,
+                    )
+                    db.add(tier)
+                    sort_order += 1
+            db.commit()
+            logging.info("Seeded 35 rank tiers with 500 default target points")
+
+        # Backfill rank_tier_id for existing users that don't have one
+        try:
+            users_without_tier = (
+                db.query(models.User)
+                .filter(
+                    models.User.rank_tier_id.is_(None),
+                    models.User.is_current,
+                )
+                .all()
+            )
+            if users_without_tier:
+                for u in users_without_tier:
+                    tier = (
+                        db.query(models.RankTier)
+                        .filter(
+                            models.RankTier.rank == u.rank,
+                            models.RankTier.degree == 0,
+                        )
+                        .first()
+                    )
+                    if tier:
+                        u.rank_tier_id = tier.id
+                db.commit()
+                logging.info(f"Backfilled rank_tier_id for {len(users_without_tier)} users")
+        except Exception as e:
+            logging.warning(f"Could not backfill rank_tier_id (column may not exist yet): {e}")
+
         user_count = db.query(models.User).count()
         if user_count == 0:
             db.close()
@@ -52,13 +109,9 @@ async def lifespan(application: FastAPI):
 
             seed_data()
         else:
-            existing_tablet_role = (
-                db.query(models.Role).filter(models.Role.name == "Tablet").first()
-            )
+            existing_tablet_role = db.query(models.Role).filter(models.Role.name == "Tablet").first()
             if existing_tablet_role is None:
-                tablet_role = models.Role(
-                    name="Tablet", description="Tablet-only user for check-in kiosk"
-                )
+                tablet_role = models.Role(name="Tablet", description="Tablet-only user for check-in kiosk")
                 db.add(tablet_role)
                 db.commit()
     finally:
@@ -140,15 +193,11 @@ allowed_hosts = allowed_hosts_raw.split(",")
 if "*" in allowed_hosts and os.getenv("ENVIRONMENT", "development") != "development":
     import logging
 
-    logging.warning(
-        "ALLOWED_HOSTS contains '*' — TrustedHostMiddleware is disabled! Set specific hosts in production."
-    )
+    logging.warning("ALLOWED_HOSTS contains '*' — TrustedHostMiddleware is disabled! Set specific hosts in production.")
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 # CORS middleware - configurable via environment
-cors_origins = os.getenv(
-    "CORS_ORIGINS", "http://localhost:3000,http://localhost:3001"
-).split(",")
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -167,9 +216,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if os.getenv("HSTS_ENABLED", "False").lower() == "true":
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Content-Security-Policy"] = (
         "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
     )
@@ -211,9 +258,7 @@ models.Base.metadata.create_all(bind=engine)
 # Include routers
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(classes.router, prefix="/classes", tags=["Classes"])
-app.include_router(
-    class_instances.router, prefix="/class-instances", tags=["Class Instances"]
-)
+app.include_router(class_instances.router, prefix="/class-instances", tags=["Class Instances"])
 app.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])
 app.include_router(terms.router, prefix="/terms", tags=["Terms"])
 app.include_router(gyms.router, prefix="/gym-locations", tags=["Gym Locations"])
@@ -230,6 +275,12 @@ app.include_router(news.router, tags=["News"])
 app.include_router(comments.router, prefix="/comments", tags=["Comments"])
 app.include_router(audit.router, prefix="/audit", tags=["Audit"])
 app.include_router(themes.router, prefix="/themes", tags=["Themes"])
+app.include_router(rank_tiers.router, prefix="/rank-tiers", tags=["Rank Tiers"])
+app.include_router(
+    points_adjustments.router,
+    prefix="/points-adjustments",
+    tags=["Points Adjustments"],
+)
 
 # Serve uploaded photos statically
 import os

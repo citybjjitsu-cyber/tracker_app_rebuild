@@ -67,6 +67,19 @@ def create_user(
     if user.pin:
         pin_hash = pwd_context.hash(user.pin)
 
+    rank_tier_id = user.rank_tier_id
+    if rank_tier_id is None and user.rank:
+        tier = (
+            db.query(models.RankTier)
+            .filter(
+                models.RankTier.rank == user.rank,
+                models.RankTier.degree == 0,
+            )
+            .first()
+        )
+        if tier:
+            rank_tier_id = tier.id
+
     db_user = models.User(
         user_uuid=user_uuid,
         first_name=user.first_name,
@@ -75,6 +88,7 @@ def create_user(
         password_hash=password_hash,
         pin_hash=pin_hash,
         rank=user.rank,
+        rank_tier_id=rank_tier_id,
         nicknames=user.nicknames,
         comments=user.comments,
         last_graded_date=user.last_graded_date,
@@ -342,6 +356,19 @@ def update_user(
     if user.password:
         password_hash = pwd_context.hash(user.password)
 
+    rank_tier_id = user.rank_tier_id if user.rank_tier_id is not None else db_user.rank_tier_id
+    if user.rank is not None and user.rank_tier_id is None:
+        tier = (
+            db.query(models.RankTier)
+            .filter(
+                models.RankTier.rank == user.rank,
+                models.RankTier.degree == 0,
+            )
+            .first()
+        )
+        if tier:
+            rank_tier_id = tier.id
+
     # Create new record (use old values as fallback)
     new_user = models.User(
         user_uuid=user_uuid,
@@ -350,6 +377,7 @@ def update_user(
         email=user.email if user.email is not None else db_user.email,
         password_hash=password_hash,
         rank=user.rank if user.rank is not None else db_user.rank,
+        rank_tier_id=rank_tier_id,
         nicknames=user.nicknames if user.nicknames is not None else db_user.nicknames,
         comments=user.comments if user.comments is not None else db_user.comments,
         last_graded_date=user.last_graded_date if user.last_graded_date is not None else db_user.last_graded_date,

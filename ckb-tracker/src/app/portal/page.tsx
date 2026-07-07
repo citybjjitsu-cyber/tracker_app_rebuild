@@ -12,9 +12,9 @@ import { StatsCard } from '@/components/ui/StatsCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { useChartColors } from '@/hooks/useChartColors';
-import { dashboardApi, feedbackApi, attendanceApi, usersApi, termsApi, termTargetsApi, commentsApi } from '@/lib/api';
-import { formatDate, getDaysAgo } from '@/lib/utils';
-import type { DashboardStats, AttendanceTrend, ClassFeedback, Attendance, User, Term, TermTarget, Comment } from '@/types';
+import { dashboardApi, feedbackApi, attendanceApi, usersApi, commentsApi } from '@/lib/api';
+import { formatDate, getDaysAgo, formatRankDisplay } from '@/lib/utils';
+import type { DashboardStats, AttendanceTrend, ClassFeedback, Attendance, User, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { LogOut, Shield, Lock, Mail, AlertCircle } from 'lucide-react';
@@ -47,10 +47,6 @@ export default function PortalPage() {
   const [isLoaded, setIsLoaded] = useState(true);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [targets, setTargets] = useState<TermTarget[]>([]);
-  const [currentTerm, setCurrentTerm] = useState<Term | null>(null);
-  const [userTarget, setUserTarget] = useState<TermTarget | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
 
@@ -88,28 +84,16 @@ export default function PortalPage() {
   async function loadData() {
     if (!user) return;
     try {
-      const [statsData, trendData, attendanceData, feedbackData, termsData, targetsData] = await Promise.all([
+      const [statsData, trendData, attendanceData, feedbackData] = await Promise.all([
         dashboardApi.getStats(user.user_uuid),
         dashboardApi.getAttendanceTrend(user.user_uuid, 90),
         attendanceApi.getByUser(user.user_uuid),
         feedbackApi.getByUser(user.user_uuid),
-        termsApi.list(),
-        termTargetsApi.list(),
       ]);
       setStats(statsData);
       setAttendanceTrend(trendData);
       setRecentAttendance(attendanceData.slice(0, 20));
       setFeedbackHistory(feedbackData);
-      setTerms(termsData);
-      setTargets(targetsData);
-
-      const today = new Date().toISOString().split('T')[0];
-      const activeTerm = termsData.find((t: Term) => t.start_date <= today && t.end_date >= today);
-      if (activeTerm) {
-        setCurrentTerm(activeTerm);
-        const targetForRank = targetsData.find((t: TermTarget) => t.term_id === activeTerm.id && t.rank === user.rank);
-        if (targetForRank) setUserTarget(targetForRank);
-      }
 
       const pending = attendanceData
         .filter(a => {
@@ -287,20 +271,18 @@ export default function PortalPage() {
             />
           </div>
 
-          {userTarget && currentTerm && (
+          {stats?.current_target && stats?.current_rank_tier && (
             <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface">
-                  Target Progress: <span className="text-primary-container">{currentTerm.term_name}</span>
-                </h2>
-              </div>
+              <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-4">
+                Target Progress: <span className="text-primary-container">{stats.current_rank_tier.display_name}</span>
+              </h2>
               <div className="flex items-center justify-center gap-8">
                 <div className="relative w-40 h-40">
                   <Doughnut
                     data={{
                       labels: ['Completed', 'Remaining'],
                       datasets: [{
-                        data: [stats?.totalPoints || 0, Math.max(0, userTarget.target - (stats?.totalPoints || 0))],
+                        data: [stats?.totalPoints || 0, Math.max(0, stats.current_target - (stats?.totalPoints || 0))],
                         backgroundColor: [colors.primaryBorder, isDark ? 'rgba(100, 116, 139, 0.3)' : 'rgba(203, 213, 225, 0.5)'],
                         borderWidth: 0,
                       }],
@@ -309,14 +291,13 @@ export default function PortalPage() {
                   />
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <p className="text-2xl font-black font-headline text-on-surface">{stats?.totalPoints || 0}</p>
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">/ {userTarget.target} pts</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">/ {stats.current_target} pts</p>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="font-headline font-bold text-lg text-on-surface">{userTarget.rank} Belt Target</p>
-                  <p className="text-sm text-on-surface-variant">{currentTerm.start_date} - {currentTerm.end_date}</p>
+                  <p className="font-headline font-bold text-lg text-on-surface">{stats.current_rank_tier.display_name} Target</p>
                   <p className="text-sm font-bold text-primary-container">
-                    {Math.round(((stats?.totalPoints || 0) / userTarget.target) * 100)}% complete
+                    {stats.progress_percentage != null ? `${Math.round(stats.progress_percentage)}%` : '0%'} complete
                   </p>
                 </div>
               </div>

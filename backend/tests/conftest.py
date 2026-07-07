@@ -5,6 +5,9 @@ import tempfile
 os.environ["ENVIRONMENT"] = "test"
 os.environ["ALLOWED_HOSTS"] = "*"
 
+db_fd, db_path = tempfile.mkstemp(suffix=".db")
+os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -19,7 +22,6 @@ from app.routers.auth import get_db as auth_get_db
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-db_fd, db_path = tempfile.mkstemp(suffix=".db")
 engine = create_engine(
     f"sqlite:///{db_path}",
     connect_args={"check_same_thread": False},

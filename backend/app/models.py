@@ -30,6 +30,7 @@ class User(Base):
     password_hash = Column(String)
     pin_hash = Column(String)
     rank = Column(String, default="White")
+    rank_tier_id = Column(Integer, ForeignKey("rank_tiers.id"), nullable=True)
     last_graded_date = Column(Date)
     comments = Column(Text)
     nicknames = Column(String)
@@ -51,6 +52,7 @@ class User(Base):
     feedback = relationship("ClassFeedback", back_populates="user", foreign_keys="ClassFeedback.user_uuid")
     comments_authored = relationship("Comment", back_populates="author", foreign_keys="Comment.author_uuid")
     comments_targeted = relationship("Comment", back_populates="target_user", foreign_keys="Comment.target_user_uuid")
+    rank_tier = relationship("RankTier", foreign_keys=[rank_tier_id])
 
 
 class Role(Base):
@@ -113,6 +115,40 @@ class ClassSchedule(Base):
     class_type = relationship("ClassType")
     attendance = relationship("Attendance", back_populates="class_schedule")
     curriculum = relationship("Curriculum", back_populates="class_schedule", uselist=False)
+
+
+class RankTier(Base):
+    __tablename__ = "rank_tiers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rank = Column(String, nullable=False)
+    degree = Column(Integer, default=0)
+    display_name = Column(String, nullable=False)
+    target_points = Column(Float, nullable=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=_utcnow)
+
+
+class PointsAdjustment(Base):
+    __tablename__ = "points_adjustments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_uuid = Column(String, ForeignKey("users.user_uuid"), nullable=False)
+    amount = Column(Float, nullable=False, default=0)
+    reason = Column(String, nullable=False)
+    reference_rank_tier_id = Column(Integer, ForeignKey("rank_tiers.id"), nullable=True)
+    previous_rank_tier_id = Column(Integer, ForeignKey("rank_tiers.id"), nullable=True)
+    new_rank_tier_id = Column(Integer, ForeignKey("rank_tiers.id"), nullable=True)
+    notes = Column(Text)
+    adjusted_by_uuid = Column(String, ForeignKey("users.user_uuid"), nullable=False)
+    adjustment_date = Column(Date, nullable=False)
+    created_at = Column(DateTime, default=_utcnow)
+
+    user = relationship("User", foreign_keys=[user_uuid])
+    adjusted_by = relationship("User", foreign_keys=[adjusted_by_uuid])
+    reference_rank_tier = relationship("RankTier", foreign_keys=[reference_rank_tier_id])
+    previous_rank_tier = relationship("RankTier", foreign_keys=[previous_rank_tier_id])
+    new_rank_tier = relationship("RankTier", foreign_keys=[new_rank_tier_id])
 
 
 class Term(Base):

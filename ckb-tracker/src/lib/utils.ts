@@ -47,7 +47,9 @@ export function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
   };
 }
 
-export const RANK_ORDER = ['White', 'Blue', 'Purple', 'Brown', 'Black'];
+export const RANK_ORDER = ['White', 'Blue', 'Purple', 'Brown', 'Black', 'Coral', 'Red'];
+
+const ALL_BELTS = ['White', 'Blue', 'Purple', 'Brown', 'Black', 'Coral', 'Red'];
 
 export function getRankColor(rank?: string): string {
   switch (rank) {
@@ -56,8 +58,30 @@ export function getRankColor(rank?: string): string {
     case 'Purple': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300';
     case 'Brown': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300';
     case 'Black': return 'bg-gray-800 text-white dark:bg-gray-900 dark:text-gray-100';
+    case 'Coral': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300';
+    case 'Red': return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
     default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
   }
+}
+
+export function getRankBorderColor(rank?: string): string {
+  switch (rank) {
+    case 'White': return 'border-gray-300';
+    case 'Blue': return 'border-blue-500';
+    case 'Purple': return 'border-purple-500';
+    case 'Brown': return 'border-amber-700';
+    case 'Black': return 'border-gray-900';
+    case 'Coral': return 'border-orange-500';
+    case 'Red': return 'border-red-600';
+    default: return 'border-gray-300';
+  }
+}
+
+export function formatRankDisplay(rank?: string, degree?: number): string {
+  if (!rank) return 'Unknown';
+  if (degree === undefined || degree === 0) return `${rank} Belt`;
+  const suffix = degree === 1 ? '1st' : degree === 2 ? '2nd' : degree === 3 ? '3rd' : '4th';
+  return `${rank} Belt ${suffix} Degree`;
 }
 
 export const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

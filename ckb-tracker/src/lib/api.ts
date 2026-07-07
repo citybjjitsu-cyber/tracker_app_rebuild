@@ -18,6 +18,9 @@ import type {
   News,
   Comment,
   WebsiteTheme,
+  RankTier,
+  PointsAdjustment,
+  UserProgress,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -287,6 +290,32 @@ export const termTargetsApi = {
   },
   create: async (data: Partial<TermTarget>) => {
     const response = await api.post('/terms/term-targets/', data);
+    return response.data;
+  },
+};
+
+export const rankTiersApi = {
+  list: async () => {
+    const response = await api.get<RankTier[]>('/rank-tiers/');
+    return response.data;
+  },
+  update: async (id: number, data: { target_points?: number | null }) => {
+    const response = await api.put<RankTier>(`/rank-tiers/${id}`, data);
+    return response.data;
+  },
+};
+
+export const pointsAdjustmentsApi = {
+  adjust: async (userUuid: string, data: { amount: number; reason: string; new_rank_tier_id?: number | null; notes?: string }) => {
+    const response = await api.post<PointsAdjustment>(`/points-adjustments/adjust/${userUuid}`, data);
+    return response.data;
+  },
+  list: async (userUuid: string) => {
+    const response = await api.get<PointsAdjustment[]>(`/points-adjustments/${userUuid}`);
+    return response.data;
+  },
+  getProgress: async (userUuid: string) => {
+    const response = await api.get<UserProgress>(`/points-adjustments/progress/${userUuid}`);
     return response.data;
   },
 };

@@ -1,5 +1,6 @@
-import { cn, getRankColor } from '@/lib/utils';
+import { cn, getRankColor, formatRankDisplay } from '@/lib/utils';
 import { Award } from 'lucide-react';
+import type { RankTier } from '@/types';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -32,9 +33,9 @@ export function Badge({ children, variant = 'default', size = 'md', className }:
   );
 }
 
-export function RankBadge({ rank, showIcon = true }: { rank?: string; showIcon?: boolean }) {
+export function RankBadge({ rank, degree, showIcon = true }: { rank?: string; degree?: number; showIcon?: boolean }) {
   if (!rank) return null;
-  
+
   return (
     <span
       className={cn(
@@ -43,7 +44,12 @@ export function RankBadge({ rank, showIcon = true }: { rank?: string; showIcon?:
       )}
     >
       {showIcon && <Award className="w-3 h-3" />}
-      {rank}
+      {formatRankDisplay(rank, degree)}
     </span>
   );
+}
+
+export function RankTierBadge({ tier, showIcon = true }: { tier?: RankTier | null; showIcon?: boolean }) {
+  if (!tier) return null;
+  return <RankBadge rank={tier.rank} degree={tier.degree} showIcon={showIcon} />;
 }
