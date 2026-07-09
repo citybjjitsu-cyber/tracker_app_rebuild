@@ -99,6 +99,7 @@ async def lifespan(application: FastAPI):
                 db.commit()
                 logging.info(f"Backfilled rank_tier_id for {len(users_without_tier)} users")
         except Exception as e:
+            db.rollback()
             logging.warning(f"Could not backfill rank_tier_id (column may not exist yet): {e}")
 
         user_count = db.query(models.User).count()
@@ -135,6 +136,7 @@ async def lifespan(application: FastAPI):
                     db.commit()
                     logging.info(f"Backfilled rank_tier_id for {len(users_without_tier)} seeded users")
             except Exception as e:
+                db.rollback()
                 logging.warning(f"Could not backfill rank_tier_id for seeded users: {e}")
             finally:
                 db.close()
