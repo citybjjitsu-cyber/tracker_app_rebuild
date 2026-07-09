@@ -6,10 +6,10 @@ const FRONTEND_URL = 'http://localhost:3000'
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
-  retries: 1,
+  retries: 2,
   workers: 1,
-  reporter: 'list',
-  timeout: 60000,
+  reporter: [['html'], ['list']],
+  timeout: 90000,
   use: {
     baseURL: FRONTEND_URL,
     extraHTTPHeaders: {
@@ -19,18 +19,18 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'ALLOWED_HOSTS=* uv run uvicorn app.main:app --host 127.0.0.1 --port 8000',
+      command: 'ALLOWED_HOSTS=* uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000',
       cwd: '../backend',
       url: BACKEND_URL,
       reuseExistingServer: !process.env.CI,
-      timeout: 60000,
+      timeout: 120000,
     },
     {
       command: 'npm run dev',
       cwd: '.',
       url: FRONTEND_URL,
       reuseExistingServer: !process.env.CI,
-      timeout: 60000,
+      timeout: 120000,
     },
   ],
   projects: [

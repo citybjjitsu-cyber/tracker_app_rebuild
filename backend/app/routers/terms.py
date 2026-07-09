@@ -24,9 +24,7 @@ def list_terms(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=schemas.TermResponse)
 @limiter.limit(WRITE_LIMIT)
-def create_term(
-    request: Request, term: schemas.TermCreate, db: Session = Depends(get_db)
-):
+def create_term(request: Request, term: schemas.TermCreate, db: Session = Depends(get_db)):
     db_term = models.Term(**term.model_dump())
     db.add(db_term)
     db.commit()
@@ -34,17 +32,15 @@ def create_term(
     return db_term
 
 
-@router.get("/term-targets/", response_model=List[schemas.TermTargetResponse])
+@router.get("/term-targets/", response_model=List[schemas.TermTargetResponse], deprecated=True)
 @limiter.limit(READ_LIMIT)
 def list_targets(request: Request, db: Session = Depends(get_db)):
     return db.query(models.TermTarget).all()
 
 
-@router.post("/term-targets/", response_model=schemas.TermTargetResponse)
+@router.post("/term-targets/", response_model=schemas.TermTargetResponse, deprecated=True)
 @limiter.limit(WRITE_LIMIT)
-def create_target(
-    request: Request, target: schemas.TermTargetCreate, db: Session = Depends(get_db)
-):
+def create_target(request: Request, target: schemas.TermTargetCreate, db: Session = Depends(get_db)):
     db_target = models.TermTarget(**target.model_dump())
     db.add(db_target)
     db.commit()

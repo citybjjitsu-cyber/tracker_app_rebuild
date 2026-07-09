@@ -371,6 +371,26 @@ export async function setupKioskTest(page: Page) {
   await mockBulkCheckIn(page)
 }
 
+export async function mockRankTiers(page: Page) {
+  await page.route('**/rank-tiers/', async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { id: 1, rank: 'White', degree: 0, display_name: 'White Belt', target_points: 500, sort_order: 0 },
+          { id: 6, rank: 'Blue', degree: 0, display_name: 'Blue Belt', target_points: 500, sort_order: 5 },
+          { id: 11, rank: 'Purple', degree: 0, display_name: 'Purple Belt', target_points: 500, sort_order: 10 },
+          { id: 16, rank: 'Brown', degree: 0, display_name: 'Brown Belt', target_points: 500, sort_order: 15 },
+          { id: 21, rank: 'Black', degree: 0, display_name: 'Black Belt', target_points: 500, sort_order: 20 },
+        ]),
+      })
+    } else {
+      await route.continue()
+    }
+  })
+}
+
 export async function setupAdminTest(page: Page) {
   await clearAuthState(page)
   await mockAuthLogin(page, ADMIN_USER, ['Admin', 'Teacher'])
@@ -385,6 +405,7 @@ export async function setupAdminTest(page: Page) {
   await mockKioskUpdatePin(page)
   await mockFeedbackSubmit(page)
   await mockCommentCreate(page)
+  await mockRankTiers(page)
 }
 
 export async function setupTeacherTest(page: Page) {

@@ -46,7 +46,7 @@ describe('Badge', () => {
 describe('RankBadge', () => {
   it('renders rank text', () => {
     render(<RankBadge rank="Black" />)
-    expect(screen.getByText('Black')).toBeInTheDocument()
+    expect(screen.getByText('Black Belt')).toBeInTheDocument()
   })
 
   it('returns null when no rank', () => {
@@ -56,7 +56,7 @@ describe('RankBadge', () => {
 
   it('hides icon when showIcon is false', () => {
     render(<RankBadge rank="Black" showIcon={false} />)
-    expect(screen.getByText('Black')).toBeInTheDocument()
+    expect(screen.getByText('Black Belt')).toBeInTheDocument()
   })
 })
 

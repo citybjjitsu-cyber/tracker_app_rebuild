@@ -4,11 +4,61 @@ from datetime import date, datetime
 from typing import Optional, List
 
 
+class RankTierResponse(BaseModel):
+    id: int
+    rank: str
+    degree: int
+    display_name: str
+    target_points: Optional[float] = None
+    sort_order: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RankTierUpdate(BaseModel):
+    target_points: Optional[float] = None
+
+
+class PointsAdjustmentResponse(BaseModel):
+    id: int
+    user_uuid: str
+    amount: float
+    reason: str
+    reference_rank_tier_id: Optional[int] = None
+    previous_rank_tier_id: Optional[int] = None
+    new_rank_tier_id: Optional[int] = None
+    notes: Optional[str] = None
+    adjusted_by_uuid: str
+    adjustment_date: date
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdjustPointsRequest(BaseModel):
+    amount: float
+    reason: str = Field(max_length=100)
+    new_rank_tier_id: Optional[int] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class UserProgressResponse(BaseModel):
+    total_earned: float
+    total_adjustments: float
+    current_progress: float
+    current_rank_tier: Optional[RankTierResponse] = None
+    current_target: Optional[float] = None
+    next_rank_tier: Optional[RankTierResponse] = None
+    percentage: Optional[float] = None
+
+
 class UserBase(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     email: EmailStr = Field(max_length=255)
     rank: Optional[str] = Field(default="White", max_length=50)
+    rank_tier_id: Optional[int] = None
     nicknames: Optional[str] = Field(default=None, max_length=200)
     comments: Optional[str] = Field(default=None, max_length=2000)
     last_graded_date: Optional[date] = None
@@ -40,6 +90,7 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     email: Optional[EmailStr] = Field(default=None, max_length=255)
     rank: Optional[str] = Field(default=None, max_length=50)
+    rank_tier_id: Optional[int] = None
     nicknames: Optional[str] = Field(default=None, max_length=200)
     comments: Optional[str] = Field(default=None, max_length=2000)
     last_graded_date: Optional[date] = None
@@ -64,6 +115,7 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     user_uuid: str
+    rank_tier_id: Optional[int] = None
     profile_image_url: Optional[str] = None
     image_offset_x: Optional[float] = None
     image_offset_y: Optional[float] = None
@@ -341,6 +393,11 @@ class DashboardStats(BaseModel):
     totalPoints: float
     classesThisMonth: int
     lastClassDaysAgo: Optional[int] = None
+    current_rank_tier: Optional[RankTierResponse] = None
+    current_target: Optional[float] = None
+    next_rank_tier: Optional[RankTierResponse] = None
+    progress_percentage: Optional[float] = None
+    total_adjustments: Optional[float] = 0
 
 
 class AttendanceTrendItem(BaseModel):
@@ -479,6 +536,7 @@ class KioskUserPinVerifyForUserRequest(BaseModel):
 
 class KioskUserResponse(UserBase):
     user_uuid: str
+    rank_tier_id: Optional[int] = None
     profile_image_url: Optional[str] = None
     image_offset_x: Optional[float] = None
     image_offset_y: Optional[float] = None

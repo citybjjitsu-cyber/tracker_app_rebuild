@@ -27,11 +27,13 @@ import {
   kioskApi,
   newsApi,
   themesApi,
+  rankTiersApi,
+  pointsAdjustmentsApi,
   api,
 } from '@/lib/api';
-import { formatDate, DAYS_OF_WEEK } from '@/lib/utils';
-import { Camera, LogOut, Plus, Shield, X } from 'lucide-react';
-import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback } from '@/types';
+import { formatDate, DAYS_OF_WEEK, formatRankDisplay, getRankColor } from '@/lib/utils';
+import { Camera, LogOut, Plus, Shield, X, Edit3, ChevronDown, Award, TrendingUp } from 'lucide-react';
+import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress } from '@/types';
 
 export default function AdminPage() {
   const { user, isAdmin, isAuthenticated, isLoading, login, logout } = useAuth();
@@ -115,6 +117,19 @@ export default function AdminPage() {
   const [themeConfigEditor, setThemeConfigEditor] = useState('');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvImportResult, setCsvImportResult] = useState<Record<string, unknown> | null>(null);
+  const [rankTiers, setRankTiers] = useState<RankTier[]>([]);
+  const [editingTierId, setEditingTierId] = useState<number | null>(null);
+  const [editingTierPoints, setEditingTierPoints] = useState<string>('');
+  const [promoSearch, setPromoSearch] = useState('');
+  const [promoUser, setPromoUser] = useState<User | null>(null);
+  const [promoProgress, setPromoProgress] = useState<UserProgress | null>(null);
+  const [promoAdjustments, setPromoAdjustments] = useState<PointsAdjustment[]>([]);
+  const [promoAmount, setPromoAmount] = useState('');
+  const [promoReason, setPromoReason] = useState('manual_deduction');
+  const [promoNewRankTierId, setPromoNewRankTierId] = useState<string>('');
+  const [promoNotes, setPromoNotes] = useState('');
+  const [classEditModal, setClassEditModal] = useState<ClassSchedule | null>(null);
+  const [classEditForm, setClassEditForm] = useState({ class_name: '', day: '', time: '', points: 0, gym_id: '', class_type_id: '' });
   const [isImportingCsv, setIsImportingCsv] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -280,7 +295,7 @@ export default function AdminPage() {
 
   async function loadAllData() {
     try {
-      const [usersData, classesData, rolesData, termsData, targetsData, curriculaData, lessonsData, gymsData, typesData] = await Promise.all([
+      const [usersData, classesData, rolesData, termsData, targetsData, curriculaData, lessonsData, gymsData, typesData, tiersData] = await Promise.all([
         usersApi.list(),
         classesApi.list(),
         rolesApi.list(),
@@ -290,6 +305,7 @@ export default function AdminPage() {
         lessonsApi.list(),
         gymLocationsApi.list(),
         classTypesApi.list(),
+        rankTiersApi.list(),
       ]);
       setUsers(usersData);
       setClasses(classesData);
@@ -300,6 +316,7 @@ export default function AdminPage() {
       setLessons(lessonsData);
       setGymLocations(gymsData);
       setClassTypes(typesData);
+      setRankTiers(tiersData);
       setStudentStats({ totalStudents: usersData.length, totalClasses: classesData.length });
     } catch (error) {
       console.error('Error loading data:', error);
@@ -829,7 +846,8 @@ export default function AdminPage() {
     { id: 'classes', label: 'Class Schedule' },
     { id: 'gyms', label: 'Gyms & Types' },
     { id: 'terms', label: 'Terms' },
-    { id: 'targets', label: 'Targets' },
+    { id: 'rank-tiers', label: 'Rank Tiers' },
+    { id: 'promotions', label: 'Promotions' },
     { id: 'lessons', label: 'Lessons' },
     { id: 'news', label: 'News' },
     { id: 'student-passwords', label: 'Student Passwords' },
@@ -1422,7 +1440,18 @@ export default function AdminPage() {
                           dayClasses.map((cls) => (
                             <div
                               key={cls.id}
-                              className="p-2 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
+                              className="p-2 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm cursor-pointer hover:ring-1 hover:ring-primary-container transition-all"
+                              onClick={() => {
+                                setClassEditModal(cls);
+                                setClassEditForm({
+                                  class_name: cls.class_name,
+                                  day: cls.day || '',
+                                  time: cls.time || '',
+                                  points: cls.points,
+                                  gym_id: cls.gym_id?.toString() || '',
+                                  class_type_id: cls.class_type_id?.toString() || '',
+                                });
+                              }}
                             >
                               <p className="font-medium text-xs text-slate-900 dark:text-white truncate">{cls.class_name}</p>
                               <p className="text-xs text-slate-500 dark:text-slate-400">{cls.time}</p>
@@ -1548,55 +1577,339 @@ export default function AdminPage() {
         </div>
       )}
 
-      {activeTab === 'targets' && (
-        <div className="grid grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Target</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Select
-                label="Term"
-                value={targetForm.term_id}
-                onChange={(e) => setTargetForm({ ...targetForm, term_id: e.target.value })}
-                options={[{ value: '', label: 'Select...' }, ...terms.map(t => ({ value: t.id.toString(), label: t.term_name }))]}
-              />
-              <Select
-                label="Rank"
-                value={targetForm.rank}
-                onChange={(e) => setTargetForm({ ...targetForm, rank: e.target.value as Rank })}
-                options={['White', 'Blue', 'Purple', 'Brown', 'Black'].map(r => ({ value: r, label: r }))}
-              />
-              <Input
-                label="Hours Required"
-                type="number"
-                value={targetForm.target}
-                onChange={(e) => setTargetForm({ ...targetForm, target: Number(e.target.value) })}
-              />
-              <Button className="w-full" onClick={handleCreateTarget} disabled={isProcessing}>
-                Add Target
-              </Button>
-            </CardContent>
-          </Card>
+      {activeTab === 'rank-tiers' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Rank Tiers</CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-on-surface-variant">All targets default to 500 pts</span>
+                <Button size="sm" variant="outline" onClick={async () => {
+                  for (const tier of rankTiers) {
+                    await rankTiersApi.update(tier.id, { target_points: 500 });
+                  }
+                  const tiers = await rankTiersApi.list();
+                  setRankTiers(tiers);
+                }}>
+                  Reset All to 500
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-outline-variant/20">
+                    <th className="text-left py-2 px-3 font-semibold text-on-surface-variant">Belt</th>
+                    <th className="text-left py-2 px-3 font-semibold text-on-surface-variant">Display Name</th>
+                    <th className="text-right py-2 px-3 font-semibold text-on-surface-variant">Target Points</th>
+                    <th className="text-right py-2 px-3 font-semibold text-on-surface-variant">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankTiers.map((tier) => (
+                    <tr key={tier.id} className="border-b border-outline-variant/10 hover:bg-surface-container-lowest/50">
+                      <td className="py-2 px-3">
+                        <span className={cn('inline-block px-2 py-0.5 rounded text-xs font-semibold', getRankColor(tier.rank))}>
+                          {tier.rank}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-on-surface">{tier.display_name}</td>
+                      <td className="py-2 px-3 text-right">
+                        {editingTierId === tier.id ? (
+                          <input
+                            type="number"
+                            className="w-24 text-right px-2 py-1 rounded border border-outline-variant/20 bg-surface-container-lowest text-on-surface text-sm"
+                            value={editingTierPoints}
+                            onChange={(e) => setEditingTierPoints(e.target.value)}
+                            onBlur={async () => {
+                              const val = editingTierPoints === '' ? null : Number(editingTierPoints);
+                              await rankTiersApi.update(tier.id, { target_points: val });
+                              const tiers = await rankTiersApi.list();
+                              setRankTiers(tiers);
+                              setEditingTierId(null);
+                            }}
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter') {
+                                (e.target as HTMLInputElement).blur();
+                              }
+                              if (e.key === 'Escape') {
+                                setEditingTierId(null);
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="text-on-surface">{tier.target_points ?? '—'}</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingTierId(tier.id);
+                            setEditingTierPoints(tier.target_points?.toString() ?? '');
+                          }}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
+      {activeTab === 'promotions' && (
+        <div className="grid grid-cols-1 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Targets</CardTitle>
+              <CardTitle>Student Search</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {targets.map((target) => {
-                  const term = terms.find(t => t.id === target.term_id);
-                  return (
-                    <div key={target.id} className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <p className="font-medium text-slate-900 dark:text-white">{term?.term_name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{target.rank}: {target.target} hours</p>
-                    </div>
-                  );
-                })}
+              <Input
+                placeholder="Search by name or email..."
+                value={promoSearch}
+                onChange={(e) => setPromoSearch(e.target.value)}
+              />
+              <div className="mt-3 max-h-48 overflow-y-auto space-y-1">
+                {promoSearch.length >= 2 && users
+                  .filter(u => {
+                    const q = promoSearch.toLowerCase();
+                    return u.is_current && (
+                      u.first_name.toLowerCase().includes(q) ||
+                      u.last_name.toLowerCase().includes(q) ||
+                      u.email.toLowerCase().includes(q)
+                    );
+                  })
+                  .map(u => (
+                    <button
+                      key={u.user_uuid}
+                      className={`w-full text-left p-2 rounded text-sm transition-colors ${
+                        promoUser?.user_uuid === u.user_uuid
+                          ? 'bg-primary-container/20 text-on-surface'
+                          : 'hover:bg-surface-container-lowest text-on-surface'
+                      }`}
+                      onClick={async () => {
+                        setPromoUser(u);
+                        setPromoAmount('');
+                        setPromoReason('manual_deduction');
+                        setPromoNewRankTierId('');
+                        setPromoNotes('');
+                        try {
+                          const [progress, adjustments] = await Promise.all([
+                            pointsAdjustmentsApi.getProgress(u.user_uuid),
+                            pointsAdjustmentsApi.list(u.user_uuid),
+                          ]);
+                          setPromoProgress(progress);
+                          setPromoAdjustments(adjustments);
+                        } catch (err) {
+                          console.error('Error loading promotion data:', err);
+                        }
+                      }}
+                    >
+                      {u.first_name} {u.last_name} — {u.rank || 'No rank'}
+                    </button>
+                  ))}
               </div>
             </CardContent>
           </Card>
+
+          {promoUser && promoProgress && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Current Progress — {promoUser.first_name} {promoUser.last_name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="p-3 bg-surface-container-lowest rounded-lg">
+                      <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider">Current Rank</p>
+                      <p className="text-lg font-bold text-on-surface mt-1">
+                        {promoProgress.current_rank_tier?.display_name || promoUser.rank || 'Unknown'}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-surface-container-lowest rounded-lg">
+                      <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider">Target Points</p>
+                      <p className="text-lg font-bold text-on-surface mt-1">{promoProgress.current_target ?? '—'}</p>
+                    </div>
+                    <div className="p-3 bg-surface-container-lowest rounded-lg">
+                      <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider">Current Progress</p>
+                      <p className="text-lg font-bold text-on-surface mt-1">{promoProgress.current_progress}</p>
+                    </div>
+                    <div className="p-3 bg-surface-container-lowest rounded-lg">
+                      <p className="text-xs text-on-surface-variant font-medium uppercase tracking-wider">Percentage</p>
+                      <p className="text-lg font-bold text-on-surface mt-1">{promoProgress.percentage ?? '—'}%</p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-on-surface-variant space-y-1">
+                    <p>Total earned from attendance: {promoProgress.total_earned}</p>
+                    <p>Total adjustments: {promoProgress.total_adjustments}</p>
+                    {promoProgress.next_rank_tier && (
+                      <p>Next rank: {promoProgress.next_rank_tier.display_name} (target: {promoProgress.next_rank_tier.target_points ?? '—'} pts)</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Adjust Points &amp; Rank</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Select
+                        label="New Rank Tier (optional)"
+                        value={promoNewRankTierId}
+                        onChange={(e) => setPromoNewRankTierId(e.target.value)}
+                        options={[
+                          { value: '', label: 'No change...' },
+                          ...rankTiers.map(t => ({ value: t.id.toString(), label: t.display_name })),
+                        ]}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1">Amount</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          className="flex-1 px-3 py-2 rounded-lg border border-outline-variant/20 bg-surface-container-lowest text-on-surface text-sm"
+                          placeholder="0"
+                          value={promoAmount}
+                          onChange={(e) => setPromoAmount(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const target = promoProgress.current_target;
+                        if (target) setPromoAmount((-target).toString());
+                      }}
+                    >
+                      Deduct Target (-{promoProgress.current_target ?? 0})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPromoAmount((-promoProgress.current_progress).toString())}
+                    >
+                      Deduct All (-{promoProgress.current_progress})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPromoAmount((Number(promoAmount || 0) + 50).toString())}
+                    >
+                      +50
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPromoAmount((Number(promoAmount || 0) + 100).toString())}
+                    >
+                      +100
+                    </Button>
+                  </div>
+
+                  <div>
+                    <Select
+                      label="Reason"
+                      value={promoReason}
+                      onChange={(e) => setPromoReason(e.target.value)}
+                      options={[
+                        { value: 'promotion_target', label: 'Promotion — Deduct Target' },
+                        { value: 'promotion_total', label: 'Promotion — Deduct All' },
+                        { value: 'manual_grant', label: 'Manual Grant' },
+                        { value: 'manual_deduction', label: 'Manual Deduction' },
+                      ]}
+                    />
+                  </div>
+
+                  <Input
+                    label="Notes"
+                    value={promoNotes}
+                    onChange={(e) => setPromoNotes(e.target.value)}
+                  />
+
+                  <Button
+                    className="w-full"
+                    disabled={isProcessing || !promoAmount}
+                    onClick={async () => {
+                      setIsProcessing(true);
+                      try {
+                        await pointsAdjustmentsApi.adjust(promoUser!.user_uuid, {
+                          amount: Number(promoAmount),
+                          reason: promoReason,
+                          new_rank_tier_id: promoNewRankTierId ? Number(promoNewRankTierId) : null,
+                          notes: promoNotes,
+                        });
+                        setPromoAmount('');
+                        setPromoNotes('');
+                        setPromoNewRankTierId('');
+                        const [progress, adjustments] = await Promise.all([
+                          pointsAdjustmentsApi.getProgress(promoUser!.user_uuid),
+                          pointsAdjustmentsApi.list(promoUser!.user_uuid),
+                        ]);
+                        setPromoProgress(progress);
+                        setPromoAdjustments(adjustments);
+                        const usersData = await usersApi.list();
+                        setUsers(usersData);
+                      } catch (err) {
+                        console.error('Error adjusting points:', err);
+                        alert('Failed to adjust points');
+                      } finally {
+                        setIsProcessing(false);
+                      }
+                    }}
+                  >
+                    Submit Adjustment
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Adjustment History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {promoAdjustments.length === 0 ? (
+                    <p className="text-sm text-on-surface-variant">No adjustments yet.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {promoAdjustments.map((adj) => (
+                        <div key={adj.id} className="p-3 bg-surface-container-lowest rounded-lg text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className={`font-semibold ${adj.amount >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {adj.amount >= 0 ? '+' : ''}{adj.amount} pts
+                            </span>
+                            <span className="text-xs text-on-surface-variant">{adj.adjustment_date}</span>
+                          </div>
+                          <p className="text-xs text-on-surface-variant mt-1">Reason: {adj.reason}</p>
+                          {adj.notes && <p className="text-xs text-on-surface-variant mt-0.5">{adj.notes}</p>}
+                          {adj.new_rank_tier_id && (
+                            <p className="text-xs text-on-surface-variant mt-0.5">
+                          Changed to: {rankTiers.find(t => t.id === adj.new_rank_tier_id)?.display_name || `Tier #${adj.new_rank_tier_id}`}
+                        </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       )}
 
@@ -2733,6 +3046,90 @@ export default function AdminPage() {
 
       <canvas ref={canvasRef} className="hidden" />
       <canvas ref={newUserCanvasRef} className="hidden" />
+
+      {classEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Edit Class</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setClassEditModal(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                label="Class Name"
+                value={classEditForm.class_name}
+                onChange={(e) => setClassEditForm({ ...classEditForm, class_name: e.target.value })}
+              />
+              <Select
+                label="Day"
+                value={classEditForm.day}
+                onChange={(e) => setClassEditForm({ ...classEditForm, day: e.target.value })}
+                options={DAYS_OF_WEEK.map(d => ({ value: d, label: d }))}
+              />
+              <Input
+                label="Time"
+                type="time"
+                value={classEditForm.time}
+                onChange={(e) => setClassEditForm({ ...classEditForm, time: e.target.value })}
+              />
+              <Input
+                label="Points"
+                type="number"
+                value={classEditForm.points}
+                onChange={(e) => setClassEditForm({ ...classEditForm, points: Number(e.target.value) })}
+              />
+              <Select
+                label="Gym Location"
+                value={classEditForm.gym_id}
+                onChange={(e) => setClassEditForm({ ...classEditForm, gym_id: e.target.value })}
+                options={[{ value: '', label: 'None' }, ...gymLocations.map(g => ({ value: g.id.toString(), label: g.name }))]}
+              />
+              <Select
+                label="Class Type"
+                value={classEditForm.class_type_id}
+                onChange={(e) => setClassEditForm({ ...classEditForm, class_type_id: e.target.value })}
+                options={[{ value: '', label: 'None' }, ...classTypes.map(t => ({ value: t.id.toString(), label: t.name }))]}
+              />
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  disabled={isProcessing}
+                  onClick={async () => {
+                    setIsProcessing(true);
+                    try {
+                      await classesApi.update(classEditModal.class_uuid, {
+                        class_name: classEditForm.class_name,
+                        day: classEditForm.day,
+                        time: classEditForm.time,
+                        points: classEditForm.points,
+                        gym_id: classEditForm.gym_id ? Number(classEditForm.gym_id) : undefined,
+                        class_type_id: classEditForm.class_type_id ? Number(classEditForm.class_type_id) : undefined,
+                      });
+                      setClassEditModal(null);
+                      const classesData = await classesApi.list();
+                      setClasses(classesData);
+                    } catch (err) {
+                      console.error('Error updating class:', err);
+                      alert('Failed to update class');
+                    } finally {
+                      setIsProcessing(false);
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setClassEditModal(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       </div>
     </>
   );

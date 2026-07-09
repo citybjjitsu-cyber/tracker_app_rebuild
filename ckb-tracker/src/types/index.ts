@@ -1,8 +1,42 @@
-export type Rank = 'White' | 'Blue' | 'Purple' | 'Brown' | 'Black';
+export type Rank = 'White' | 'Blue' | 'Purple' | 'Brown' | 'Black' | 'Coral' | 'Red';
 
 export type AttendanceStatus = 'pending' | 'confirmed';
 
 export type FeedbackRating = 'thumbs_up' | 'thumbs_down';
+
+export interface RankTier {
+  id: number;
+  rank: Rank;
+  degree: number;
+  display_name: string;
+  target_points: number | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface PointsAdjustment {
+  id: number;
+  user_uuid: string;
+  amount: number;
+  reason: string;
+  reference_rank_tier_id: number | null;
+  previous_rank_tier_id: number | null;
+  new_rank_tier_id: number | null;
+  notes: string | null;
+  adjusted_by_uuid: string;
+  adjustment_date: string;
+  created_at: string;
+}
+
+export interface UserProgress {
+  total_earned: number;
+  total_adjustments: number;
+  current_progress: number;
+  current_rank_tier: RankTier | null;
+  current_target: number | null;
+  next_rank_tier: RankTier | null;
+  percentage: number | null;
+}
 
 export interface User {
   user_uuid: string;
@@ -11,6 +45,7 @@ export interface User {
   email: string;
   has_password?: boolean;
   rank?: Rank;
+  rank_tier_id?: number;
   last_graded_date?: string;
   comments?: string;
   nicknames?: string;
@@ -160,6 +195,11 @@ export interface DashboardStats {
   totalPoints: number;
   classesThisMonth: number;
   lastClassDaysAgo: number | null;
+  current_rank_tier?: RankTier | null;
+  current_target?: number | null;
+  next_rank_tier?: RankTier | null;
+  progress_percentage?: number | null;
+  total_adjustments?: number;
 }
 
 export interface AttendanceTrend {
