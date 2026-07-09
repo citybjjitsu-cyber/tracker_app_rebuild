@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List
-from datetime import date, datetime, timezone
+from datetime import date
 from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
 
 router = APIRouter()

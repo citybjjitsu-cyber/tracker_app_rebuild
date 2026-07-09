@@ -108,6 +108,36 @@ async def lifespan(application: FastAPI):
             from seed_complete_data import seed_data
 
             seed_data()
+
+            # Re-open DB to backfill rank_tier_id for seeded users
+            db = SessionLocal()
+            try:
+                users_without_tier = (
+                    db.query(models.User)
+                    .filter(
+                        models.User.rank_tier_id.is_(None),
+                        models.User.is_current,
+                    )
+                    .all()
+                )
+                if users_without_tier:
+                    for u in users_without_tier:
+                        tier = (
+                            db.query(models.RankTier)
+                            .filter(
+                                models.RankTier.rank == u.rank,
+                                models.RankTier.degree == 0,
+                            )
+                            .first()
+                        )
+                        if tier:
+                            u.rank_tier_id = tier.id
+                    db.commit()
+                    logging.info(f"Backfilled rank_tier_id for {len(users_without_tier)} seeded users")
+            except Exception as e:
+                logging.warning(f"Could not backfill rank_tier_id for seeded users: {e}")
+            finally:
+                db.close()
         else:
             existing_tablet_role = db.query(models.Role).filter(models.Role.name == "Tablet").first()
             if existing_tablet_role is None:

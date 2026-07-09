@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: uv sync
       - name: Ruff lint
-        run: uv run ruff check .
+        run: uv run ruff check . --no-cache
       - name: Ruff SAST (security rules)
         run: uv run ruff check --select S .
 
