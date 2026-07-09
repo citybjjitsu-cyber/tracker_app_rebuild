@@ -5,6 +5,51 @@ on:
   pull_request:
 
 jobs:
+  lint-backend:
+    name: Lint & SAST (Backend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff SAST (security rules)
+        run: uv run ruff check --select S .
+
+  lint-frontend:
+    name: Lint & Audit (Frontend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ckb-tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ckb-tracker/package-lock.json
+      - name: Check Node/npm versions
+        run: node --version && npm --version
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: ESLint
+        run: npm run lint
+      - name: npm audit (high severity+)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   backend:
     runs-on: ubuntu-latest
     defaults:
@@ -75,7 +120,7 @@ jobs:
           name: frontend-coverage
           path: ckb-tracker/coverage/
 
-  frontend-e2e:
+  e2e:
     runs-on: ubuntu-latest
     defaults:
       run:
