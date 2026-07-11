@@ -284,8 +284,10 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# Create tables (drop first for testing phase to sync schema with existing DB)
-models.Base.metadata.drop_all(bind=engine)
+# Create tables (with optional drop for testing/env sync)
+if os.getenv("DROP_ALL_ON_STARTUP", "").lower() in ("1", "true"):
+    models.Base.metadata.drop_all(bind=engine)
+    logging.info("Dropped all tables (DROP_ALL_ON_STARTUP is enabled)")
 models.Base.metadata.create_all(bind=engine)
 
 # Include routers
