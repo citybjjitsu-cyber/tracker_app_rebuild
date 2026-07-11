@@ -367,7 +367,7 @@ export async function setupKioskTest(page: Page) {
   await clearAuthState(page)
   await mockKioskUnlock(page)
   await mockKioskLock(page)
-  await mockPinVerify(page, true, STUDENT_USER)
+  await mockPinVerify(page, true)
   await mockBulkCheckIn(page)
 }
 
