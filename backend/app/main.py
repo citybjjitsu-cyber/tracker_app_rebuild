@@ -39,6 +39,7 @@ from app.routers import (
     audit,
     rank_tiers,
     points_adjustments,
+    admin,
 )
 
 
@@ -317,6 +318,7 @@ app.include_router(
     prefix="/points-adjustments",
     tags=["Points Adjustments"],
 )
+app.include_router(admin.router)
 
 # Serve uploaded photos statically
 import os
