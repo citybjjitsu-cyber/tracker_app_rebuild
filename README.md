@@ -561,6 +561,72 @@ Deployment is automated via GitHub Actions:
 
 ---
 
+## Live Testing — Seed Data
+
+During the live testing phase, the database on Render can be populated with demo data for testing.
+
+### Auto-Seed on First Deploy
+
+When the app starts on an empty database (first deploy), it automatically seeds:
+
+- **14 users** (admin, teachers, students, kiosk, tablet)
+- **8 class schedules** across 2 gym locations
+- **Academic terms** with targets
+- **60 days of attendance history**
+- **Curricula and lessons**
+- **Feedback, comments, and news items**
+
+Data persists across subsequent deploys — only the first deploy (empty DB) triggers a seed.
+
+### Admin Seed Endpoint
+
+Trigger a full reseed on demand:
+
+```bash
+curl -X POST https://ckb-tracker-api-dev.onrender.com/admin/seed \
+  -H "Authorization: Bearer <admin_token>"
+```
+
+Rate-limited to 1 request per minute. Requires admin authentication.
+
+### CSV User Import
+
+Import custom users by CSV via the existing endpoint:
+
+```bash
+curl -X POST https://ckb-tracker-api-dev.onrender.com/users/import-csv \
+  -H "Authorization: Bearer <admin_token>" \
+  -F "file=@users.csv"
+```
+
+CSV columns: `first_name, last_name, email, rank, nicknames, comments`
+Max 500 rows per import.
+
+### Reset the Database
+
+To wipe all data and start fresh:
+
+1. Set `DROP_ALL_ON_STARTUP=1` in Render Dashboard env vars
+2. Restart the Render web service
+3. Remove the env var to prevent future wipes
+4. On next deploy (or restart), the seed data is regenerated
+
+### Demo Credentials
+
+| Role | Email | Password | PIN |
+|------|-------|----------|-----|
+| Kiosk unlock | kiosk@ckbtracker.com | kiosk123 | — |
+| Admin | admin@example.com | admin123 | — |
+| Teacher | mike@example.com | password123 | — |
+| Teacher | sarah@example.com | password123 | — |
+| Tablet | tablet@example.com | tablet123 | 1006 |
+| Student | john@example.com | password123 | 1001 |
+| Student | jane@example.com | password123 | 1002 |
+| No PIN | nopin@example.com | password123 | (none) |
+| Inactive | inactive@example.com | (disabled) | — |
+
+---
+
 ## License
 
 Internal project — City Kickboxing BJJitsu.
