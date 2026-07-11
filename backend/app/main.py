@@ -15,7 +15,6 @@ from slowapi.errors import RateLimitExceeded
 import os
 import logging
 
-from sqlalchemy import text as sa_text
 from app.database import engine, SessionLocal
 from app import models
 from app.routers import (
@@ -74,14 +73,6 @@ async def lifespan(application: FastAPI):
                     sort_order += 1
             db.commit()
             logging.info("Seeded 35 rank tiers with 500 default target points")
-
-        # Ensure rank_tier_id column exists (migration for existing PostgreSQL databases)
-        try:
-            db.execute(sa_text("ALTER TABLE users ADD COLUMN rank_tier_id INTEGER REFERENCES rank_tiers(id)"))
-            db.commit()
-            logging.info("Added rank_tier_id column to users table")
-        except Exception:
-            db.rollback()
 
         # Backfill rank_tier_id for existing users that don't have one
         try:
@@ -293,7 +284,8 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# Create tables
+# Create tables (drop first for testing phase to sync schema with existing DB)
+models.Base.metadata.drop_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
 
 # Include routers
