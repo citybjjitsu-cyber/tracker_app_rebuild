@@ -31,7 +31,7 @@ import {
   pointsAdjustmentsApi,
   api,
 } from '@/lib/api';
-import { formatDate, DAYS_OF_WEEK, formatRankDisplay, getRankColor } from '@/lib/utils';
+import { cn, formatDate, DAYS_OF_WEEK, formatRankDisplay, getRankColor } from '@/lib/utils';
 import { Camera, LogOut, Plus, Shield, X, Edit3, ChevronDown, Award, TrendingUp } from 'lucide-react';
 import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress } from '@/types';
 

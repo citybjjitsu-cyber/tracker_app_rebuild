@@ -247,7 +247,7 @@ export async function mockUserCreate(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ user_uuid: 'new-user-uuid', ...ADMIN_USER }),
+        body: JSON.stringify({ ...ADMIN_USER, user_uuid: 'new-user-uuid' }),
       })
     } else {
       await route.continue()
@@ -367,7 +367,7 @@ export async function setupKioskTest(page: Page) {
   await clearAuthState(page)
   await mockKioskUnlock(page)
   await mockKioskLock(page)
-  await mockPinVerify(page, true, STUDENT_USER)
+  await mockPinVerify(page, true)
   await mockBulkCheckIn(page)
 }
 
