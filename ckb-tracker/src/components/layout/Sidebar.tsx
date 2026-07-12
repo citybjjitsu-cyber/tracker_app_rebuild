@@ -27,6 +27,7 @@ interface NavItem {
   requiresAuth?: boolean;
   requiresTeacher?: boolean;
   requiresAdmin?: boolean;
+  requiresLiteAdmin?: boolean;
   requiresTablet?: boolean;
 }
 
@@ -71,7 +72,7 @@ function SidebarContent({
   const shouldShowItem = (item: NavItem) => {
     if (item.requiresTablet && !isTablet) return false;
     if (item.requiresTeacher && !roles?.some((r: string) => r === 'Teacher')) return false;
-    if (item.requiresAdmin && !roles?.some((r: string) => r === 'Admin')) return false;
+    if (item.requiresAdmin && !roles?.some((r: string) => r === 'Admin' || r === 'Lite-Admin')) return false;
     if (item.requiresAuth && !isAuthenticated) return false;
     return true;
   };

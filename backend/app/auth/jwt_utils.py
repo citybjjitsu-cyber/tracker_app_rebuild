@@ -1,17 +1,20 @@
-from jose import jwt, JWTError
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-import secrets
-from app.auth.config import JWT_SECRET_KEY, JWT_ALGORITHM
+
+from jose import JWTError, jwt
+
+from app.auth.config import JWT_ALGORITHM, JWT_SECRET_KEY
 
 
-def create_access_token(
-    user_uuid: str, expires_delta: Optional[timedelta] = None
-) -> tuple[str, str]:
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_access_token(user_uuid: str, expires_delta: Optional[timedelta] = None) -> tuple[str, str]:
     jti = secrets.token_urlsafe(16)
-    expire = datetime.now(timezone.utc) + (
-        expires_delta if expires_delta else timedelta(minutes=10)
-    )
+    expire = datetime.now(timezone.utc) + (expires_delta if expires_delta else timedelta(minutes=10))
     payload = {
         "sub": user_uuid,
         "type": "access",
@@ -23,13 +26,9 @@ def create_access_token(
     return token, jti
 
 
-def create_refresh_token(
-    user_uuid: str, expires_delta: Optional[timedelta] = None
-) -> tuple[str, str]:
+def create_refresh_token(user_uuid: str, expires_delta: Optional[timedelta] = None) -> tuple[str, str]:
     jti = secrets.token_urlsafe(16)
-    expire = datetime.now(timezone.utc) + (
-        expires_delta if expires_delta else timedelta(days=7)
-    )
+    expire = datetime.now(timezone.utc) + (expires_delta if expires_delta else timedelta(days=7))
     payload = {
         "sub": user_uuid,
         "type": "refresh",
@@ -49,9 +48,7 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
-def store_token_record(
-    db, jti: str, user_uuid: str, token_type: str, expires_at: datetime
-):
+def store_token_record(db, jti: str, user_uuid: str, token_type: str, expires_at: datetime):
     from app.models import SessionToken
 
     token_record = SessionToken(

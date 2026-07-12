@@ -19,6 +19,7 @@ from app.main import app
 from app.routers.kiosk import get_db, clear_pin_lockout
 from app.routers.attendance import get_db as att_get_db
 from app.routers.auth import get_db as auth_get_db
+from app.routers.admin import get_db as admin_get_db
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -49,6 +50,7 @@ def seed_data(db):
         models.Role(id=2, name="Student", description="Student"),
         models.Role(id=3, name="Teacher", description="Teacher"),
         models.Role(id=4, name="Admin", description="Administrator"),
+        models.Role(id=5, name="Lite-Admin", description="Can send invites and reset passwords/PINs"),
     ]
     for role in roles_data:
         db.add(role)
@@ -149,6 +151,7 @@ def client(db_session):
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[att_get_db] = override_get_db
     app.dependency_overrides[auth_get_db] = override_get_db
+    app.dependency_overrides[admin_get_db] = override_get_db
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
