@@ -373,14 +373,22 @@ export default function AdminPage() {
     if (!selectedUser) return;
     setIsProcessing(true);
     try {
-      const payload = { ...userForm, last_graded_date: userForm.last_graded_date || undefined };
+      const payload = Object.fromEntries(
+        Object.entries(userForm).filter(([_, v]) => v !== '')
+      );
       await usersApi.update(selectedUser.user_uuid, payload);
       await rolesApi.updateUserRoles(selectedUser.user_uuid, selectedRoles);
       loadAllData();
       setSelectedUser(null);
     } catch (error) {
       console.error('Error saving user:', error);
-      alert('Failed to save changes. Check the form for errors and try again.');
+      const err = error as { response?: { data?: unknown; status?: number }; message?: string };
+      const detail = err.response?.data
+        ? typeof err.response.data === 'string'
+          ? err.response.data
+          : JSON.stringify(err.response.data)
+        : err.message || 'Failed to save changes.';
+      alert(detail);
     } finally {
       setIsProcessing(false);
     }
