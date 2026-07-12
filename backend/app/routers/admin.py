@@ -8,6 +8,7 @@ from app.database import SessionLocal
 from app.routers.auth import get_admin_user, get_lite_admin_user
 from app.services.audit import create_audit_log
 from app.services.email import (
+    resolve_base_url,
     send_password_reset_email,
     send_pin_reset_email,
     send_test_email,
@@ -134,7 +135,7 @@ def admin_reset_password(
     db.add(reset)
     db.commit()
 
-    email_sent = send_password_reset_email(user.email, user.first_name, token)
+    email_sent = send_password_reset_email(user.email, user.first_name, token, resolve_base_url(request))
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")
@@ -177,7 +178,7 @@ def admin_reset_pin(
     db.add(reset)
     db.commit()
 
-    email_sent = send_pin_reset_email(user.email, user.first_name, token)
+    email_sent = send_pin_reset_email(user.email, user.first_name, token, resolve_base_url(request))
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")

@@ -3031,15 +3031,15 @@ export default function AdminPage() {
                   <Button
                     disabled={!inviteEmail || !inviteFirstName || !inviteLastName || inviteSending}
                     isLoading={inviteSending}
-                    onClick={async () => {
+                      onClick={async () => {
                       setInviteSending(true);
                       setInviteError('');
                       try {
-                        await inviteApi.send(inviteEmail, inviteFirstName, inviteLastName);
+                        const result = await inviteApi.send(inviteEmail, inviteFirstName, inviteLastName);
                         setInviteEmail('');
                         setInviteFirstName('');
                         setInviteLastName('');
-                        alert('Invite sent successfully!');
+                        alert(result.message);
                         loadInvites();
                       } catch (err: unknown) {
                         const detail =
@@ -3094,18 +3094,18 @@ export default function AdminPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={async () => {
-                                try {
-                                  await inviteApi.resend(inv.user_uuid);
-                                  alert('Invite resent!');
-                                  loadInvites();
-                                } catch (err: unknown) {
-                                  const detail =
-                                    (err as { response?: { data?: { detail?: string } } })?.response
-                                      ?.data?.detail || 'Failed to resend.';
-                                  alert(detail);
-                                }
-                              }}
+                                  onClick={async () => {
+                                    try {
+                                      const result = await inviteApi.resend(inv.user_uuid);
+                                      alert(result.message);
+                                      loadInvites();
+                                    } catch (err: unknown) {
+                                      const detail =
+                                        (err as { response?: { data?: { detail?: string } } })?.response
+                                          ?.data?.detail || 'Failed to resend.';
+                                      alert(detail);
+                                    }
+                                  }}
                             >
                               Resend
                             </Button>

@@ -3,6 +3,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import Optional
 
 SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
@@ -10,6 +11,20 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 INVITE_FROM_EMAIL = os.getenv("INVITE_FROM_EMAIL", SMTP_USER)
 INVITE_BASE_URL = os.getenv("INVITE_BASE_URL", "http://localhost:3000")
+
+
+def resolve_base_url(request) -> str:
+    origin = request.headers.get("origin")
+    if origin:
+        return origin.rstrip("/")
+    referer = request.headers.get("referer")
+    if referer:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(referer)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+    return INVITE_BASE_URL
 
 
 def _send_email(recipient_email: str, subject: str, html_body: str, text_body: str) -> bool:
@@ -78,8 +93,8 @@ This is a test email from <strong style="color:#fff;">CKB Tracker</strong>. If y
     return _send_email(recipient_email, "CKB Tracker — Test Email", html_body, text_body)
 
 
-def send_invite_email(recipient_email: str, first_name: str, token: str) -> bool:
-    invite_link = f"{INVITE_BASE_URL}/accept-invite?token={token}"
+def send_invite_email(recipient_email: str, first_name: str, token: str, base_url: Optional[str] = None) -> bool:
+    invite_link = f"{base_url or INVITE_BASE_URL}/accept-invite?token={token}"
 
     text_body = (
         f"Hi {first_name},\n\n"
@@ -108,8 +123,10 @@ You've been added to <strong style="color:#fff;">CKB Tracker</strong>. Set up yo
     return _send_email(recipient_email, "You're invited to CKB Tracker", html_body, text_body)
 
 
-def send_password_reset_email(recipient_email: str, first_name: str, token: str) -> bool:
-    reset_link = f"{INVITE_BASE_URL}/reset-password?token={token}"
+def send_password_reset_email(
+    recipient_email: str, first_name: str, token: str, base_url: Optional[str] = None
+) -> bool:
+    reset_link = f"{base_url or INVITE_BASE_URL}/reset-password?token={token}"
 
     text_body = (
         f"Hi {first_name},\n\n"
@@ -138,8 +155,8 @@ A password reset was requested for your account.
     return _send_email(recipient_email, "CKB Tracker — Password Reset", html_body, text_body)
 
 
-def send_pin_reset_email(recipient_email: str, first_name: str, token: str) -> bool:
-    reset_link = f"{INVITE_BASE_URL}/reset-pin?token={token}"
+def send_pin_reset_email(recipient_email: str, first_name: str, token: str, base_url: Optional[str] = None) -> bool:
+    reset_link = f"{base_url or INVITE_BASE_URL}/reset-pin?token={token}"
 
     text_body = (
         f"Hi {first_name},\n\n"
