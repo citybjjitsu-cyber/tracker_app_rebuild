@@ -458,4 +458,38 @@ Placeholder for additional features discovered during testing and deployment.
 | Backend API | `https://ckb-tracker-api-dev.onrender.com` |
 | GitHub | `https://github.com/citybjjitsu-cyber/tracker_app_rebuild` |
 
-*Last Updated: June 25, 2026*
+---
+
+## RECENT UPDATES (July 12, 2026) — Email Onboarding & SQLite DateTime Fix
+
+**Goal:** End-to-end email-based invite flow — admin sends invite, user receives email, clicks link, sets password/PIN, gets logged in.
+
+### Invite Endpoints (Backend)
+- ✅ `GET /auth/invite?token=` — validates invite token against server-side hash, checks expiry, returns user name/email
+- ✅ `POST /auth/accept-invite` — accepts invite: validates token, sets bcrypt password + PIN, consumes invite, returns auto-login JWT cookies
+- ✅ `POST /auth/send-invite` — creates user if email not found, generates token (SHA-256 hashed), sends email via SMTP, supports existing users without password
+- ✅ `POST /auth/resend-invite` — regenerates expired tokens, increments sent count, re-sends email
+
+### Forgot Password/PIN Endpoints (Backend)
+- ✅ `POST /auth/forgot-password` / `POST /auth/forgot-pin` — sends tokenized reset email (1-hour expiry)
+- ✅ `POST /auth/reset-password` / `POST /auth/reset-pin` — validates token, consumes it, updates credential
+- ✅ `POST /admin/users/{uuid}/reset-password` / `POST /admin/users/{uuid}/reset-pin` — admin-initiated reset, sends email
+
+### Frontend Pages
+- ✅ `/accept-invite` — validates invite on load, form for password + PIN, auto-redirect on success
+- ✅ `/forgot-password` / `/forgot-pin` — email input, sends reset link
+- ✅ `/reset-password` / `/reset-pin` — validates token, form for new credential
+
+### SQLite Naive DateTime Fix (Root Cause of 500 on Invite)
+- ✅ `datetime.now(timezone.utc)` returns timezone-aware datetimes, but SQLite stores them as naive (no tzinfo). Comparing aware vs naive raises `TypeError`.
+- ✅ Added `_utcnow()` helper returning naive UTC: `datetime.now(timezone.utc).replace(tzinfo=None)`
+- ✅ Applied to all SQLite-bound comparisons in `auth.py` (login, refresh, invite validate/accept, send/resend, forgot/reset password/PIN) and `admin.py` (admin reset password/PIN)
+- ✅ Also fixed: admin `_utcnow()` had recursion bug (called itself); `refresh_token` endpoint had aware-vs-naive mismatch with JWT `iat` claim; `resend-invite` used wrong schema (`InviteSendRequest` instead of `ResendInviteRequest`)
+- ✅ All 13 auth tests pass (including previously failing `test_refresh_token`)
+
+### Email Service
+- ✅ `backend/app/services/email.py` — `send_invite_email()`, `send_password_reset_email()`, `send_pin_reset_email()`, `send_test_email()`
+- ✅ `resolve_base_url()` — extracts Origin/Referer from request to build correct invite links for cross-origin deployments (Vercel frontend → Render backend)
+- ✅ Email sent via SMTP with dark-themed HTML template; delivery success/failure reflected in audit logs and API responses
+
+*Last Updated: July 12, 2026*

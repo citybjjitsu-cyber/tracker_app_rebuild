@@ -97,6 +97,13 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
     pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
 
+    @field_validator("last_graded_date", mode="before")
+    @classmethod
+    def blank_date_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+
     @field_validator("password")
     @classmethod
     def validate_password_complexity(cls, v):

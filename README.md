@@ -303,6 +303,14 @@ terms ── term_targets                    (points needed per rank per term)
 | GET | `/auth/me` | JWT | 60/min | Current user info + roles |
 | GET | `/auth/csrf-token` | — | 60/min | Get CSRF token |
 | GET | `/auth/check-password/{uuid}` | JWT | 60/min | Check if user has password set |
+| POST | `/auth/send-invite` | Lite-Admin | 60/min | Send invite email to new/existing user |
+| POST | `/auth/resend-invite` | Lite-Admin | 60/min | Resend invite with new token |
+| GET | `/auth/invite?token=` | — | 60/min | Validate invite token |
+| POST | `/auth/accept-invite` | — | 5/min | Accept invite, set password + PIN, auto-login |
+| POST | `/auth/forgot-password` | — | 5/min | Send password reset email |
+| POST | `/auth/reset-password` | — | 5/min | Reset password via token |
+| POST | `/auth/forgot-pin` | — | 5/min | Send PIN reset email |
+| POST | `/auth/reset-pin` | — | 5/min | Reset PIN via token |
 
 ### Kiosk (`/kiosk`)
 
@@ -390,6 +398,11 @@ terms ── term_targets                    (points needed per rank per term)
 |-------|--------|-------------|
 | `/` | Public | Kiosk landing page (locked/unlocked) |
 | `/login` | Public | Staff login (admin/teacher dashboard) |
+| `/accept-invite` | Public | Invite acceptance — set password + PIN |
+| `/forgot-password` | Public | Request password reset email |
+| `/reset-password` | Public | Reset password via email link |
+| `/forgot-pin` | Public | Request PIN reset email |
+| `/reset-pin` | Public | Reset PIN via email link |
 | `/kiosk/select` | Kiosk | Student class selection |
 | `/kiosk/confirm` | Kiosk | PIN re-entry + confirmation |
 | `/check-in` | JWT | Tablet check-in flow |
@@ -476,7 +489,8 @@ npx playwright test
 │   │   │   └── limiter.py       # Rate limit tiers (slowapi)
 │   │   ├── routers/             # 20 route modules
 │   │   ├── services/
-│   │   │   └── audit.py         # Structured audit logging
+│   │   │   ├── audit.py         # Structured audit logging
+│   │   │   └── email.py         # SMTP invite & password/PIN reset emails
 │   │   └── __init__.py
 │   ├── tests/                   # pytest suite (128+ tests, 85% cov)
 │   ├── scripts/
@@ -492,6 +506,11 @@ npx playwright test
 │   │   │   ├── layout.tsx       # Root layout + providers
 │   │   │   ├── kiosk/           # Kiosk context + UI components
 │   │   │   ├── login/           # Staff login page
+│   │   │   ├── accept-invite/   # Invite acceptance (password + PIN)
+│   │   │   ├── forgot-password/ # Request password reset
+│   │   │   ├── reset-password/  # Reset password via token
+│   │   │   ├── forgot-pin/      # Request PIN reset
+│   │   │   ├── reset-pin/       # Reset PIN via token
 │   │   │   ├── check-in/        # Tablet check-in page
 │   │   │   ├── portal/          # Student portal
 │   │   │   ├── teacher/         # Teacher dashboard
@@ -530,6 +549,20 @@ npx playwright test
 | Admin | ❌ No | Direct bypass |
 
 ---
+
+## Email-Based Onboarding Flow
+
+New students receive an invite email with a tokenized link to `/accept-invite?token=...`. The flow:
+1. **Admin** sends invite via `/auth/send-invite` (email + optional name)
+2. If email doesn't exist, a new user is auto-created; if it exists but has no password, the invite is sent
+3. **User** clicks link → invite token validated against server-side hash (SHA-256)
+4. **User** sets password (8+ chars, complexity rules) and kiosk PIN (4-8 digits)
+5. **Server** hashes both with bcrypt, marks invite consumed, auto-logs in user
+6. Token expires after 7 days; admin can resend via `/auth/resend-invite`
+
+Forgot password/PIN flows follow the same tokenized email pattern (1-hour expiry).
+
+**Note:** SQLite stores datetimes as naive (no timezone). Comparisons with timezone-aware `datetime.now(timezone.utc)` crash with `TypeError`. All SQLite-bound timestamps use `_utcnow()` which returns naive UTC via `datetime.now(timezone.utc).replace(tzinfo=None)`.
 
 ## Security Features
 
