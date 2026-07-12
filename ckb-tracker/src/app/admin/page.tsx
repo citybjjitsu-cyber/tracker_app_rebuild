@@ -134,6 +134,8 @@ export default function AdminPage() {
   const [classEditForm, setClassEditForm] = useState({ class_name: '', day: '', time: '', points: 0, gym_id: '', class_type_id: '' });
   const [isImportingCsv, setIsImportingCsv] = useState(false);
   const [invites, setInvites] = useState<InviteRecord[]>([]);
+  const [inviteFirstName, setInviteFirstName] = useState('');
+  const [inviteLastName, setInviteLastName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteSending, setInviteSending] = useState(false);
   const [inviteError, setInviteError] = useState('');
@@ -2996,31 +2998,47 @@ export default function AdminPage() {
               <CardContent className="space-y-4">
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   Send an email invite to a user so they can set their own password and PIN.
+                  If the email doesn&apos;t exist yet, a new user will be created.
                 </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="First name"
+                    value={inviteFirstName}
+                    onChange={(e) => setInviteFirstName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Last name"
+                    value={inviteLastName}
+                    onChange={(e) => setInviteLastName(e.target.value)}
+                  />
+                </div>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="User email address..."
+                    placeholder="Email address..."
                     value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
+                    onChange={(e) => {
+                      setInviteEmail(e.target.value);
+                      const found = users.find(
+                        (u) => u.email.toLowerCase() === e.target.value.toLowerCase()
+                      );
+                      if (found) {
+                        setInviteFirstName(found.first_name);
+                        setInviteLastName(found.last_name);
+                      }
+                    }}
                     className="flex-1"
                   />
                   <Button
-                    disabled={!inviteEmail || inviteSending}
+                    disabled={!inviteEmail || !inviteFirstName || !inviteLastName || inviteSending}
                     isLoading={inviteSending}
                     onClick={async () => {
                       setInviteSending(true);
                       setInviteError('');
                       try {
-                        const user = users.find(
-                          (u) => u.email.toLowerCase() === inviteEmail.toLowerCase()
-                        );
-                        if (!user) {
-                          setInviteError('No user found with that email address.');
-                          setInviteSending(false);
-                          return;
-                        }
-                        await inviteApi.send(user.user_uuid);
+                        await inviteApi.send(inviteEmail, inviteFirstName, inviteLastName);
                         setInviteEmail('');
+                        setInviteFirstName('');
+                        setInviteLastName('');
                         alert('Invite sent successfully!');
                         loadInvites();
                       } catch (err: unknown) {
