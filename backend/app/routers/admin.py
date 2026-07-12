@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette.requests import Request as StarRequest
 
@@ -8,7 +8,6 @@ from app.database import SessionLocal
 from app.routers.auth import get_admin_user, get_lite_admin_user
 from app.services.audit import create_audit_log
 from app.services.email import (
-    send_invite_email,
     send_password_reset_email,
     send_pin_reset_email,
     send_test_email,
