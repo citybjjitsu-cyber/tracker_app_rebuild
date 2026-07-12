@@ -19,6 +19,11 @@ from datetime import datetime, timedelta, timezone
 from typing import List
 import secrets
 
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 router = APIRouter(prefix="/admin", tags=["Admin"])
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -124,7 +129,7 @@ def admin_reset_password(
 
     token = secrets.token_urlsafe(48)
     token_hash_val = hash_token(token)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    expires_at = _utcnow() + timedelta(hours=1)
 
     reset = models.ResetToken(
         token_hash=token_hash_val,
@@ -167,7 +172,7 @@ def admin_reset_pin(
 
     token = secrets.token_urlsafe(48)
     token_hash_val = hash_token(token)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    expires_at = _utcnow() + timedelta(hours=1)
 
     reset = models.ResetToken(
         token_hash=token_hash_val,

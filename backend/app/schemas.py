@@ -591,6 +591,10 @@ class AcceptInviteResponse(BaseModel):
     roles: List[RoleResponse]
 
 
+class ResendInviteRequest(BaseModel):
+    user_uuid: str = Field(min_length=1)
+
+
 class InviteSendResponse(BaseModel):
     message: str
     expires_at: datetime

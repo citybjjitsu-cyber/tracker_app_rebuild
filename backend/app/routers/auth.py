@@ -2,6 +2,11 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 from fastapi import (
     APIRouter,
     Cookie,
@@ -219,14 +224,14 @@ def login(
         access_jti,
         user.user_uuid,
         "access",
-        datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        _utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     store_token_record(
         db,
         refresh_jti,
         user.user_uuid,
         "refresh",
-        datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        _utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
 
     csrf_token = generate_csrf_token()
@@ -282,14 +287,14 @@ def teacher_login(
         access_jti,
         user.user_uuid,
         "access",
-        datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        _utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     store_token_record(
         db,
         refresh_jti,
         user.user_uuid,
         "refresh",
-        datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        _utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
 
     csrf_token = generate_csrf_token()
@@ -342,8 +347,8 @@ def refresh_token(
     # Enforce absolute session expiry
     iat = payload.get("iat")
     if iat:
-        issued_at = datetime.fromtimestamp(iat, tz=timezone.utc)
-        if datetime.now(timezone.utc) - issued_at > timedelta(hours=MAX_SESSION_HOURS):
+        issued_at = datetime.fromtimestamp(iat, tz=timezone.utc).replace(tzinfo=None)
+        if _utcnow() - issued_at > timedelta(hours=MAX_SESSION_HOURS):
             revoke_token(db, jti)
             raise HTTPException(status_code=401, detail="Session expired, please log in again")
 
@@ -360,14 +365,14 @@ def refresh_token(
         access_jti,
         user_uuid,
         "access",
-        datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        _utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     store_token_record(
         db,
         refresh_jti,
         user_uuid,
         "refresh",
-        datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        _utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
 
     csrf_token = generate_csrf_token()
@@ -521,7 +526,7 @@ def validate_invite(
         raise HTTPException(status_code=404, detail="Invalid invite token")
     if invite.consumed_at is not None:
         raise HTTPException(status_code=400, detail="Invite already used")
-    if datetime.now(timezone.utc) > invite.expires_at:
+    if _utcnow() > invite.expires_at:
         raise HTTPException(status_code=400, detail="Invite has expired")
 
     user = db.query(models.User).filter(models.User.user_uuid == invite.user_uuid).first()
@@ -550,7 +555,7 @@ def accept_invite(
         raise HTTPException(status_code=404, detail="Invalid invite token")
     if invite.consumed_at is not None:
         raise HTTPException(status_code=400, detail="Invite already used")
-    if datetime.now(timezone.utc) > invite.expires_at:
+    if _utcnow() > invite.expires_at:
         raise HTTPException(status_code=400, detail="Invite has expired")
 
     user = db.query(models.User).filter(models.User.user_uuid == invite.user_uuid).first()
@@ -559,7 +564,7 @@ def accept_invite(
 
     user.password_hash = pwd_context.hash(data.password)
     user.pin_hash = pwd_context.hash(data.pin)
-    invite.consumed_at = datetime.now(timezone.utc)
+    invite.consumed_at = _utcnow()
     db.commit()
 
     access_token, access_jti = create_access_token(user.user_uuid)
@@ -569,14 +574,14 @@ def accept_invite(
         access_jti,
         user.user_uuid,
         "access",
-        datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        _utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     store_token_record(
         db,
         refresh_jti,
         user.user_uuid,
         "refresh",
-        datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        _utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
 
     roles = get_user_roles(db, user.user_uuid)
@@ -623,7 +628,7 @@ def send_invite(
             .filter(
                 models.InviteToken.user_uuid == user.user_uuid,
                 models.InviteToken.consumed_at.is_(None),
-                models.InviteToken.expires_at > datetime.now(timezone.utc),
+                models.InviteToken.expires_at > _utcnow(),
             )
             .first()
         )
@@ -632,7 +637,7 @@ def send_invite(
 
     token = secrets.token_urlsafe(48)
     token_hash_val = hash_token(token)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    expires_at = _utcnow() + timedelta(days=7)
 
     invite = models.InviteToken(
         token_hash=token_hash_val,
@@ -667,7 +672,7 @@ def send_invite(
 @limiter.limit(INVITE_LIMIT)
 def resend_invite(
     request: Request,
-    data: schemas.InviteSendRequest,
+    data: schemas.ResendInviteRequest,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_lite_admin_user),
 ):
@@ -688,16 +693,16 @@ def resend_invite(
     if not invite:
         raise HTTPException(status_code=404, detail="No invite found for this user. Send a new invite instead.")
 
-    if datetime.now(timezone.utc) > invite.expires_at:
+    if _utcnow() > invite.expires_at:
         # Regenerate expired token
         token = secrets.token_urlsafe(48)
         invite.token_hash = hash_token(token)
-        invite.expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        invite.expires_at = _utcnow() + timedelta(days=7)
     else:
         token = None  # We don't have the original token; regenerate anyway
         token = secrets.token_urlsafe(48)
         invite.token_hash = hash_token(token)
-        invite.expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        invite.expires_at = _utcnow() + timedelta(days=7)
 
     invite.sent_count = (invite.sent_count or 0) + 1
     db.commit()
@@ -736,7 +741,7 @@ def forgot_password(
 
     token = secrets.token_urlsafe(48)
     token_hash_val = hash_token(token)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    expires_at = _utcnow() + timedelta(hours=1)
 
     reset = models.ResetToken(
         token_hash=token_hash_val,
@@ -766,7 +771,7 @@ def reset_password(
             models.ResetToken.token_hash == token_hash_val,
             models.ResetToken.purpose == "password",
             models.ResetToken.consumed_at.is_(None),
-            models.ResetToken.expires_at > datetime.now(timezone.utc),
+            models.ResetToken.expires_at > _utcnow(),
         )
         .first()
     )
@@ -778,7 +783,7 @@ def reset_password(
         raise HTTPException(status_code=404, detail="User not found")
 
     user.password_hash = pwd_context.hash(data.password)
-    reset.consumed_at = datetime.now(timezone.utc)
+    reset.consumed_at = _utcnow()
     db.commit()
 
     return {"message": "Password reset successfully"}
@@ -797,7 +802,7 @@ def forgot_pin(
 
     token = secrets.token_urlsafe(48)
     token_hash_val = hash_token(token)
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    expires_at = _utcnow() + timedelta(hours=1)
 
     reset = models.ResetToken(
         token_hash=token_hash_val,
@@ -827,7 +832,7 @@ def reset_pin(
             models.ResetToken.token_hash == token_hash_val,
             models.ResetToken.purpose == "pin",
             models.ResetToken.consumed_at.is_(None),
-            models.ResetToken.expires_at > datetime.now(timezone.utc),
+            models.ResetToken.expires_at > _utcnow(),
         )
         .first()
     )
@@ -839,7 +844,7 @@ def reset_pin(
         raise HTTPException(status_code=404, detail="User not found")
 
     user.pin_hash = pwd_context.hash(data.pin)
-    reset.consumed_at = datetime.now(timezone.utc)
+    reset.consumed_at = _utcnow()
     db.commit()
 
     return {"message": "PIN reset successfully"}
