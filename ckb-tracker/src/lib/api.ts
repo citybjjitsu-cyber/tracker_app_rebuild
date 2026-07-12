@@ -21,6 +21,7 @@ import type {
   RankTier,
   PointsAdjustment,
   UserProgress,
+  InviteRecord,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -495,6 +496,64 @@ export const commentsApi = {
     const response = await api.delete(`/comments/${commentUuid}`, {
       params: { author_uuid: authorUuid },
     });
+    return response.data;
+  },
+};
+
+export const inviteApi = {
+  send: async (userUuid: string) => {
+    const response = await api.post('/auth/send-invite', { user_uuid: userUuid });
+    return response.data;
+  },
+  resend: async (userUuid: string) => {
+    const response = await api.post('/auth/resend-invite', { user_uuid: userUuid });
+    return response.data;
+  },
+  validate: async (token: string) => {
+    const response = await api.get(`/auth/invite?token=${token}`);
+    return response.data;
+  },
+  accept: async (token: string, password: string, pin: string) => {
+    const response = await api.post('/auth/accept-invite', { token, password, pin });
+    return response.data;
+  },
+  list: async () => {
+    const response = await api.get<InviteRecord[]>('/admin/invites');
+    return response.data;
+  },
+  revoke: async (inviteId: number) => {
+    const response = await api.delete(`/admin/invites/${inviteId}`);
+    return response.data;
+  },
+  testEmail: async (email: string) => {
+    const response = await api.post('/admin/test-email', { email });
+    return response.data;
+  },
+};
+
+export const resetApi = {
+  forgotPassword: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+  resetPassword: async (token: string, password: string) => {
+    const response = await api.post('/auth/reset-password', { token, password });
+    return response.data;
+  },
+  forgotPin: async (email: string) => {
+    const response = await api.post('/auth/forgot-pin', { email });
+    return response.data;
+  },
+  resetPin: async (token: string, pin: string) => {
+    const response = await api.post('/auth/reset-pin', { token, pin });
+    return response.data;
+  },
+  adminResetPassword: async (userUuid: string) => {
+    const response = await api.post(`/admin/users/${userUuid}/reset-password`);
+    return response.data;
+  },
+  adminResetPin: async (userUuid: string) => {
+    const response = await api.post(`/admin/users/${userUuid}/reset-pin`);
     return response.data;
   },
 };

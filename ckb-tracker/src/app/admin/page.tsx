@@ -29,11 +29,13 @@ import {
   themesApi,
   rankTiersApi,
   pointsAdjustmentsApi,
+  inviteApi,
+  resetApi,
   api,
 } from '@/lib/api';
 import { cn, formatDate, DAYS_OF_WEEK, formatRankDisplay, getRankColor } from '@/lib/utils';
 import { Camera, LogOut, Plus, Shield, X, Edit3, ChevronDown, Award, TrendingUp } from 'lucide-react';
-import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress } from '@/types';
+import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
 
 export default function AdminPage() {
   const { user, isAdmin, isAuthenticated, isLoading, login, logout } = useAuth();
@@ -131,6 +133,10 @@ export default function AdminPage() {
   const [classEditModal, setClassEditModal] = useState<ClassSchedule | null>(null);
   const [classEditForm, setClassEditForm] = useState({ class_name: '', day: '', time: '', points: 0, gym_id: '', class_type_id: '' });
   const [isImportingCsv, setIsImportingCsv] = useState(false);
+  const [invites, setInvites] = useState<InviteRecord[]>([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteError, setInviteError] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -186,6 +192,12 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === 'news') {
       loadNews();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'invites') {
+      loadInvites();
     }
   }, [activeTab]);
 
@@ -788,6 +800,15 @@ export default function AdminPage() {
     }
   };
 
+  async function loadInvites() {
+    try {
+      const data = await inviteApi.list();
+      setInvites(data);
+    } catch (error) {
+      console.error('Error loading invites:', error);
+    }
+  };
+
   async function loadFeedbackAnalytics() {
     try {
       const stats = await feedbackApi.getAdminStats({
@@ -857,6 +878,7 @@ export default function AdminPage() {
     { id: 'database', label: 'Database' },
     { id: 'csv', label: 'CSV Import/Export' },
     { id: 'themes', label: 'Themes' },
+    { id: 'invites', label: 'Invites' },
   ];
 
   if (isLoading || !isAuthenticated || !isAdmin) {
@@ -1079,6 +1101,46 @@ export default function AdminPage() {
                       disabled={isProcessing || !passwordForm.password}
                     >
                       Reset Password
+                    </Button>
+                  </div>
+
+                  <div className="border-t dark:border-slate-700 pt-4 mt-4">
+                    <h4 className="font-medium mb-2 text-slate-900 dark:text-white">Email-Based Reset</h4>
+                    <Button
+                      variant="outline"
+                      className="w-full mb-2"
+                      disabled={isProcessing}
+                      onClick={async () => {
+                        if (!selectedUser) return;
+                        if (!confirm(`Send password reset email to ${selectedUser.email}?`)) return;
+                        try {
+                          await resetApi.adminResetPassword(selectedUser.user_uuid);
+                          alert('Password reset email sent!');
+                        } catch (err: unknown) {
+                          const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to send reset email.';
+                          alert(detail);
+                        }
+                      }}
+                    >
+                      Send Password Reset Email
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={isProcessing}
+                      onClick={async () => {
+                        if (!selectedUser) return;
+                        if (!confirm(`Send PIN reset email to ${selectedUser.email}?`)) return;
+                        try {
+                          await resetApi.adminResetPin(selectedUser.user_uuid);
+                          alert('PIN reset email sent!');
+                        } catch (err: unknown) {
+                          const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to send PIN reset email.';
+                          alert(detail);
+                        }
+                      }}
+                    >
+                      Send PIN Reset Email
                     </Button>
                   </div>
 
@@ -2901,6 +2963,160 @@ export default function AdminPage() {
                 >
                   Export Users to CSV
                 </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'invites' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between w-full">
+                  <CardTitle>Send Invite</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const email = prompt('Send a test email to:');
+                      if (!email) return;
+                      try {
+                        await inviteApi.testEmail(email);
+                        alert(`Test email sent to ${email}!`);
+                      } catch (err: unknown) {
+                        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to send test email.';
+                        alert(detail);
+                      }
+                    }}
+                  >
+                    Test Email Config
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Send an email invite to a user so they can set their own password and PIN.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="User email address..."
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    disabled={!inviteEmail || inviteSending}
+                    isLoading={inviteSending}
+                    onClick={async () => {
+                      setInviteSending(true);
+                      setInviteError('');
+                      try {
+                        const user = users.find(
+                          (u) => u.email.toLowerCase() === inviteEmail.toLowerCase()
+                        );
+                        if (!user) {
+                          setInviteError('No user found with that email address.');
+                          setInviteSending(false);
+                          return;
+                        }
+                        await inviteApi.send(user.user_uuid);
+                        setInviteEmail('');
+                        alert('Invite sent successfully!');
+                        loadInvites();
+                      } catch (err: unknown) {
+                        const detail =
+                          (err as { response?: { data?: { detail?: string } } })?.response?.data
+                            ?.detail || 'Failed to send invite.';
+                        setInviteError(detail);
+                      } finally {
+                        setInviteSending(false);
+                      }
+                    }}
+                  >
+                    Send Invite
+                  </Button>
+                </div>
+                {inviteError && (
+                  <p className="text-sm text-red-500 dark:text-red-400">{inviteError}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Invites</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {invites.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No invites sent yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {invites.map((inv) => (
+                      <div
+                        key={inv.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-slate-100 dark:bg-slate-800"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900 dark:text-white">
+                            {inv.user_name}
+                          </p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {inv.user_email} &middot; Sent {inv.sent_count} time
+                            {inv.sent_count !== 1 ? 's' : ''}
+                          </p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">
+                            Expires: {new Date(inv.expires_at).toLocaleDateString()}
+                            {inv.consumed_at
+                              ? ` &middot; Accepted: ${new Date(inv.consumed_at).toLocaleDateString()}`
+                              : ' &middot; Pending'}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          {!inv.consumed_at && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  await inviteApi.resend(inv.user_uuid);
+                                  alert('Invite resent!');
+                                  loadInvites();
+                                } catch (err: unknown) {
+                                  const detail =
+                                    (err as { response?: { data?: { detail?: string } } })?.response
+                                      ?.data?.detail || 'Failed to resend.';
+                                  alert(detail);
+                                }
+                              }}
+                            >
+                              Resend
+                            </Button>
+                          )}
+                          {!inv.consumed_at && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={async () => {
+                                if (!confirm('Revoke this invite?')) return;
+                                try {
+                                  await inviteApi.revoke(inv.id);
+                                  loadInvites();
+                                } catch (err: unknown) {
+                                  const detail =
+                                    (err as { response?: { data?: { detail?: string } } })?.response
+                                      ?.data?.detail || 'Failed to revoke.';
+                                  alert(detail);
+                                }
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

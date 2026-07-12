@@ -259,6 +259,17 @@ export interface WebsiteTheme {
   updated_at: string
 }
 
+export interface InviteRecord {
+  id: number;
+  user_uuid: string;
+  user_name: string;
+  user_email: string;
+  expires_at: string;
+  consumed_at: string | null;
+  sent_count: number;
+  created_at: string;
+}
+
 export interface Comment {
   id: number;
   comment_uuid: string;

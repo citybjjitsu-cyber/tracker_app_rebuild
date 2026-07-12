@@ -562,3 +562,68 @@ class KioskUnlockResponse(BaseModel):
     refresh_token: str
     user: KioskUserResponse
     roles: List[RoleResponse]
+
+
+class InviteSendRequest(BaseModel):
+    user_uuid: str
+
+
+class InviteValidateResponse(BaseModel):
+    valid: bool
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+
+
+class AcceptInviteRequest(BaseModel):
+    token: str = Field(min_length=1)
+    password: str = Field(min_length=8, max_length=128)
+    pin: str = Field(min_length=4, max_length=8, pattern=PIN_REGEX)
+
+
+class AcceptInviteResponse(BaseModel):
+    message: str
+    access_token: str
+    refresh_token: str
+    user: KioskUserResponse
+    roles: List[RoleResponse]
+
+
+class InviteSendResponse(BaseModel):
+    message: str
+    expires_at: datetime
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(max_length=255)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=1)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class ForgotPinRequest(BaseModel):
+    email: str = Field(max_length=255)
+
+
+class ResetPinRequest(BaseModel):
+    token: str = Field(min_length=1)
+    pin: str = Field(min_length=4, max_length=8, pattern=PIN_REGEX)
+
+
+class TestEmailRequest(BaseModel):
+    email: str = Field(min_length=1)
+
+
+class InviteListResponse(BaseModel):
+    id: int
+    user_uuid: str
+    user_name: str
+    user_email: str
+    expires_at: datetime
+    consumed_at: Optional[datetime] = None
+    sent_count: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

@@ -13,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isTeacher: boolean;
   isAdmin: boolean;
+  isLiteAdmin: boolean;
   isTablet: boolean;
   login: (email: string, password: string, isTeacherLogin?: boolean) => Promise<void>;
   logout: () => Promise<void>;
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isTeacher = roles.some(r => r.name === 'Teacher');
   const isAdmin = roles.some(r => r.name === 'Admin');
+  const isLiteAdmin = roles.some(r => r.name === 'Lite-Admin') || isAdmin;
   const isTablet = roles.some(r => r.name === 'Tablet');
   const isAuthenticated = Boolean(user);
 
@@ -162,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isTeacher,
         isAdmin,
+        isLiteAdmin,
         isTablet,
         login,
         logout,

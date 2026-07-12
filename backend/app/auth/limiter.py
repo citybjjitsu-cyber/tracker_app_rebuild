@@ -20,7 +20,11 @@ READ_LIMIT = "60/minute"  # General read/list
 CSV_EXPORT_LIMIT = "10/minute"  # CSV/data export
 DASHBOARD_LIMIT = "30/minute"  # Dashboard/stats queries
 
-# Tier 4: Restricted - Database administration
+# Tier 4: Invites & password resets
+INVITE_LIMIT = "10/minute"  # Sending invites
+RESET_LIMIT = "3/minute"  # Password/PIN reset requests
+
+# Tier 5: Restricted - Database administration
 DB_EXPORT_LIMIT = "10/minute"  # Database backup/export
 DB_RESET_LIMIT = "1/minute"  # Database reset (destructive)
 DB_RESTORE_LIMIT = "1/minute"  # Database restore (destructive)

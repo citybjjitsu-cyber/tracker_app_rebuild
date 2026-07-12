@@ -147,6 +147,15 @@ async def lifespan(application: FastAPI):
                 tablet_role = models.Role(name="Tablet", description="Tablet-only user for check-in kiosk")
                 db.add(tablet_role)
                 db.commit()
+
+            existing_lite_admin_role = db.query(models.Role).filter(models.Role.name == "Lite-Admin").first()
+            if existing_lite_admin_role is None:
+                lite_admin_role = models.Role(
+                    name="Lite-Admin",
+                    description="Can send invites and reset passwords/PINs. Limited admin access.",
+                )
+                db.add(lite_admin_role)
+                db.commit()
     finally:
         db.close()
     yield

@@ -325,6 +325,34 @@ class AuditLog(Base):
     success = Column(Boolean, default=True)
 
 
+class InviteToken(Base):
+    __tablename__ = "invite_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    user_uuid = Column(String, ForeignKey("users.user_uuid"), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    consumed_at = Column(DateTime, nullable=True)
+    sent_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=_utcnow)
+
+    user = relationship("User", foreign_keys=[user_uuid])
+
+
+class ResetToken(Base):
+    __tablename__ = "reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    user_uuid = Column(String, ForeignKey("users.user_uuid"), nullable=False)
+    purpose = Column(String, nullable=False)  # "password" or "pin"
+    expires_at = Column(DateTime, nullable=False)
+    consumed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=_utcnow)
+
+    user = relationship("User", foreign_keys=[user_uuid])
+
+
 class News(Base):
     __tablename__ = "news"
 
