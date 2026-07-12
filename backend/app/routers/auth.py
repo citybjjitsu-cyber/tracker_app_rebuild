@@ -47,6 +47,7 @@ from app.auth.limiter import (
 from app.database import SessionLocal
 from app.services.audit import create_audit_log
 from app.services.email import (
+    resolve_base_url,
     send_invite_email,
     send_password_reset_email,
     send_pin_reset_email,
@@ -642,7 +643,7 @@ def send_invite(
     db.add(invite)
     db.commit()
 
-    email_sent = send_invite_email(user.email, user.first_name, token)
+    email_sent = send_invite_email(user.email, user.first_name, token, resolve_base_url(request))
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")
@@ -701,7 +702,7 @@ def resend_invite(
     invite.sent_count = (invite.sent_count or 0) + 1
     db.commit()
 
-    email_sent = send_invite_email(user.email, user.first_name, token)
+    email_sent = send_invite_email(user.email, user.first_name, token, resolve_base_url(request))
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")
@@ -746,7 +747,7 @@ def forgot_password(
     db.add(reset)
     db.commit()
 
-    send_password_reset_email(user.email, user.first_name, token)
+    send_password_reset_email(user.email, user.first_name, token, resolve_base_url(request))
 
     return {"message": "If that email exists, a reset link has been sent."}
 
@@ -807,7 +808,7 @@ def forgot_pin(
     db.add(reset)
     db.commit()
 
-    send_pin_reset_email(user.email, user.first_name, token)
+    send_pin_reset_email(user.email, user.first_name, token, resolve_base_url(request))
 
     return {"message": "If that email exists, a reset link has been sent."}
 
