@@ -599,24 +599,35 @@ def send_invite(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_lite_admin_user),
 ):
-    user = db.query(models.User).filter(models.User.user_uuid == data.user_uuid, models.User.is_current).first()
+    user = db.query(models.User).filter(models.User.email == data.email, models.User.is_current).first()
+
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if user.password_hash is not None:
-        raise HTTPException(status_code=400, detail="User already has a password set")
-
-    existing_invite = (
-        db.query(models.InviteToken)
-        .filter(
-            models.InviteToken.user_uuid == data.user_uuid,
-            models.InviteToken.consumed_at.is_(None),
-            models.InviteToken.expires_at > datetime.now(timezone.utc),
+        if not data.first_name or not data.last_name:
+            raise HTTPException(status_code=400, detail="first_name and last_name are required for new users")
+        user = models.User(
+            email=data.email,
+            first_name=data.first_name,
+            last_name=data.last_name,
+            rank="White",
+            is_current=True,
         )
-        .first()
-    )
-    if existing_invite:
-        raise HTTPException(status_code=400, detail="An active invite already exists for this user")
+        db.add(user)
+        db.flush()
+    else:
+        if user.password_hash is not None:
+            raise HTTPException(status_code=400, detail="User already has a password set")
+
+        existing_invite = (
+            db.query(models.InviteToken)
+            .filter(
+                models.InviteToken.user_uuid == user.user_uuid,
+                models.InviteToken.consumed_at.is_(None),
+                models.InviteToken.expires_at > datetime.now(timezone.utc),
+            )
+            .first()
+        )
+        if existing_invite:
+            raise HTTPException(status_code=400, detail="An active invite already exists for this user")
 
     token = secrets.token_urlsafe(48)
     token_hash_val = hash_token(token)

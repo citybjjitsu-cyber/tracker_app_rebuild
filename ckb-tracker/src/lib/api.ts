@@ -501,8 +501,8 @@ export const commentsApi = {
 };
 
 export const inviteApi = {
-  send: async (userUuid: string) => {
-    const response = await api.post('/auth/send-invite', { user_uuid: userUuid });
+  send: async (email: string, firstName?: string, lastName?: string) => {
+    const response = await api.post('/auth/send-invite', { email, first_name: firstName, last_name: lastName });
     return response.data;
   },
   resend: async (userUuid: string) => {
