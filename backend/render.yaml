@@ -28,7 +28,7 @@ services:
       - key: COOKIE_SECURE
         value: "True"
       - key: COOKIE_SAMESITE
-        value: "Strict"
+        value: "None"
       - key: ENVIRONMENT
         value: "production"
       - key: HSTS_ENABLED
