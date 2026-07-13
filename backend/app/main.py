@@ -299,17 +299,6 @@ async def log_requests(request: Request, call_next):
 if os.getenv("DROP_ALL_ON_STARTUP", "").lower() in ("1", "true"):
     models.Base.metadata.drop_all(bind=engine)
     logging.info("Dropped all tables (DROP_ALL_ON_STARTUP is enabled)")
-
-# Drop old unique index on users.user_uuid that conflicts with archive-on-update pattern
-from sqlalchemy import text as sa_text
-
-try:
-    with engine.connect() as conn:
-        conn.execute(sa_text("DROP INDEX IF EXISTS ix_users_user_uuid"))
-        conn.commit()
-except Exception:
-    logging.warning("Could not drop ix_users_user_uuid (may not exist)")
-
 models.Base.metadata.create_all(bind=engine)
 
 # Include routers
