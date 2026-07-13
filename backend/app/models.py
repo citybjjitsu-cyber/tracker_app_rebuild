@@ -16,14 +16,14 @@ from app.database import Base
 
 
 def _utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_uuid = Column(String, unique=True, index=True, default=lambda: f"{datetime.now().timestamp()}")
+    user_uuid = Column(String, index=True, default=lambda: str(uuid.uuid4()))
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)

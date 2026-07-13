@@ -1,4 +1,5 @@
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
@@ -611,6 +612,7 @@ def send_invite(
         if not data.first_name or not data.last_name:
             raise HTTPException(status_code=400, detail="first_name and last_name are required for new users")
         user = models.User(
+            user_uuid=str(uuid.uuid4()),
             email=data.email,
             first_name=data.first_name,
             last_name=data.last_name,
