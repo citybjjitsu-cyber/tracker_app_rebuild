@@ -16,8 +16,11 @@ def validate_csrf_token(request, token_from_cookie: str) -> bool:
     return secrets.compare_digest(token_from_header, token_from_cookie)
 
 
+CSRF_EXEMPT_PATHS = {"/auth/login", "/auth/teacher-login", "/auth/refresh"}
+
+
 async def csrf_middleware_dispatch(request: Request, call_next):
-    if request.method in SAFE_METHODS:
+    if request.method in SAFE_METHODS or request.url.path in CSRF_EXEMPT_PATHS:
         return await call_next(request)
 
     # Only enforce CSRF when there's a session cookie AND no Bearer token

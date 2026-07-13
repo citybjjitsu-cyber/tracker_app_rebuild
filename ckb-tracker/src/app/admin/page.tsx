@@ -341,8 +341,8 @@ export default function AdminPage() {
     e.preventDefault();
     try {
       await login(loginForm.email, loginForm.password, true);
-    } catch {
-      alert('Invalid admin credentials');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Invalid admin credentials');
     }
   };
 
