@@ -353,7 +353,9 @@ def update_user(
     db_user.last_name = user.last_name if user.last_name is not None else db_user.last_name
     db_user.email = user.email if user.email is not None else db_user.email
     db_user.rank = user.rank if user.rank is not None else db_user.rank
-    if user.rank is not None and user.rank_tier_id is None:
+    if user.rank_tier_id is not None:
+        db_user.rank_tier_id = user.rank_tier_id
+    elif user.rank is not None:
         tier = (
             db.query(models.RankTier)
             .filter(
@@ -364,8 +366,6 @@ def update_user(
         )
         if tier:
             db_user.rank_tier_id = tier.id
-    elif user.rank_tier_id is not None:
-        db_user.rank_tier_id = user.rank_tier_id
     db_user.nicknames = user.nicknames if user.nicknames is not None else db_user.nicknames
     db_user.comments = user.comments if user.comments is not None else db_user.comments
     db_user.last_graded_date = user.last_graded_date if user.last_graded_date is not None else db_user.last_graded_date
