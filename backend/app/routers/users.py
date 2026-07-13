@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
-from datetime import datetime, date, timezone
+from datetime import date
 from typing import List, Optional
 import uuid
 import os
