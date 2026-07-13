@@ -194,9 +194,13 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str, 
 
 
 def clear_auth_cookies(response: Response):
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/auth/refresh")
-    response.delete_cookie(CSRF_TOKEN_COOKIE_NAME, path="/")
+    response.delete_cookie("access_token", path="/", secure=COOKIE_SECURE, httponly=True, samesite=COOKIE_SAMESITE)
+    response.delete_cookie(
+        "refresh_token", path="/auth/refresh", secure=COOKIE_SECURE, httponly=True, samesite=COOKIE_SAMESITE
+    )
+    response.delete_cookie(
+        CSRF_TOKEN_COOKIE_NAME, path="/", secure=COOKIE_SECURE, httponly=False, samesite=COOKIE_SAMESITE
+    )
 
 
 @router.post("/login")
