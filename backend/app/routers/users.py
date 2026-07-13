@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
-from datetime import datetime, date, timezone
+from datetime import date
 from typing import List, Optional
 import uuid
 import os
@@ -348,16 +348,14 @@ def update_user(
 
         return db_user
 
-    # Archive old record
-    db_user.end_date = datetime.now(timezone.utc)
-    db_user.is_current = False
-
-    password_hash = db_user.password_hash
-    if user.password:
-        password_hash = pwd_context.hash(user.password)
-
-    rank_tier_id = user.rank_tier_id if user.rank_tier_id is not None else db_user.rank_tier_id
-    if user.rank is not None and user.rank_tier_id is None:
+    # Update fields in-place (PostgreSQL FK constraints require unique user_uuid)
+    db_user.first_name = user.first_name if user.first_name is not None else db_user.first_name
+    db_user.last_name = user.last_name if user.last_name is not None else db_user.last_name
+    db_user.email = user.email if user.email is not None else db_user.email
+    db_user.rank = user.rank if user.rank is not None else db_user.rank
+    if user.rank_tier_id is not None:
+        db_user.rank_tier_id = user.rank_tier_id
+    elif user.rank is not None:
         tier = (
             db.query(models.RankTier)
             .filter(
@@ -367,25 +365,16 @@ def update_user(
             .first()
         )
         if tier:
-            rank_tier_id = tier.id
-
-    # Create new record (use old values as fallback)
-    new_user = models.User(
-        user_uuid=user_uuid,
-        first_name=user.first_name if user.first_name is not None else db_user.first_name,
-        last_name=user.last_name if user.last_name is not None else db_user.last_name,
-        email=user.email if user.email is not None else db_user.email,
-        password_hash=password_hash,
-        rank=user.rank if user.rank is not None else db_user.rank,
-        rank_tier_id=rank_tier_id,
-        nicknames=user.nicknames if user.nicknames is not None else db_user.nicknames,
-        comments=user.comments if user.comments is not None else db_user.comments,
-        last_graded_date=user.last_graded_date if user.last_graded_date is not None else db_user.last_graded_date,
-        profile_image_url=db_user.profile_image_url,
-    )
-    db.add(new_user)
+            db_user.rank_tier_id = tier.id
+    db_user.nicknames = user.nicknames if user.nicknames is not None else db_user.nicknames
+    db_user.comments = user.comments if user.comments is not None else db_user.comments
+    db_user.last_graded_date = user.last_graded_date if user.last_graded_date is not None else db_user.last_graded_date
+    if user.password:
+        db_user.password_hash = pwd_context.hash(user.password)
+    if user.pin:
+        db_user.pin_hash = pwd_context.hash(user.pin)
     db.commit()
-    db.refresh(new_user)
+    db.refresh(db_user)
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")
@@ -400,7 +389,7 @@ def update_user(
         user_agent=user_agent,
     )
 
-    return new_user
+    return db_user
 
 
 @router.post("/{user_uuid}/photo")
