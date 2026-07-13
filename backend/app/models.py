@@ -23,7 +23,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_uuid = Column(String, unique=True, index=True, default=lambda: str(uuid.uuid4()))
+    user_uuid = Column(String, index=True, default=lambda: str(uuid.uuid4()))
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
