@@ -3,6 +3,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_vali
 from datetime import date, datetime
 from typing import Optional, List
 
+PIN_REGEX = r"^\d{4,8}$"
+
 
 class RankTierResponse(BaseModel):
     id: int
@@ -17,7 +19,7 @@ class RankTierResponse(BaseModel):
 
 
 class RankTierUpdate(BaseModel):
-    target_points: Optional[float] = None
+    target_points: Optional[float] = Field(default=None, ge=0)
 
 
 class PointsAdjustmentResponse(BaseModel):
@@ -66,7 +68,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
-    pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
+    pin: Optional[str] = Field(default=None, min_length=4, max_length=8, pattern=PIN_REGEX)
     profile_image_url: Optional[str] = Field(default=None, max_length=500)
 
     @field_validator("password")
@@ -95,7 +97,7 @@ class UserUpdate(BaseModel):
     comments: Optional[str] = Field(default=None, max_length=2000)
     last_graded_date: Optional[date] = None
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
-    pin: Optional[str] = Field(default=None, min_length=4, max_length=8)
+    pin: Optional[str] = Field(default=None, min_length=4, max_length=8, pattern=PIN_REGEX)
 
     @field_validator("last_graded_date", mode="before")
     @classmethod
@@ -527,9 +529,6 @@ class AuditLogListResponse(BaseModel):
     total: int
     page: int
     per_page: int
-
-
-PIN_REGEX = r"^\d{4,8}$"
 
 
 class KioskUserPinVerifyRequest(BaseModel):
