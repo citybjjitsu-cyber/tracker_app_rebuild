@@ -4,6 +4,7 @@ from app.database import SessionLocal
 from app import models, schemas
 from typing import List
 from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
+from app.routers.auth import get_admin_user
 
 router = APIRouter()
 
@@ -29,6 +30,7 @@ def update_rank_tier(
     tier_id: int,
     update: schemas.RankTierUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_admin_user),
 ):
     tier = db.query(models.RankTier).filter(models.RankTier.id == tier_id).first()
     if not tier:

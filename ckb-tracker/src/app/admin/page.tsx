@@ -24,7 +24,6 @@ import {
   feedbackApi,
   dashboardApi,
   classInstancesApi,
-  kioskApi,
   newsApi,
   themesApi,
   rankTiersApi,
@@ -101,7 +100,6 @@ export default function AdminPage() {
   const [teachers, setTeachers] = useState<User[]>([]);
   const [teacherAssignmentForm, setTeacherAssignmentForm] = useState({ class_id: '', date: '', teacher_uuid: '' });
 
-  const [kioskPin, setKioskPin] = useState({ current: '', newPin: '', confirm: '' });
   const [dbStats, setDbStats] = useState<Record<string, unknown> | null>(null);
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
   const [performanceStats, setPerformanceStats] = useState<{ stats: DashboardStats; trend: AttendanceTrend[] } | null>(null);
@@ -179,7 +177,7 @@ export default function AdminPage() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'kiosk' || activeTab === 'database') {
+    if (activeTab === 'database') {
       loadDbStats();
     }
   }, [activeTab]);
@@ -781,28 +779,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleUpdateKioskPin = async () => {
-    if (kioskPin.newPin !== kioskPin.confirm) {
-      alert('PINs do not match');
-      return;
-    }
-    if (kioskPin.newPin.length < 4 || kioskPin.newPin.length > 6) {
-      alert('PIN must be 4-6 digits');
-      return;
-    }
-    setIsProcessing(true);
-    try {
-      await kioskApi.updatePin(kioskPin.current, kioskPin.newPin);
-      alert('PIN updated successfully');
-      setKioskPin({ current: '', newPin: '', confirm: '' });
-    } catch (error) {
-      console.error('Error updating PIN:', error);
-      alert('Failed to update PIN');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   async function loadDbStats() {
     try {
       const res = await api.get('/database/stats');
@@ -876,6 +852,7 @@ export default function AdminPage() {
 
   const tabs = [
     { id: 'users', label: 'User Admin' },
+    { id: 'invites', label: 'Invites' },
     { id: 'classes', label: 'Class Schedule' },
     { id: 'gyms', label: 'Gyms & Types' },
     { id: 'terms', label: 'Terms' },
@@ -883,14 +860,11 @@ export default function AdminPage() {
     { id: 'promotions', label: 'Promotions' },
     { id: 'lessons', label: 'Lessons' },
     { id: 'news', label: 'News' },
-    { id: 'student-passwords', label: 'Student Passwords' },
     { id: 'analytics', label: 'Performance Analytics' },
     { id: 'feedback', label: 'Feedback Analytics' },
-    { id: 'kiosk', label: 'Kiosk' },
     { id: 'database', label: 'Database' },
     { id: 'csv', label: 'CSV Import/Export' },
     { id: 'themes', label: 'Themes' },
-    { id: 'invites', label: 'Invites' },
   ];
 
   if (isLoading || !isAuthenticated || !isAdmin) {
@@ -1694,6 +1668,7 @@ export default function AdminPage() {
                         {editingTierId === tier.id ? (
                           <input
                             type="number"
+                            min="0"
                             className="w-24 text-right px-2 py-1 rounded border border-outline-variant/20 bg-surface-container-lowest text-on-surface text-sm"
                             value={editingTierPoints}
                             onChange={(e) => setEditingTierPoints(e.target.value)}
@@ -2574,128 +2549,6 @@ export default function AdminPage() {
             ) : (
               <p className="text-slate-500 dark:text-slate-400">Click &ldquo;Search Feedback&rdquo; to load data...</p>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === 'student-passwords' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Student Password Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <h4 className="font-medium mb-2 text-slate-900 dark:text-white">How Password System Works</h4>
-              <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                <li>• Students can set their own password after initial login</li>
-                <li>• Admins can reset passwords from this panel</li>
-                <li>• Passwords are hashed securely</li>
-                <li>• Students without passwords cannot log in to the portal</li>
-              </ul>
-            </div>
-
-            <h4 className="font-medium mb-4 text-slate-900 dark:text-white">Password Status</h4>
-            <div className="border dark:border-slate-700 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-slate-100 dark:bg-slate-800">
-                  <tr>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Name</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Email</th>
-                    <th className="text-left p-3 text-slate-700 dark:text-slate-300">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.user_uuid} className="border-t dark:border-slate-700">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <Avatar
-                            src={u.profile_image_url}
-                            firstName={u.first_name}
-                            lastName={u.last_name}
-                            offsetX={u.image_offset_x}
-                            offsetY={u.image_offset_y}
-                            size="sm"
-                          />
-                          <span className="text-slate-900 dark:text-white">{u.first_name} {u.last_name}</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-sm text-slate-500 dark:text-slate-400">{u.email}</td>
-                      <td className="p-3">
-                        {u.has_password ? (
-                          <span className="text-green-600 dark:text-green-400">✅ Active</span>
-                        ) : (
-                          <span className="text-red-500 dark:text-red-400">❌ No Password</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === 'kiosk' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Kiosk PIN Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <h4 className="font-medium mb-2 text-slate-900 dark:text-white">How Kiosk Mode Works</h4>
-              <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
-                <li>• Students enter their PIN on the kiosk screen to check in</li>
-                <li>• PIN is 4-6 digits</li>
-                <li>• PIN is different from account password</li>
-                <li>• PIN is used for quick self-check-in at the gym</li>
-              </ul>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium mb-4 text-slate-900 dark:text-white">Change PIN</h4>
-                <div className="space-y-4">
-                  <Input
-                    label="Current PIN"
-                    type="password"
-                    maxLength={6}
-                    value={kioskPin.current}
-                    onChange={(e) => setKioskPin({ ...kioskPin, current: e.target.value })}
-                  />
-                  <Input
-                    label="New PIN (4-6 digits)"
-                    type="password"
-                    maxLength={6}
-                    value={kioskPin.newPin}
-                    onChange={(e) => setKioskPin({ ...kioskPin, newPin: e.target.value })}
-                  />
-                  <Input
-                    label="Confirm New PIN"
-                    type="password"
-                    maxLength={6}
-                    value={kioskPin.confirm}
-                    onChange={(e) => setKioskPin({ ...kioskPin, confirm: e.target.value })}
-                  />
-                  <Button onClick={handleUpdateKioskPin} disabled={isProcessing}>
-                    Update PIN
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-4">Current Status</h4>
-                <div className="p-4 bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-500">Default PIN: 1234</p>
-                  {dbStats?.kiosk_pin_set ? (
-                    <p className="text-green-600 mt-2">✅ Custom PIN is set</p>
-                  ) : (
-                    <p className="text-yellow-600 mt-2">⚠️ Using default PIN</p>
-                  )}
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}
