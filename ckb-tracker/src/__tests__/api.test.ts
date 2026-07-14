@@ -182,6 +182,20 @@ describe('authApi', () => {
     expect(axios.default.get).toHaveBeenCalledWith('/auth/check-password/uuid-123')
     expect(result.has_password).toBe(true)
   })
+
+  it('changePassword calls POST /auth/change-password', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+
+    vi.mocked(axios.default.post).mockResolvedValue({ data: { message: 'Password changed successfully' } })
+    const result = await apiModule.authApi.changePassword('OldP@ss1', 'NewP@ss2!')
+
+    expect(axios.default.post).toHaveBeenCalledWith('/auth/change-password', {
+      current_password: 'OldP@ss1',
+      new_password: 'NewP@ss2!',
+    })
+    expect(result.message).toBe('Password changed successfully')
+  })
 })
 
 describe('classesApi', () => {

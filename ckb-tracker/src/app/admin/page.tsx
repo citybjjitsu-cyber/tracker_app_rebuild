@@ -506,14 +506,24 @@ export default function AdminPage() {
     }
   };
 
+  const validatePasswordComplexity = (pw: string): string | null => {
+    if (pw.length < 8) return 'Password must be at least 8 characters';
+    if (!/[A-Z]/.test(pw)) return 'Password must contain at least one uppercase letter';
+    if (!/[a-z]/.test(pw)) return 'Password must contain at least one lowercase letter';
+    if (!/\d/.test(pw)) return 'Password must contain at least one digit';
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) return 'Password must contain at least one special character';
+    return null;
+  };
+
   const handleResetPassword = async () => {
     if (!selectedUser) return;
     if (passwordForm.password !== passwordForm.confirm_password) {
       alert('Passwords do not match');
       return;
     }
-    if (passwordForm.password.length < 6) {
-      alert('Password must be at least 6 characters');
+    const pwError = validatePasswordComplexity(passwordForm.password);
+    if (pwError) {
+      alert(pwError);
       return;
     }
     setIsProcessing(true);
@@ -524,7 +534,13 @@ export default function AdminPage() {
       setPasswordForm({ password: '', confirm_password: '' });
     } catch (error) {
       console.error('Error resetting password:', error);
-      alert('Failed to reset password');
+      const err = error as { response?: { data?: unknown }; message?: string };
+      const detail = err.response?.data
+        ? typeof err.response.data === 'string'
+          ? err.response.data
+          : JSON.stringify(err.response.data)
+        : err.message || 'Failed to reset password';
+      alert(detail);
     } finally {
       setIsProcessing(false);
     }
@@ -693,6 +709,11 @@ export default function AdminPage() {
       alert('Passwords do not match');
       return;
     }
+    const pwError = validatePasswordComplexity(newUserForm.password);
+    if (pwError) {
+      alert(pwError);
+      return;
+    }
     setIsProcessing(true);
     try {
       const user = await usersApi.create({
@@ -714,7 +735,13 @@ export default function AdminPage() {
       resetNewUserForm();
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Failed to create user');
+      const err = error as { response?: { data?: unknown }; message?: string };
+      const detail = err.response?.data
+        ? typeof err.response.data === 'string'
+          ? err.response.data
+          : JSON.stringify(err.response.data)
+        : err.message || 'Failed to create user';
+      alert(detail);
     } finally {
       setIsProcessing(false);
     }
@@ -1080,6 +1107,7 @@ export default function AdminPage() {
                       onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
                       className="mt-2"
                     />
+                    <p className="text-xs text-on-surface-variant/60 mt-1">Min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special character</p>
                     <Button
                       variant="outline"
                       className="w-full mt-2"
@@ -1384,6 +1412,7 @@ export default function AdminPage() {
                   required
                 />
               </div>
+              <p className="text-xs text-on-surface-variant/60 -mt-2">Min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special character</p>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Rank</label>
                 <select

@@ -74,6 +74,13 @@ export const authApi = {
     const response = await api.get(`/auth/check-password/${uuid}`);
     return response.data;
   },
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    const response = await api.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return response.data;
+  },
 };
 
 export const usersApi = {

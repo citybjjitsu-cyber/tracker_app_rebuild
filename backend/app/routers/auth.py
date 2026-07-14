@@ -518,6 +518,41 @@ def get_csrf_token(request: Request, csrf_token: Optional[str] = Cookie(None)):
     return {"csrf_token": csrf_token}
 
 
+@router.post("/change-password")
+@limiter.limit(WRITE_LIMIT)
+def change_password(
+    request: Request,
+    data: schemas.ChangePasswordRequest,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not user.password_hash:
+        raise HTTPException(status_code=400, detail="No password set. Use invite or reset flow.")
+
+    if not verify_password(data.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if data.current_password == data.new_password:
+        raise HTTPException(status_code=400, detail="New password must differ from current password")
+
+    user.password_hash = pwd_context.hash(data.new_password)
+    db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="password_changed",
+        resource_type="auth",
+        actor_uuid=str(user.user_uuid),
+        detail="User changed own password",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
+    return {"message": "Password changed successfully"}
+
+
 @router.get("/invite")
 @limiter.limit(READ_LIMIT)
 def validate_invite(
