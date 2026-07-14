@@ -32,8 +32,8 @@ import {
   resetApi,
   api,
 } from '@/lib/api';
-import { cn, formatDate, DAYS_OF_WEEK, formatRankDisplay, getRankColor } from '@/lib/utils';
-import { Camera, LogOut, Plus, Shield, X, Edit3, ChevronDown, Award, TrendingUp } from 'lucide-react';
+import { cn, formatDate, DAYS_OF_WEEK, getRankColor } from '@/lib/utils';
+import { Camera, LogOut, Plus, Shield, X, Edit3 } from 'lucide-react';
 import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
 
 export default function AdminPage() {

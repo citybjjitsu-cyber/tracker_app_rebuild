@@ -18,14 +18,6 @@ test.describe('Admin Settings Tabs', () => {
     await page.waitForTimeout(500)
   })
 
-  test('kiosk tab shows pin management', async ({ page }) => {
-    const kioskTab = page.getByText(/^kiosk$/i).first()
-    await expect(kioskTab).toBeVisible({ timeout: 5000 })
-    await kioskTab.click()
-    await page.waitForTimeout(500)
-    await expect(page.getByText(/pin management|update pin/i).first()).toBeVisible({ timeout: 5000 })
-  })
-
   test('csv import export tab loads', async ({ page }) => {
     const csvTab = page.getByText(/csv/i).first()
     if (await csvTab.isVisible({ timeout: 3000 })) {

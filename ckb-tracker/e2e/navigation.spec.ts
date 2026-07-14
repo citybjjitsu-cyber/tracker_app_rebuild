@@ -3,7 +3,6 @@ import {
   setupAdminTest,
   mockAuthMe,
   clearAuthState,
-  ADMIN_USER,
   waitForPageReady,
 } from './helpers'
 
