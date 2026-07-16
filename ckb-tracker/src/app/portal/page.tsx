@@ -231,7 +231,7 @@ export default function PortalPage() {
               </h1>
               <p className="text-on-surface-variant text-sm">{user.email}</p>
               <div className="flex items-center gap-2 mt-1">
-                <RankBadge rank={user.rank} />
+                <RankBadge rank={user.rank} degree={user.rank_tier?.degree} />
                 {user.nicknames && <Badge variant="outline">{user.nicknames}</Badge>}
               </div>
             </div>

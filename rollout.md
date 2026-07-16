@@ -67,14 +67,16 @@
 ## Phase 5: Rank/Degree Display Enhancement
 **Branch:** `feature/rank-degree-display`
 
-| # | Task | Files |
-|---|------|-------|
-| 5a | Backend: Add `rank_degree` and `rank_display_name` to `UserResponse` via RankTier join | `schemas.py`, `users.py` |
-| 5b | Frontend: Add `rank_degree` and `rank_display_name` to `User` type | `types/index.ts` |
-| 5c | Replace all `{user.rank} Belt` plain text with `<RankBadge rank={...} degree={...} />` | Multiple components |
-| 5d | Update rank dropdowns to show full display names with degrees | `admin/page.tsx`, `teacher/page.tsx` |
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 5a | Backend: Add `rank_tier` to `UserResponse` and `KioskUserResponse` via RankTier join + `joinedload` | `schemas.py`, `users.py`, `kiosk.py`, `roles.py` | ✅ |
+| 5b | Frontend: Add `rank_tier?: RankTier` to `User` type | `types/index.ts` | ✅ |
+| 5c | Replace all `{user.rank} Belt` plain text with `<RankBadge rank={...} degree={...} />` | `page.tsx`, `kiosk/select/page.tsx`, `kiosk/confirm/page.tsx`, `check-in/page.tsx` | ✅ |
+| 5d | Pass `degree` to all existing `<RankBadge>` call sites | `admin/page.tsx`, `portal/page.tsx`, `check-in/page.tsx` | ✅ |
+| 5e | Update rank dropdowns to show full display names with degrees | `admin/page.tsx` (edit + new user forms) | ✅ |
+| 5f | Update teacher attendance table rank display with degree | `teacher/page.tsx` | ✅ |
 
-**Commit:** `feat: include belt degree in rank display across all pages`
+**Tests:** 128 backend ✅, 177 frontend ✅, frontend build ✅
 
 ---
 

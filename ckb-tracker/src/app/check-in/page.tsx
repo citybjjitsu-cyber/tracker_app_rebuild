@@ -622,7 +622,7 @@ export default function CheckInPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <RankBadge rank={user.rank} />
+                      <RankBadge rank={user.rank} degree={user.rank_tier?.degree} />
                       <ChevronRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-all" />
                     </div>
                   </button>
@@ -759,7 +759,7 @@ export default function CheckInPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-on-surface-variant text-sm font-medium">{selectedUser.rank} Belt</span>
+                  <RankBadge rank={selectedUser.rank} degree={selectedUser.rank_tier?.degree} />
                   {selectedUser.nicknames && (
                     <>
                       <span className="text-neutral-600">•</span>

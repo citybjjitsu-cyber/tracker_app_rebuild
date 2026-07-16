@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatRankDisplay } from '@/lib/utils';
 import { LogOut, GraduationCap } from 'lucide-react';
 import type { ClassSchedule, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
@@ -526,7 +526,7 @@ export default function TeacherPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="p-3 text-on-surface-variant">{att.user?.rank || '-'}</td>
+                      <td className="p-3 text-on-surface-variant">{formatRankDisplay(att.user?.rank, att.user?.rank_tier?.degree)}</td>
                       <td className="p-3 text-on-surface-variant">
                         {new Date(att.created_at).toLocaleTimeString()}
                       </td>

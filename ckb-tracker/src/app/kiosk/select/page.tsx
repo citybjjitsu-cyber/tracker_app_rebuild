@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useKiosk } from '../KioskContext';
 import { classesApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
+import { RankBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { DAYS_OF_WEEK } from '@/lib/utils';
 import { Check, X, Calendar } from 'lucide-react';
@@ -58,7 +59,7 @@ export default function KioskSelectPage() {
             <h2 className="text-xl font-black font-headline text-[var(--foreground)]">
               {identifiedUser.first_name} {identifiedUser.last_name}
             </h2>
-            <p className="text-sm text-[var(--muted-foreground)]">{identifiedUser.rank} Belt</p>
+            <RankBadge rank={identifiedUser.rank} degree={identifiedUser.rank_tier?.degree} />
           </div>
         </div>
         <button

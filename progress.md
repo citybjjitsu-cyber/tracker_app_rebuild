@@ -527,3 +527,39 @@ Placeholder for additional features discovered during testing and deployment.
 - ✅ Added helper text "For admin and teacher portal access" below buttons
 - ✅ Updated test assertions to match new labels (`kiosk-page.test.tsx`)
 - ✅ 177 frontend tests pass (vitest)
+
+---
+
+## RECENT UPDATES (July 16, 2026) — Rank/Degree Display Enhancement
+
+**Branch:** `feature/rank-degree-display`
+
+### Phase 5: Rank/Degree Display Enhancement
+
+**Goal:** Show belt degree (e.g., "Black Belt 2nd Degree") across the entire app instead of just "Black Belt".
+
+#### Backend Changes
+- ✅ `backend/app/schemas.py` — Added `rank_tier: Optional[RankTierResponse] = None` to `UserResponse` and `KioskUserResponse`
+- ✅ `backend/app/routers/users.py` — Added `joinedload(models.User.rank_tier)` to `list_users`, `search_users`, `get_user`, `create_user`, and `update_user` queries to avoid N+1 and populate `rank_tier` in responses
+- ✅ `backend/app/routers/kiosk.py` — Added `joinedload(models.User.rank_tier)` to `kiosk_unlock`, `verify_user_pin`, and `verify_pin_for_user` queries
+- ✅ `backend/app/routers/roles.py` — Added `joinedload(models.User.rank_tier)` to `get_users_by_role` query
+
+#### Frontend Changes
+- ✅ `ckb-tracker/src/types/index.ts` — Added `rank_tier?: RankTier` to `User` interface
+- ✅ Replaced 5 hardcoded `{rank} Belt` inline text with `<RankBadge rank={...} degree={...} />`:
+  - `app/page.tsx` (kiosk landing identified user display)
+  - `app/kiosk/select/page.tsx` (kiosk class selection user card)
+  - `app/kiosk/confirm/page.tsx` (success screen + confirm page — 2 instances)
+  - `app/check-in/page.tsx` (selected user rank display)
+- ✅ Passed `degree={user.rank_tier?.degree}` to 4 existing `<RankBadge>` call sites:
+  - `admin/page.tsx` (user list + analytics card)
+  - `portal/page.tsx` (student portal header)
+  - `check-in/page.tsx` (search result badges)
+- ✅ `admin/page.tsx` — Replaced hardcoded rank dropdown options `['White','Blue','Purple','Brown','Black']` with dynamic `rankTiers.map(t => ({ value: t.rank, label: t.display_name }))` in both edit and new user forms
+- ✅ `teacher/page.tsx` — Updated attendance table rank cell to use `formatRankDisplay()` with degree
+
+#### Tests
+- ✅ 128 backend tests pass (pytest)
+- ✅ 177 frontend tests pass (vitest)
+- ✅ Frontend build succeeds (15 routes compiled)
+- ✅ Lint: 0 errors (42 pre-existing warnings)

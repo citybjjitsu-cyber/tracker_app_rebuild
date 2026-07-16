@@ -6,6 +6,7 @@ import { useKiosk } from '@/app/kiosk/KioskContext';
 import { KioskLocked } from '@/app/kiosk/KioskLocked';
 import { usersApi, kioskApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
+import { RankBadge } from '@/components/ui/Badge';
 import { useTheme } from '@/hooks/useTheme';
 import { Search, X, ChevronLeft, User as UserIcon, Shield, Lock as LockIcon, LogIn, Sun, Moon } from 'lucide-react';
 import type { User } from '@/types';
@@ -277,7 +278,7 @@ function KioskContent() {
                 <h2 className="text-2xl font-black font-headline text-[var(--foreground)]">
                   {selectedUser.first_name} {selectedUser.last_name}
                 </h2>
-                <p className="text-sm text-[var(--muted-foreground)]">{selectedUser.rank} Belt</p>
+                <RankBadge rank={selectedUser.rank} degree={selectedUser.rank_tier?.degree} />
               </div>
             )}
 
