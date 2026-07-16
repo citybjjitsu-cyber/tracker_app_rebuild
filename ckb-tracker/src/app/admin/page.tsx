@@ -55,7 +55,7 @@ export default function AdminPage() {
     first_name: string;
     last_name: string;
     email: string;
-    rank: Rank;
+    rank_tier_id: string;
     nicknames: string;
     last_graded_date: string;
     comments: string;
@@ -63,7 +63,7 @@ export default function AdminPage() {
     first_name: '',
     last_name: '',
     email: '',
-    rank: 'White',
+    rank_tier_id: '',
     nicknames: '',
     last_graded_date: '',
     comments: '',
@@ -151,7 +151,7 @@ export default function AdminPage() {
     email: '',
     password: '',
     confirm_password: '',
-    rank: 'White' as Rank,
+    rank_tier_id: '',
     nicknames: '',
     comments: '',
   });
@@ -354,7 +354,7 @@ export default function AdminPage() {
       first_name: u.first_name,
       last_name: u.last_name,
       email: u.email,
-      rank: u.rank || 'White',
+      rank_tier_id: u.rank_tier_id?.toString() || '',
       nicknames: u.nicknames || '',
       last_graded_date: u.last_graded_date || '',
       comments: u.comments || '',
@@ -371,9 +371,14 @@ export default function AdminPage() {
     if (!selectedUser) return;
     setIsProcessing(true);
     try {
-      const payload = Object.fromEntries(
-        Object.entries(userForm).filter(([_, v]) => v !== '')
-      );
+      const payload: Record<string, unknown> = {};
+      if (userForm.first_name) payload.first_name = userForm.first_name;
+      if (userForm.last_name) payload.last_name = userForm.last_name;
+      if (userForm.email) payload.email = userForm.email;
+      if (userForm.rank_tier_id) payload.rank_tier_id = parseInt(userForm.rank_tier_id);
+      if (userForm.nicknames) payload.nicknames = userForm.nicknames;
+      if (userForm.last_graded_date) payload.last_graded_date = userForm.last_graded_date;
+      if (userForm.comments) payload.comments = userForm.comments;
       await usersApi.update(selectedUser.user_uuid, payload);
       await rolesApi.updateUserRoles(selectedUser.user_uuid, selectedRoles);
       loadAllData();
@@ -695,7 +700,7 @@ export default function AdminPage() {
       email: '',
       password: '',
       confirm_password: '',
-      rank: 'White',
+      rank_tier_id: '',
       nicknames: '',
       comments: '',
     });
@@ -721,7 +726,7 @@ export default function AdminPage() {
         last_name: newUserForm.last_name,
         email: newUserForm.email,
         password: newUserForm.password,
-        rank: newUserForm.rank,
+        rank_tier_id: newUserForm.rank_tier_id ? parseInt(newUserForm.rank_tier_id) : undefined,
         nicknames: newUserForm.nicknames || undefined,
         comments: newUserForm.comments || undefined,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1047,9 +1052,9 @@ export default function AdminPage() {
                   />
                   <Select
                     label="Rank"
-                    value={userForm.rank}
-                    onChange={(e) => setUserForm({ ...userForm, rank: e.target.value as Rank })}
-                    options={rankTiers.map(t => ({ value: t.rank, label: t.display_name }))}
+                    value={userForm.rank_tier_id}
+                    onChange={(e) => setUserForm({ ...userForm, rank_tier_id: e.target.value })}
+                    options={rankTiers.map(t => ({ value: t.id.toString(), label: t.display_name }))}
                   />
                   <Input
                     label="Nicknames"
@@ -1417,11 +1422,11 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Rank</label>
                 <select
                   className="flex h-11 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white"
-                  value={newUserForm.rank}
-                  onChange={(e) => setNewUserForm({ ...newUserForm, rank: e.target.value as Rank })}
+                  value={newUserForm.rank_tier_id}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, rank_tier_id: e.target.value })}
                 >
                   {rankTiers.map(t => (
-                    <option key={t.id} value={t.rank}>{t.display_name}</option>
+                    <option key={t.id} value={t.id}>{t.display_name}</option>
                   ))}
                 </select>
               </div>
