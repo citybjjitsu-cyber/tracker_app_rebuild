@@ -16,7 +16,7 @@ def validate_csrf_token(request, token_from_cookie: str) -> bool:
     return secrets.compare_digest(token_from_header, token_from_cookie)
 
 
-CSRF_EXEMPT_PATHS = {"/auth/login", "/auth/teacher-login", "/auth/refresh"}
+CSRF_EXEMPT_PATHS = {"/auth/login", "/auth/teacher-login", "/auth/refresh", "/kiosk/unlock"}
 
 
 async def csrf_middleware_dispatch(request: Request, call_next):
