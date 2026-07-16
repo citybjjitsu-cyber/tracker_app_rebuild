@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
@@ -89,7 +89,11 @@ def get_class_attendance(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    query = db.query(models.Attendance).filter(models.Attendance.class_id == class_id)
+    query = (
+        db.query(models.Attendance)
+        .options(joinedload(models.Attendance.user))
+        .filter(models.Attendance.class_id == class_id)
+    )
     if date:
         query = query.filter(models.Attendance.attendance_date == date)
     return query.all()
@@ -208,8 +212,9 @@ def direct_attendance(
     class_id = data.get("class_id")
     class_instance_id = data.get("class_instance_id")
     teacher_uuid = data.get("teacher_uuid")
+    attendance_date_str = data.get("attendance_date")
 
-    today = date.today()
+    today = date.fromisoformat(attendance_date_str) if attendance_date_str else date.today()
 
     db_attendance = models.Attendance(
         user_uuid=user_uuid,
