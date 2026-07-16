@@ -17,8 +17,8 @@ def override_deps(client, db_session):
     app.dependency_overrides.clear()
 
 
-def test_list_roles(client):
-    resp = client.get("/roles/")
+def test_list_roles(client, headers):
+    resp = client.get("/roles/", headers=headers)
     assert resp.status_code == 200
     data = resp.json()
     names = [r["name"] for r in data]
@@ -28,33 +28,38 @@ def test_list_roles(client):
     assert "Admin" in names
 
 
-def test_get_user_roles(client):
-    resp = client.get(f"/roles/user/{STAFF_UUID}")
+def test_list_roles_unauthenticated(client):
+    resp = client.get("/roles/")
+    assert resp.status_code == 401
+
+
+def test_get_user_roles(client, headers):
+    resp = client.get(f"/roles/user/{STAFF_UUID}", headers=headers)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) >= 1
     assert data[0]["user_uuid"] == STAFF_UUID
 
 
-def test_get_user_roles_nonexistent(client):
-    resp = client.get(f"/roles/user/{BAD_UUID}")
+def test_get_user_roles_nonexistent(client, headers):
+    resp = client.get(f"/roles/user/{BAD_UUID}", headers=headers)
     assert resp.status_code == 200
     assert resp.json() == []
 
 
-def test_update_user_roles(client):
-    resp = client.put(f"/roles/user/{STAFF_UUID}", json={"role_ids": [3, 4]})
+def test_update_user_roles(client, headers):
+    resp = client.put(f"/roles/user/{STAFF_UUID}", json={"role_ids": [3, 4]}, headers=headers)
     assert resp.status_code == 200
     assert resp.json()["message"] == "Roles updated"
 
-    verify = client.get(f"/roles/user/{STAFF_UUID}")
+    verify = client.get(f"/roles/user/{STAFF_UUID}", headers=headers)
     role_ids = {r["role_id"] for r in verify.json()}
     assert 3 in role_ids
     assert 4 in role_ids
 
 
-def test_get_users_by_role(client):
-    resp = client.get("/roles/users/by-role/Kiosk")
+def test_get_users_by_role(client, headers):
+    resp = client.get("/roles/users/by-role/Kiosk", headers=headers)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) >= 1

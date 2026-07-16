@@ -9,6 +9,7 @@ from collections import defaultdict
 import time
 from app.routers.auth import (
     get_current_user,
+    get_admin_user,
     set_auth_cookies,
     verify_password,
     get_user_roles,
@@ -30,29 +31,33 @@ from app.services.audit import create_audit_log
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# PIN lockout tracking (in-memory)
+# PIN lockout tracking (in-memory, keyed by client IP)
 PIN_ATTEMPTS: dict[str, list[float]] = defaultdict(list)
 MAX_FAILED_ATTEMPTS = 3
 LOCKOUT_DURATION = 300  # 5 minutes
 
 
-def check_pin_lockout(pin: str) -> Optional[int]:
+def _get_client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def check_pin_lockout(ip: str) -> Optional[int]:
     now = time.time()
-    attempts = PIN_ATTEMPTS.get(pin, [])
+    attempts = PIN_ATTEMPTS.get(ip, [])
     attempts = [t for t in attempts if now - t < LOCKOUT_DURATION]
-    PIN_ATTEMPTS[pin] = attempts
+    PIN_ATTEMPTS[ip] = attempts
     if len(attempts) >= MAX_FAILED_ATTEMPTS:
         remaining = int(LOCKOUT_DURATION - (now - attempts[-1]))
         return max(remaining, 0)
     return None
 
 
-def record_failed_attempt(pin: str):
-    PIN_ATTEMPTS[pin].append(time.time())
+def record_failed_attempt(ip: str):
+    PIN_ATTEMPTS[ip].append(time.time())
 
 
-def clear_pin_lockout(pin: str):
-    PIN_ATTEMPTS.pop(pin, None)
+def clear_pin_lockout(ip: str):
+    PIN_ATTEMPTS.pop(ip, None)
 
 
 def get_db():
@@ -159,7 +164,8 @@ def verify_user_pin(
     db: Session = Depends(get_db),
     kiosk_user: models.User = Depends(get_current_user),
 ):
-    remaining = check_pin_lockout(data.pin)
+    client_ip = _get_client_ip(request)
+    remaining = check_pin_lockout(client_ip)
     if remaining is not None:
         raise HTTPException(
             status_code=429,
@@ -183,11 +189,11 @@ def verify_user_pin(
             matched_user = user
             break
 
-    client_host = request.client.host if request.client else "unknown"
+    client_host = _get_client_ip(request)
     user_agent = request.headers.get("user-agent")
 
     if not matched_user:
-        record_failed_attempt(data.pin)
+        record_failed_attempt(client_ip)
         create_audit_log(
             db,
             action="pin_verify_failed",
@@ -200,7 +206,7 @@ def verify_user_pin(
         )
         return schemas.KioskUserPinVerifyResponse(valid=False)
 
-    clear_pin_lockout(data.pin)
+    clear_pin_lockout(client_ip)
 
     access_token, access_jti = create_access_token(matched_user.user_uuid)
     refresh_token, refresh_jti = create_refresh_token(matched_user.user_uuid)
@@ -251,7 +257,8 @@ def verify_pin_for_user(
     db: Session = Depends(get_db),
     kiosk_user: models.User = Depends(get_current_user),
 ):
-    lockout_key = f"user:{data.user_uuid}"
+    client_ip = _get_client_ip(request)
+    lockout_key = f"ip:{client_ip}"
     remaining = check_pin_lockout(lockout_key)
     if remaining is not None:
         raise HTTPException(
@@ -377,7 +384,7 @@ def update_pin(
     request: Request,
     data: dict,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
+    admin: models.User = Depends(get_admin_user),
 ):
     current_pin = data.get("current_pin")
     new_pin = data.get("new_pin")
@@ -405,7 +412,7 @@ def setup_kiosk(
     request: Request,
     data: dict,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
+    admin: models.User = Depends(get_admin_user),
 ):
     pin = data.get("pin", "1234")
 

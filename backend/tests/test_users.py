@@ -14,9 +14,7 @@ def _override_users_db(db_session):
 
 
 def _add_admin_role(db_session):
-    admin_role = (
-        db_session.query(models.Role).filter(models.Role.name == "Admin").first()
-    )
+    admin_role = db_session.query(models.Role).filter(models.Role.name == "Admin").first()
     existing = (
         db_session.query(models.UserRole)
         .filter(
@@ -27,11 +25,7 @@ def _add_admin_role(db_session):
         .first()
     )
     if not existing:
-        db_session.add(
-            models.UserRole(
-                user_uuid=STAFF_UUID, role_id=admin_role.id, is_current=True
-            )
-        )
+        db_session.add(models.UserRole(user_uuid=STAFF_UUID, role_id=admin_role.id, is_current=True))
         db_session.commit()
 
 
@@ -45,20 +39,19 @@ def test_list_users(client, headers):
 
 def test_list_users_unauthenticated(client):
     response = client.get("/users/")
-    assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    assert response.status_code == 401
 
 
-def test_get_user_by_uuid(client):
-    response = client.get(f"/users/{STAFF_UUID}")
+def test_get_user_by_uuid(client, headers):
+    response = client.get(f"/users/{STAFF_UUID}", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["user_uuid"] == STAFF_UUID
     assert data["email"] == "staff@test.com"
 
 
-def test_get_user_nonexistent(client):
-    response = client.get("/users/nonexistent-uuid")
+def test_get_user_nonexistent(client, headers):
+    response = client.get("/users/nonexistent-uuid", headers=headers)
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found"
 
@@ -91,16 +84,16 @@ def test_create_user_missing_fields(client, headers, db_session):
     assert response.status_code == 422
 
 
-def test_search_users_by_query(client):
-    response = client.get("/users/search", params={"query": "Student"})
+def test_search_users_by_query(client, headers):
+    response = client.get("/users/search", params={"query": "Student"}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
     assert any(u["first_name"] == "Student" for u in data)
 
 
-def test_search_users_empty_query(client):
-    response = client.get("/users/search", params={"query": ""})
+def test_search_users_empty_query(client, headers):
+    response = client.get("/users/search", params={"query": ""}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -142,9 +135,7 @@ def test_export_users_csv(client, headers):
 
 
 def test_import_users_csv(client, headers):
-    csv_content = (
-        "first_name,last_name,email,rank\nImported,User,imported@test.com,Blue\n"
-    )
+    csv_content = "first_name,last_name,email,rank\nImported,User,imported@test.com,Blue\n"
     response = client.post(
         "/users/import-csv",
         headers=headers,
@@ -166,11 +157,7 @@ def test_import_csv_invalid_file(client, headers):
 
 def test_update_photo_position(client, headers, db_session):
     _add_admin_role(db_session)
-    user = (
-        db_session.query(models.User)
-        .filter(models.User.user_uuid == STAFF_UUID)
-        .first()
-    )
+    user = db_session.query(models.User).filter(models.User.user_uuid == STAFF_UUID).first()
     user.profile_image_url = "/uploads/photos/test.jpg"
     db_session.commit()
 
@@ -187,11 +174,7 @@ def test_update_photo_position(client, headers, db_session):
 
 def test_delete_photo(client, headers, db_session):
     _add_admin_role(db_session)
-    user = (
-        db_session.query(models.User)
-        .filter(models.User.user_uuid == STAFF_UUID)
-        .first()
-    )
+    user = db_session.query(models.User).filter(models.User.user_uuid == STAFF_UUID).first()
     user.profile_image_url = "/uploads/photos/test.jpg"
     db_session.commit()
 
@@ -209,10 +192,7 @@ def test_upload_photo_not_image(client, headers, db_session):
         data={"offset_x": 0.0, "offset_y": 0.0},
     )
     assert response.status_code == 400
-    assert (
-        response.json()["detail"]
-        == "Invalid file type. Allowed: .gif, .jpeg, .jpg, .png, .webp"
-    )
+    assert response.json()["detail"] == "Invalid file type. Allowed: .gif, .jpeg, .jpg, .png, .webp"
 
 
 def test_upload_photo_success(client, headers, db_session):
