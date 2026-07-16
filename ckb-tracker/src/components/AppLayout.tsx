@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 
-const publicRoutes = ['/', '/login', '/check-in', '/kiosk', '/kiosk/select', '/kiosk/confirm'];
+const publicRoutes = ['/', '/login', '/check-in', '/news', '/kiosk', '/kiosk/select', '/kiosk/confirm'];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

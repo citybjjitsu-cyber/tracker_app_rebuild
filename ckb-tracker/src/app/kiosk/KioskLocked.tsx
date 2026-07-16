@@ -83,25 +83,37 @@ export function KioskLocked() {
 
       {news.length > 0 && (
         <div className="w-full mt-12 pt-12 border-t border-[var(--border)]">
-          <div className="flex items-center gap-2 mb-6">
-            <Newspaper className="w-5 h-5 text-[var(--primary)]" />
-            <h3 className="text-lg font-black font-headline text-[var(--foreground)] uppercase tracking-wider">
-              News & Updates
-            </h3>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Newspaper className="w-5 h-5 text-[var(--primary)]" />
+              <h3 className="text-lg font-black font-headline text-[var(--foreground)] uppercase tracking-wider">
+                News & Updates
+              </h3>
+            </div>
+            <Link
+              href="/news"
+              className="text-xs font-bold text-[var(--primary)] hover:underline"
+            >
+              View All
+            </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {news.slice(0, 3).map((item) => (
-              <div key={item.id} className="p-4 bg-[var(--card)] rounded-xl border border-[var(--border)]">
+              <Link
+                key={item.id}
+                href="/news"
+                className="p-4 bg-[var(--card)] rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/5 transition-all group"
+              >
                 <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">
                   {new Date(item.created_at).toLocaleDateString()}
                 </span>
-                <h4 className="font-bold font-headline text-[var(--foreground)] mt-2 mb-1">
+                <h4 className="font-bold font-headline text-[var(--foreground)] mt-2 mb-1 group-hover:text-[var(--primary)] transition-colors">
                   {item.title}
                 </h4>
                 <p className="text-sm text-[var(--muted-foreground)] line-clamp-2">
                   {item.content}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

@@ -54,13 +54,13 @@
 ## Phase 4: Public News Page
 **Branch:** `feature/public-news-page`
 
-| # | Task | Files |
-|---|------|-------|
-| 4a | Create `/news` page — public, no auth, feed of all published news | `app/news/page.tsx` |
-| 4b | Make home page news items clickable + "View All News" link | `KioskLocked.tsx` |
-| 4c | Add `/news` to public routes in AppLayout | `AppLayout.tsx` |
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 4a | Create `/news` page — public, no auth, feed of all published news | `app/news/page.tsx` | ✅ |
+| 4b | Make home page news items clickable + "View All News" link | `KioskLocked.tsx` | ✅ |
+| 4c | Add `/news` to public routes in AppLayout | `AppLayout.tsx` | ✅ |
 
-**Commit:** `feat: add public news page accessible without login`
+**Tests:** 177 frontend ✅, frontend build ✅ (16 routes)
 
 ---
 
