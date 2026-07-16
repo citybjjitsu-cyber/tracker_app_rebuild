@@ -211,12 +211,13 @@ export const attendanceApi = {
     });
     return response.data;
   },
-  direct: async (userUuid: string, classId: number, classInstanceId?: number, teacherUuid?: string) => {
+  direct: async (userUuid: string, classId: number, classInstanceId?: number, teacherUuid?: string, attendanceDate?: string) => {
     const response = await api.post('/attendance/direct', {
       user_uuid: userUuid,
       class_id: classId,
       class_instance_id: classInstanceId,
       teacher_uuid: teacherUuid,
+      attendance_date: attendanceDate,
     });
     return response.data;
   },

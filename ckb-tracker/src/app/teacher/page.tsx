@@ -224,7 +224,7 @@ export default function TeacherPage() {
     if (!selectedClass) return;
     setIsProcessing(true);
     try {
-      await attendanceApi.direct(studentUuid, selectedClass, undefined, user?.user_uuid);
+      await attendanceApi.direct(studentUuid, selectedClass, undefined, user?.user_uuid, selectedDate);
       setManualStudentUuid('');
       loadAttendance();
     } catch (error) {
