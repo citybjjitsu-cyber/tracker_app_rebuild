@@ -220,7 +220,7 @@ def toggle_user_active(
     request: StarRequest,
     user_uuid: str,
     db: Session = Depends(get_db),
-    admin: models.User = Depends(get_admin_user),
+    admin: models.User = Depends(get_lite_admin_user),
 ):
     user = db.query(models.User).filter(models.User.user_uuid == user_uuid).first()
     if not user:
