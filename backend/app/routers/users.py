@@ -184,7 +184,12 @@ def teacher_create_student(
 
 @router.get("/", response_model=List[schemas.UserResponse])
 @limiter.limit(READ_LIMIT)
-def list_users(request: Request, db: Session = Depends(get_db), include_inactive: bool = False):
+def list_users(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    include_inactive: bool = False,
+):
     query = db.query(models.User).options(joinedload(models.User.rank_tier))
     if not include_inactive:
         query = query.filter(models.User.is_current)
@@ -193,7 +198,12 @@ def list_users(request: Request, db: Session = Depends(get_db), include_inactive
 
 @router.get("/search", response_model=List[schemas.UserResponse], dependencies=[])
 @limiter.limit(READ_LIMIT)
-def search_users(request: Request, query: str, db: Session = Depends(get_db)):
+def search_users(
+    request: Request,
+    query: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
     return (
         db.query(models.User)
         .options(joinedload(models.User.rank_tier))
@@ -364,7 +374,12 @@ async def import_users_csv(
 
 @router.get("/{user_uuid}", response_model=schemas.UserResponse)
 @limiter.limit(READ_LIMIT)
-def get_user(request: Request, user_uuid: str, db: Session = Depends(get_db)):
+def get_user(
+    request: Request,
+    user_uuid: str,
+    db: Session = Depends(get_db),
+    auth_user: models.User = Depends(get_current_user),
+):
     user = (
         db.query(models.User)
         .options(joinedload(models.User.rank_tier))

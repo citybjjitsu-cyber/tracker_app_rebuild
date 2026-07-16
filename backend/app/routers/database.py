@@ -28,6 +28,9 @@ def get_db():
         db.close()
 
 
+SENSITIVE_USER_COLUMNS = {"password_hash", "pin_hash"}
+
+
 def _export_all_data(db: Session) -> dict:
     roles = db.query(models.Role).all()
     users = db.query(models.User).all()
@@ -47,11 +50,16 @@ def _export_all_data(db: Session) -> dict:
     kiosk = db.query(models.KioskAuth).all()
     comments = db.query(models.Comment).all()
 
-    def serialize(obj):
+    def serialize(obj, sensitive_columns=None):
         if obj is None:
             return None
         if hasattr(obj, "__table__"):
-            return {c.name: serialize(getattr(obj, c.name)) for c in obj.__table__.columns}
+            result = {}
+            for c in obj.__table__.columns:
+                if sensitive_columns and c.name in sensitive_columns:
+                    continue
+                result[c.name] = serialize(getattr(obj, c.name))
+            return result
         if isinstance(obj, (datetime,)):
             return obj.isoformat()
         if hasattr(obj, "isoformat"):
@@ -61,7 +69,7 @@ def _export_all_data(db: Session) -> dict:
     return {
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "roles": [serialize(r) for r in roles],
-        "users": [serialize(u) for u in users],
+        "users": [serialize(u, sensitive_columns=SENSITIVE_USER_COLUMNS) for u in users],
         "user_roles": [serialize(ur) for ur in user_roles],
         "gym_locations": [serialize(g) for g in gyms],
         "class_types": [serialize(ct) for ct in class_types],
@@ -144,6 +152,45 @@ def create_backup(
     )
 
 
+ALLOWED_RESTORE_KEYS = {
+    "exported_at",
+    "roles",
+    "users",
+    "user_roles",
+    "gym_locations",
+    "class_types",
+    "classes",
+    "terms",
+    "term_targets",
+    "curricula",
+    "lessons",
+    "class_instances",
+    "attendance",
+    "feedback",
+    "news",
+    "themes",
+    "kiosk",
+    "comments",
+}
+
+ALLOWED_USER_COLUMNS = {
+    "user_uuid",
+    "first_name",
+    "last_name",
+    "email",
+    "rank",
+    "rank_tier_id",
+    "nicknames",
+    "comments",
+    "last_graded_date",
+    "created_date",
+    "profile_image_url",
+    "image_offset_x",
+    "image_offset_y",
+    "is_current",
+}
+
+
 @router.post("/restore")
 @limiter.limit(DB_RESTORE_LIMIT)
 def restore_database(
@@ -160,6 +207,16 @@ def restore_database(
         data = json.loads(content)
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON file")
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="Invalid backup format")
+
+    unknown_keys = set(data.keys()) - ALLOWED_RESTORE_KEYS
+    if unknown_keys:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown fields in backup: {', '.join(sorted(unknown_keys))}",
+        )
 
     # Truncate all tables in dependency order
     db.query(models.Comment).delete()
@@ -203,7 +260,11 @@ def restore_database(
 
     for key, model in model_map.items():
         for row_data in data.get(key, []):
+            if not isinstance(row_data, dict):
+                continue
             row_data.pop("id", None)
+            if key == "users":
+                row_data = {k: v for k, v in row_data.items() if k in ALLOWED_USER_COLUMNS}
             db.add(model(**row_data))
 
     db.commit()

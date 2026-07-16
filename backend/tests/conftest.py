@@ -16,7 +16,8 @@ from passlib.context import CryptContext
 
 from app.database import Base
 from app.main import app
-from app.routers.kiosk import get_db, clear_pin_lockout
+from app import models
+from app.routers.kiosk import get_db, PIN_ATTEMPTS
 from app.routers.attendance import get_db as att_get_db
 from app.routers.auth import get_db as auth_get_db
 from app.routers.admin import get_db as admin_get_db
@@ -126,10 +127,7 @@ def setup_teardown():
 
 @pytest.fixture(scope="function", autouse=True)
 def _reset_pin_lockout():
-    clear_pin_lockout(STAFF_PIN)
-    clear_pin_lockout(STUDENT_PIN)
-    clear_pin_lockout(WRONG_PIN)
-    clear_pin_lockout(f"user:{STUDENT_UUID}")
+    PIN_ATTEMPTS.clear()
 
 
 @pytest.fixture
@@ -152,6 +150,22 @@ def client(db_session):
     app.dependency_overrides[att_get_db] = override_get_db
     app.dependency_overrides[auth_get_db] = override_get_db
     app.dependency_overrides[admin_get_db] = override_get_db
+
+    # Ensure staff user has Admin role for auth-gated endpoints
+    admin_role = db_session.query(models.Role).filter(models.Role.name == "Admin").first()
+    existing = (
+        db_session.query(models.UserRole)
+        .filter(
+            models.UserRole.user_uuid == STAFF_UUID,
+            models.UserRole.role_id == admin_role.id,
+            models.UserRole.is_current,
+        )
+        .first()
+    )
+    if not existing:
+        db_session.add(models.UserRole(user_uuid=STAFF_UUID, role_id=admin_role.id, is_current=True))
+        db_session.commit()
+
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

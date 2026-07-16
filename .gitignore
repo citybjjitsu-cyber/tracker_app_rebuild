@@ -75,3 +75,15 @@ PLAN.md
 supabase/
 .supabase/
 .vercel
+
+# CI artifacts and test results
+artifacts.json
+*-test-results.zip
+*-test-results.xml
+*-logs*.zip
+*-log.txt
+ci-*.html
+deploy_steps.md
+e2e_logs.txt
+test-results/
+ckb-tracker/test-results/
