@@ -24,28 +24,30 @@
 
 ## Phase 2: Auth & Password Flow Fixes
 **Branch:** `fix/auth-password-flows`
+**Commit:** `b58955b` — merged to `main`
 
-| # | Task | Files |
-|---|------|-------|
-| 2a | Debug & fix admin edit panel password change (direct password set via User Admin) | `users.py`, `admin/page.tsx` |
-| 2b | Debug & fix email reset flow — password reset link works but login fails afterward | `auth.py`, `reset-password/page.tsx` |
-| 2c | Add password complexity validator to `AcceptInviteRequest.password` (currently missing) | `schemas.py` |
-| 2d | Add self-service `POST /auth/change-password` endpoint (old password + new password) | `auth.py`, `schemas.py`, `api.ts` |
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 2a | Fix admin edit panel password change — frontend now validates 8+ chars + complexity matching backend | `admin/page.tsx` | ✅ |
+| 2b | Fix email reset flow — added complexity validators to `ResetPasswordRequest` and `AcceptInviteRequest` schemas | `schemas.py` | ✅ |
+| 2c | Fix error handling — `handleResetPassword` and `handleCreateNewUser` now show actual backend error details | `admin/page.tsx` | ✅ |
+| 2d | Add self-service `POST /auth/change-password` endpoint (old password + new password, complexity enforced) | `auth.py`, `schemas.py`, `api.ts` | ✅ |
 
-**Commit:** `fix: password change and reset flow improvements`
+**Tests:** 128 backend ✅, 177 frontend ✅ (1 new test for `changePassword`)
 
 ---
 
 ## Phase 3: Home Page Sign-In UX
 **Branch:** `feature/home-page-signin-ux`
+**Commit:** `a745953` — pushed to remote, pending PR/merge
 
-| # | Task | Files |
-|---|------|-------|
-| 3a | Rename "Staff Sign In" button → "Kiosk Sign In" | `KioskLocked.tsx` |
-| 3b | Replace text link with styled "Staff Login" button for admin/teacher/student portal | `KioskLocked.tsx` |
-| 3c | Style both buttons with clear visual distinction (primary vs secondary) | `KioskLocked.tsx` |
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 3a | Rename "Staff Sign In" → "Kiosk Sign In" | `KioskLocked.tsx` | ✅ |
+| 3b | Replace text link with styled "Staff Login" button | `KioskLocked.tsx` | ✅ |
+| 3c | Style both buttons with clear visual distinction (primary vs secondary) | `KioskLocked.tsx` | ✅ |
 
-**Commit:** `feat: improve home page sign-in buttons with clear kiosk vs staff login`
+**Tests:** 177 frontend ✅
 
 ---
 

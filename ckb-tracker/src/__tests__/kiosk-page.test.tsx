@@ -55,14 +55,14 @@ describe('KioskLocked', () => {
     expect(screen.getByText('Tracker')).toBeInTheDocument()
   })
 
-  it('renders staff sign in button', () => {
+  it('renders kiosk sign in button', () => {
     render(<Wrapper><KioskLocked /></Wrapper>)
-    expect(screen.getByText('Staff Sign In')).toBeInTheDocument()
+    expect(screen.getByText('Kiosk Sign In')).toBeInTheDocument()
   })
 
   it('renders staff login link', () => {
     render(<Wrapper><KioskLocked /></Wrapper>)
-    expect(screen.getByText('Staff Login — for admin and teacher access')).toBeInTheDocument()
+    expect(screen.getByText('Staff Login')).toBeInTheDocument()
   })
 
   it('renders find your name heading', () => {

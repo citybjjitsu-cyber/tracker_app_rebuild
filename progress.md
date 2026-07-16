@@ -493,3 +493,37 @@ Placeholder for additional features discovered during testing and deployment.
 - ✅ Email sent via SMTP with dark-themed HTML template; delivery success/failure reflected in audit logs and API responses
 
 *Last Updated: July 12, 2026*
+
+---
+
+## RECENT UPDATES (July 14, 2026) — Auth & Password Flow Fixes
+
+**Branch:** `fix/auth-password-flows` → merged to `main`
+
+### Phase 2: Auth & Password Flow Fixes
+
+#### Bug Fixes
+- ✅ **Frontend password validation** (`admin/page.tsx`) — Admin password reset and new user creation now validate 8+ chars, uppercase, lowercase, digit, and special character — matching backend rules exactly. Previously frontend only checked 6+ chars, causing "password change doesn't work" perception.
+- ✅ **Email reset security** (`schemas.py`) — Added `validate_password_complexity` to `ResetPasswordRequest` and `AcceptInviteRequest` schemas. Previously weak passwords (e.g., "password") could be accepted via email reset link or invite acceptance flow.
+- ✅ **Error handling** (`admin/page.tsx`) — `handleResetPassword` and `handleCreateNewUser` catch blocks now extract and display actual Pydantic validation errors from the backend instead of generic "Failed to reset password" messages.
+
+#### New Feature
+- ✅ **Self-service password change** (`auth.py`, `schemas.py`, `api.ts`) — Added `POST /auth/change-password` endpoint requiring current password verification, complexity validation, and new-password-differs check. Added `ChangePasswordRequest` schema with full complexity validator. Added `authApi.changePassword()` frontend method with test coverage.
+
+#### Tests
+- ✅ 128 backend tests pass (pytest)
+- ✅ 177 frontend tests pass (vitest) — 1 new test for `changePassword` API method
+- ✅ Frontend lint: 0 errors (42 pre-existing warnings)
+
+---
+
+## RECENT UPDATES (July 14, 2026) — Home Page Sign-In UX
+
+**Branch:** `feature/home-page-signin-ux` → pending PR/merge
+
+### Phase 3: Home Page Sign-In UX
+- ✅ `ckb-tracker/src/app/kiosk/KioskLocked.tsx` — Renamed "Staff Sign In" to "Kiosk Sign In" for clarity
+- ✅ Replaced plain text link with styled bordered button for "Staff Login" (secondary style)
+- ✅ Added helper text "For admin and teacher portal access" below buttons
+- ✅ Updated test assertions to match new labels (`kiosk-page.test.tsx`)
+- ✅ 177 frontend tests pass (vitest)
