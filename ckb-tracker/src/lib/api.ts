@@ -127,6 +127,10 @@ export const usersApi = {
     const response = await api.post<{ is_current: boolean; message: string }>(`/admin/users/${uuid}/toggle-active`);
     return response.data;
   },
+  teacherCreate: async (data: { first_name: string; last_name: string; email: string }) => {
+    const response = await api.post<User>('/users/teacher-create', data);
+    return response.data;
+  },
   importCsv: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

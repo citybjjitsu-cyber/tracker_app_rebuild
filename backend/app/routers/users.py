@@ -19,7 +19,7 @@ from typing import List, Optional
 import uuid
 import os
 from PIL import Image
-from app.routers.auth import get_current_user, get_admin_user
+from app.routers.auth import get_current_user, get_admin_user, get_teacher_user
 from app.auth.limiter import (
     limiter,
     REGISTRATION_LIMIT,
@@ -118,6 +118,63 @@ def create_user(
         actor_uuid=str(admin.user_uuid),
         resource_uuid=user_uuid,
         detail=f"Created user {user.first_name} {user.last_name} ({user.email})",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
+    return db_user
+
+
+@router.post("/teacher-create", response_model=schemas.UserResponse)
+@limiter.limit(WRITE_LIMIT)
+def teacher_create_student(
+    request: Request,
+    data: schemas.TeacherStudentCreate,
+    db: Session = Depends(get_db),
+    teacher: models.User = Depends(get_teacher_user),
+):
+    db_user = db.query(models.User).filter(models.User.email == data.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user_uuid = str(uuid.uuid4())
+
+    rank_tier_id = None
+    tier = db.query(models.RankTier).filter(models.RankTier.rank == "White", models.RankTier.degree == 0).first()
+    if tier:
+        rank_tier_id = tier.id
+
+    db_user = models.User(
+        user_uuid=user_uuid,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        email=data.email,
+        rank="White",
+        rank_tier_id=rank_tier_id,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    db_user = (
+        db.query(models.User).options(joinedload(models.User.rank_tier)).filter(models.User.id == db_user.id).first()
+    )
+
+    student_role = db.query(models.Role).filter(models.Role.name == "Student").first()
+    if student_role:
+        user_role = models.UserRole(user_uuid=user_uuid, role_id=student_role.id)
+        db.add(user_role)
+        db.commit()
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    create_audit_log(
+        db,
+        action="teacher_created_student",
+        resource_type="user",
+        actor_uuid=str(teacher.user_uuid),
+        resource_uuid=user_uuid,
+        detail=f"Teacher created student {data.first_name} {data.last_name} ({data.email})",
         ip_address=client_host,
         user_agent=user_agent,
     )

@@ -4,19 +4,36 @@ import React, { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
-import { formatDate, formatRankDisplay } from '@/lib/utils';
-import { LogOut, GraduationCap } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
+import { LogOut, GraduationCap, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import type { ClassSchedule, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
 
+const WEEK_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function getWeekDates(offset: number): Date[] {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + offset * 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function toDateString(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
 export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
-  const [activeTab, setActiveTab] = useState<'attendance' | 'roster' | 'feedback' | 'comments'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'feedback' | 'comments' | 'students'>('attendance');
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedClass, setSelectedClass] = useState<number | ''>('');
@@ -24,8 +41,6 @@ export default function TeacherPage() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [teachers, setTeachers] = useState<User[]>([]);
-  const [selectedTeacher, setSelectedTeacher] = useState<string>('');
   const [feedback, setFeedback] = useState<ClassFeedback[]>([]);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [classesFilter, setClassesFilter] = useState<number[]>([]);
@@ -37,6 +52,13 @@ export default function TeacherPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [showCreateComment, setShowCreateComment] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const [newStudentForm, setNewStudentForm] = useState({ first_name: '', last_name: '', email: '' });
+  const [studentCreateError, setStudentCreateError] = useState('');
+  const [studentCreateSuccess, setStudentCreateSuccess] = useState('');
+
+  const weekDates = getWeekDates(weekOffset);
 
   useEffect(() => {
     if (isTeacher || isAdmin) {
@@ -72,17 +94,12 @@ export default function TeacherPage() {
       if (classesData.length > 0) {
         setSelectedClass(classesData[0].id);
       }
-      const teacherList = usersData.filter(u => u.rank === 'Black' || u.rank === 'Brown');
-      setTeachers(teacherList);
-      if (user) {
-        setSelectedTeacher(user.user_uuid);
-      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setIsLoaded(true);
     }
-  };
+  }
 
   const loadFeedback = async () => {
     if (!user) return;
@@ -124,7 +141,7 @@ export default function TeacherPage() {
     } catch (error) {
       console.error('Error loading attendance:', error);
     }
-  };
+  }
 
   const handleConfirm = async (id: number) => {
     setIsProcessing(true);
@@ -220,11 +237,26 @@ export default function TeacherPage() {
     setLoginError('');
     try {
       await login(loginForm.email, loginForm.password, true);
-    } catch (error) {
+    } catch {
       setLoginError('Invalid credentials or not a teacher');
     }
   };
 
+  const handleCreateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStudentCreateError('');
+    setStudentCreateSuccess('');
+    try {
+      await usersApi.teacherCreate(newStudentForm);
+      setStudentCreateSuccess(`${newStudentForm.first_name} ${newStudentForm.last_name} created successfully. They can be invited to set their password and PIN.`);
+      setNewStudentForm({ first_name: '', last_name: '', email: '' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error && 'response' in err
+        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || err.message
+        : String(err);
+      setStudentCreateError(msg);
+    }
+  };
 
   const pendingCount = attendance.filter(a => a.status === 'pending').length;
   const confirmedCount = attendance.filter(a => a.status === 'confirmed').length;
@@ -271,6 +303,11 @@ export default function TeacherPage() {
     );
   }
 
+  const classesByDay: Record<string, ClassSchedule[]> = {};
+  for (const day of WEEK_DAYS) {
+    classesByDay[day] = classes.filter(c => c.day === day);
+  }
+
   return (
     <>
       <div className="max-w-6xl mx-auto">
@@ -285,56 +322,120 @@ export default function TeacherPage() {
           </div>
         </div>
 
-      <div className="flex gap-6 mb-6 border-b border-outline-variant/20">
-        {(['attendance', 'roster', 'feedback', 'comments'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => { setActiveTab(tab); if (tab === 'feedback') loadFeedback(); if (tab === 'comments') loadComments(); }}
-            className={`text-xs font-bold font-label tracking-wider uppercase pb-3 transition-colors ${
-              activeTab === tab
-                ? 'text-primary-container border-b-2 border-primary-container'
-                : 'text-on-surface-variant/70 hover:text-on-surface'
-            }`}
-          >
-            {tab === 'attendance' ? 'Confirm Attendance' : tab === 'roster' ? 'Class Roster' : tab === 'feedback' ? 'Feedback' : 'Comments'}
-          </button>
-        ))}
-      </div>
+        <div className="flex gap-6 mb-6 border-b border-outline-variant/20">
+          {(['attendance', 'feedback', 'comments', 'students'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => { setActiveTab(tab); if (tab === 'feedback') loadFeedback(); if (tab === 'comments') loadComments(); }}
+              className={`text-xs font-bold font-label tracking-wider uppercase pb-3 transition-colors ${
+                activeTab === tab
+                  ? 'text-primary-container border-b-2 border-primary-container'
+                  : 'text-on-surface-variant/70 hover:text-on-surface'
+              }`}
+            >
+              {tab === 'attendance' ? 'Attendance' : tab === 'feedback' ? 'Feedback' : tab === 'comments' ? 'Comments' : 'New Student'}
+            </button>
+          ))}
+        </div>
 
-      {activeTab === 'attendance' && (
-        <div className="glass-panel rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-headline font-bold text-on-surface">Confirm Attendance</h2>
-            <div className="flex gap-4 items-center">
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-auto"
-              />
-              <select
-                className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(Number(e.target.value))}
+        {activeTab === 'attendance' && (
+          <div className="glass-panel rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-headline font-bold text-on-surface">Class Schedule</h2>
+              <div className="flex gap-4 items-center">
+                <label className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <input
+                    type="checkbox"
+                    checked={autoRefresh}
+                    onChange={(e) => setAutoRefresh(e.target.checked)}
+                    className="accent-primary-container"
+                  />
+                  Auto-refresh (5s)
+                </label>
+                <Button variant="outline" size="sm" onClick={loadAttendance}>
+                  Refresh
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeekOffset(prev => prev - 1)}
               >
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>{cls.class_name}</option>
-                ))}
-              </select>
-              <label className="flex items-center gap-2 text-sm text-on-surface-variant">
-                <input
-                  type="checkbox"
-                  checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  className="accent-primary-container"
-                />
-                Auto-refresh (5s)
-              </label>
-              <Button variant="outline" size="sm" onClick={loadAttendance}>
-                Refresh
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium text-on-surface">
+                {toDateString(weekDates[0])} &mdash; {toDateString(weekDates[6])}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setWeekOffset(0); setSelectedDate(new Date().toISOString().split('T')[0]); }}
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeekOffset(prev => prev + 1)}
+              >
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          </div>
+
+            <div className="grid grid-cols-7 gap-2 mb-6">
+              {WEEK_DAYS.map((day, i) => {
+                const dateStr = toDateString(weekDates[i]);
+                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                const isSelected = dateStr === selectedDate;
+                const dayClasses = classesByDay[day] || [];
+                return (
+                  <div
+                    key={day}
+                    className={`rounded-lg border p-2 min-h-[100px] cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'border-primary-container bg-primary-container/10'
+                        : isToday
+                          ? 'border-primary-container/50 bg-surface-container-low'
+                          : 'border-outline-variant/20 bg-surface-container-low hover:border-outline-variant/40'
+                    }`}
+                    onClick={() => setSelectedDate(dateStr)}
+                  >
+                    <p className={`text-xs font-bold font-label uppercase mb-1 ${isToday ? 'text-primary-container' : 'text-on-surface-variant'}`}>
+                      {day.slice(0, 3)}
+                    </p>
+                    <p className={`text-xs mb-2 ${isToday ? 'text-primary-container' : 'text-on-surface-variant'}`}>
+                      {weekDates[i].getDate()}
+                    </p>
+                    <div className="space-y-1">
+                      {dayClasses.map((cls) => (
+                        <button
+                          key={cls.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDate(dateStr);
+                            setSelectedClass(cls.id);
+                          }}
+                          className={`w-full text-left text-[10px] leading-tight p-1 rounded transition-colors ${
+                            selectedClass === cls.id && isSelected
+                              ? 'bg-primary-container text-on-primary-container font-bold'
+                              : 'bg-surface text-on-surface hover:bg-surface-container'
+                          }`}
+                        >
+                          {cls.class_name}
+                        </button>
+                      ))}
+                      {dayClasses.length === 0 && (
+                        <p className="text-[10px] text-on-surface-variant/50 italic">No classes</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 glass-panel rounded-lg">
                 <p className="text-2xl font-bold font-headline text-on-surface">{attendance.length}</p>
@@ -350,198 +451,106 @@ export default function TeacherPage() {
               </div>
             </div>
 
-            <div className="space-y-2 mb-4">
-              {attendance.map((att) => (
-                <div
-                  key={att.id}
-                  className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border-l-[3px] data-strip"
-                >
-                  <div className="flex items-center gap-3">
-                    {att.status === 'pending' && (
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(att.id)}
-                        onChange={() => toggleStudent(att.id)}
-                        className="accent-primary-container"
-                      />
-                    )}
-                    <Avatar
-                      src={att.user?.profile_image_url}
-                      firstName={att.user?.first_name}
-                      lastName={att.user?.last_name}
-                      offsetX={att.user?.image_offset_x}
-                      offsetY={att.user?.image_offset_y}
-                    />
-                    <div>
-                      <p className="font-medium text-on-surface">
-                        {att.user?.first_name} {att.user?.last_name}
-                      </p>
-                      <p className="text-sm text-on-surface-variant">
-                        Checked in: {new Date(att.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={att.status === 'confirmed' ? 'text-green-400' : 'text-yellow-400'}>
-                      {att.status === 'confirmed' ? 'Confirmed' : 'Pending'}
-                    </span>
-                    {att.status === 'pending' && (
-                      <>
-                        <Button size="sm" onClick={() => handleConfirm(att.id)} disabled={isProcessing}>
-                          Confirm
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleRemove(att.id)} disabled={isProcessing}>
-                          Remove
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {selectedStudents.length > 0 && (
-              <div className="flex gap-2 mb-4">
-                <Button onClick={handleBulkConfirm} disabled={isProcessing}>
-                  Confirm Selected ({selectedStudents.length})
-                </Button>
-                <Button variant="outline" onClick={handleBulkRemove} disabled={isProcessing}>
-                  Remove Selected ({selectedStudents.length})
-                </Button>
-              </div>
-            )}
-
-            {pendingCount > 0 && (
-              <Button onClick={handleConfirmAllPending} disabled={isProcessing} className="w-full">
-                CONFIRM ALL PENDING ({pendingCount})
-              </Button>
-            )}
-
-            <div className="mt-4 border-t border-outline-variant/20 pt-4">
-              <details>
-                <summary className="cursor-pointer font-label text-on-surface-variant hover:text-on-surface transition-colors">+ Add Student Manually</summary>
-                <div className="mt-2 p-3 bg-surface-container-low rounded-lg">
-                  <select
-                    className="w-full border border-outline-variant/20 bg-surface text-on-surface rounded-md p-2"
-                    onChange={(e) => {
-                      if (e.target.value) handleAddStudent(e.target.value);
-                    }}
-                    defaultValue=""
-                  >
-                    <option value="">Select a student...</option>
-                    {users.map((u) => (
-                      <option key={u.user_uuid} value={u.user_uuid}>
-                        {u.first_name} {u.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </details>
-            </div>
-        </div>
-      )}
-
-      {activeTab === 'roster' && (
-        <div className="glass-panel rounded-xl p-6">
-          <h2 className="text-lg font-headline font-bold text-on-surface mb-4">Class Roster</h2>
-            <div className="flex gap-4 mb-4">
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-auto"
-              />
-              <select
-                className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(Number(e.target.value))}
-              >
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>{cls.class_name}</option>
-                ))}
-              </select>
-              <select
-                className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
-                value={selectedTeacher}
-                onChange={(e) => setSelectedTeacher(e.target.value)}
-              >
-                <option value="">Select Teacher...</option>
-                {teachers.map((t) => (
-                  <option key={t.user_uuid} value={t.user_uuid}>
-                    {t.first_name} {t.last_name} ({t.rank})
-                  </option>
-                ))}
-                </select>
-              {selectedTeacher && (
-                <div className="flex items-center gap-2">
-                  <Avatar
-                    src={teachers.find(t => t.user_uuid === selectedTeacher)?.profile_image_url}
-                    firstName={teachers.find(t => t.user_uuid === selectedTeacher)?.first_name}
-                    lastName={teachers.find(t => t.user_uuid === selectedTeacher)?.last_name}
-                    offsetX={teachers.find(t => t.user_uuid === selectedTeacher)?.image_offset_x}
-                    offsetY={teachers.find(t => t.user_uuid === selectedTeacher)?.image_offset_y}
-                    size="sm"
-                  />
-                  <span className="text-sm text-on-surface-variant">
-                    {teachers.find(t => t.user_uuid === selectedTeacher)?.first_name} {teachers.find(t => t.user_uuid === selectedTeacher)?.last_name}
-                  </span>
-                </div>
-              )}
-              <Button
-                onClick={() => {
-                  if (selectedTeacher) {
-                    alert(`Teacher assigned for ${classes.find(c => c.id === selectedClass)?.class_name} on ${selectedDate}`);
-                  }
-                }}
-                disabled={!selectedTeacher}
-              >
-                Assign Teacher
-              </Button>
-            </div>
-
-            <div className="bg-surface-container-low rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-surface-container">
-                  <tr>
-                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Name</th>
-                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Rank</th>
-                    <th className="text-left p-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">Check-in Time</th>
-                  </tr>
-                </thead>
-                <tbody>
+            {selectedClass ? (
+              <>
+                <div className="space-y-2 mb-4">
                   {attendance.map((att) => (
-                    <tr key={att.id} className="bg-surface-container-low">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <Avatar
-                            src={att.user?.profile_image_url}
-                            firstName={att.user?.first_name}
-                            lastName={att.user?.last_name}
-                            offsetX={att.user?.image_offset_x}
-                            offsetY={att.user?.image_offset_y}
-                            size="sm"
+                    <div
+                      key={att.id}
+                      className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border-l-[3px] data-strip"
+                    >
+                      <div className="flex items-center gap-3">
+                        {att.status === 'pending' && (
+                          <input
+                            type="checkbox"
+                            checked={selectedStudents.includes(att.id)}
+                            onChange={() => toggleStudent(att.id)}
+                            className="accent-primary-container"
                           />
-                          <span className="text-on-surface">
+                        )}
+                        <Avatar
+                          src={att.user?.profile_image_url}
+                          firstName={att.user?.first_name}
+                          lastName={att.user?.last_name}
+                          offsetX={att.user?.image_offset_x}
+                          offsetY={att.user?.image_offset_y}
+                        />
+                        <div>
+                          <p className="font-medium text-on-surface">
                             {att.user?.first_name} {att.user?.last_name}
-                          </span>
+                          </p>
+                          <p className="text-sm text-on-surface-variant">
+                            Checked in: {new Date(att.created_at).toLocaleTimeString()}
+                          </p>
                         </div>
-                      </td>
-                      <td className="p-3 text-on-surface-variant">{formatRankDisplay(att.user?.rank, att.user?.rank_tier?.degree)}</td>
-                      <td className="p-3 text-on-surface-variant">
-                        {new Date(att.created_at).toLocaleTimeString()}
-                      </td>
-                    </tr>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={att.status === 'confirmed' ? 'text-green-400' : 'text-yellow-400'}>
+                          {att.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                        </span>
+                        {att.status === 'pending' && (
+                          <>
+                            <Button size="sm" onClick={() => handleConfirm(att.id)} disabled={isProcessing}>
+                              Confirm
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleRemove(att.id)} disabled={isProcessing}>
+                              Remove
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-2 text-on-surface-variant">Total Attendees: {attendance.length}</p>
-        </div>
-      )}
+                </div>
 
-      {activeTab === 'feedback' && (
-        <div className="glass-panel rounded-xl p-6">
-          <h2 className="text-lg font-headline font-bold text-on-surface mb-4">Feedback</h2>
+                {selectedStudents.length > 0 && (
+                  <div className="flex gap-2 mb-4">
+                    <Button onClick={handleBulkConfirm} disabled={isProcessing}>
+                      Confirm Selected ({selectedStudents.length})
+                    </Button>
+                    <Button variant="outline" onClick={handleBulkRemove} disabled={isProcessing}>
+                      Remove Selected ({selectedStudents.length})
+                    </Button>
+                  </div>
+                )}
+
+                {pendingCount > 0 && (
+                  <Button onClick={handleConfirmAllPending} disabled={isProcessing} className="w-full">
+                    CONFIRM ALL PENDING ({pendingCount})
+                  </Button>
+                )}
+
+                <div className="mt-4 border-t border-outline-variant/20 pt-4">
+                  <details>
+                    <summary className="cursor-pointer font-label text-on-surface-variant hover:text-on-surface transition-colors">+ Add Student Manually</summary>
+                    <div className="mt-2 p-3 bg-surface-container-low rounded-lg">
+                      <select
+                        className="w-full border border-outline-variant/20 bg-surface text-on-surface rounded-md p-2"
+                        onChange={(e) => {
+                          if (e.target.value) handleAddStudent(e.target.value);
+                        }}
+                        defaultValue=""
+                      >
+                        <option value="">Select a student...</option>
+                        {users.map((u) => (
+                          <option key={u.user_uuid} value={u.user_uuid}>
+                            {u.first_name} {u.last_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </details>
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-on-surface-variant py-8">Select a class from the schedule above to view attendance.</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'feedback' && (
+          <div className="glass-panel rounded-xl p-6">
+            <h2 className="text-lg font-headline font-bold text-on-surface mb-4">Feedback</h2>
             <details className="mb-4">
               <summary className="cursor-pointer font-label text-on-surface-variant hover:text-on-surface transition-colors mb-2">Filters</summary>
               <div className="flex gap-4 p-3 bg-surface-container-low rounded-lg flex-wrap">
@@ -635,6 +644,7 @@ export default function TeacherPage() {
                       if (ratingFilter === 'negative' && f.rating !== 'thumbs_down') return false;
                       if (dateRange.start && f.created_at < dateRange.start) return false;
                       if (dateRange.end && f.created_at > dateRange.end + 'T23:59:59') return false;
+                      if (classesFilter.length > 0 && !classesFilter.includes(f.class_instance_id || 0)) return false;
                       return true;
                     })
                     .map((fb) => (
@@ -654,57 +664,110 @@ export default function TeacherPage() {
               </table>
             </div>
           </div>
-      )}
+        )}
 
-      {activeTab === 'comments' && (
-        <>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-headline font-bold text-on-surface">Comments</h2>
-            <Button
-              variant={showCreateComment ? 'primary' : 'outline'}
-              onClick={() => setShowCreateComment(!showCreateComment)}
-            >
-              {showCreateComment ? 'Cancel' : '+ New Comment'}
-            </Button>
-          </div>
+        {activeTab === 'comments' && (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-headline font-bold text-on-surface">Comments</h2>
+              <Button
+                variant={showCreateComment ? 'primary' : 'outline'}
+                onClick={() => setShowCreateComment(!showCreateComment)}
+              >
+                {showCreateComment ? 'Cancel' : '+ New Comment'}
+              </Button>
+            </div>
 
-          {showCreateComment && user && (
-            <div className="glass-panel rounded-xl p-6 mb-4">
-              <CommentCreateForm
-                users={users}
+            {showCreateComment && user && (
+              <div className="glass-panel rounded-xl p-6 mb-4">
+                <CommentCreateForm
+                  users={users}
+                  currentUser={user}
+                  onSubmit={async (targetUserUuid, content, rating) => {
+                    if (!user) return;
+                    await commentsApi.create(
+                      { content, target_user_uuid: targetUserUuid, rating: rating || undefined },
+                      user.user_uuid
+                    );
+                    setShowCreateComment(false);
+                    loadComments();
+                  }}
+                />
+              </div>
+            )}
+
+            <div className="glass-panel rounded-xl p-6">
+              <CommentFeed
+                comments={comments}
                 currentUser={user}
-                onSubmit={async (targetUserUuid, content, rating) => {
+                isLoading={isLoadingComments}
+                onRefresh={loadComments}
+                onReplySubmit={async (parentId, content) => {
                   if (!user) return;
                   await commentsApi.create(
-                    { content, target_user_uuid: targetUserUuid, rating: rating || undefined },
+                    { content, parent_comment_id: parentId },
                     user.user_uuid
                   );
-                  setShowCreateComment(false);
                   loadComments();
                 }}
               />
             </div>
-          )}
+          </>
+        )}
 
+        {activeTab === 'students' && (
           <div className="glass-panel rounded-xl p-6">
-            <CommentFeed
-              comments={comments}
-              currentUser={user}
-              isLoading={isLoadingComments}
-              onRefresh={loadComments}
-              onReplySubmit={async (parentId, content) => {
-                if (!user) return;
-                await commentsApi.create(
-                  { content, parent_comment_id: parentId },
-                  user.user_uuid
-                );
-                loadComments();
-              }}
-            />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-on-primary-container" />
+              </div>
+              <div>
+                <h2 className="text-lg font-headline font-bold text-on-surface">Create New Student</h2>
+                <p className="text-sm text-on-surface-variant">Add a basic student profile. Password and PIN are set via invite.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateStudent} className="space-y-4 max-w-md">
+              <div>
+                <label className="block text-sm font-label text-on-surface-variant mb-1">First Name *</label>
+                <Input
+                  type="text"
+                  value={newStudentForm.first_name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudentForm({ ...newStudentForm, first_name: e.target.value })}
+                  required
+                  maxLength={100}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-label text-on-surface-variant mb-1">Last Name *</label>
+                <Input
+                  type="text"
+                  value={newStudentForm.last_name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudentForm({ ...newStudentForm, last_name: e.target.value })}
+                  required
+                  maxLength={100}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-label text-on-surface-variant mb-1">Email *</label>
+                <Input
+                  type="email"
+                  value={newStudentForm.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudentForm({ ...newStudentForm, email: e.target.value })}
+                  required
+                  maxLength={255}
+                />
+              </div>
+              {studentCreateError && <p className="text-error text-sm">{studentCreateError}</p>}
+              {studentCreateSuccess && <p className="text-green-400 text-sm">{studentCreateSuccess}</p>}
+              <Button type="submit" disabled={isProcessing}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Create Student
+              </Button>
+            </form>
           </div>
-        </>
-      )}
-    </div>
+        )}
+      </div>
     </>
   );
 }

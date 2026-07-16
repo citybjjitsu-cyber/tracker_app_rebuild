@@ -144,6 +144,22 @@ def get_admin_user(user: models.User = Depends(get_current_user), db: Session = 
     return user
 
 
+def get_teacher_user(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user_role = (
+        db.query(models.UserRole)
+        .filter(
+            models.UserRole.user_uuid == user.user_uuid,
+            models.UserRole.is_current,
+        )
+        .join(models.Role)
+        .filter(models.Role.name.in_(["Teacher", "Admin"]))
+        .first()
+    )
+    if not user_role:
+        raise HTTPException(status_code=403, detail="Teacher role required")
+    return user
+
+
 def get_lite_admin_user(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     user_role = (
         db.query(models.UserRole)
