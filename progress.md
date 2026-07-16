@@ -563,3 +563,23 @@ Placeholder for additional features discovered during testing and deployment.
 - ✅ 177 frontend tests pass (vitest)
 - ✅ Frontend build succeeds (15 routes compiled)
 - ✅ Lint: 0 errors (42 pre-existing warnings)
+
+---
+
+## RECENT UPDATES (July 16, 2026) — Public News Page
+
+**Branch:** `feature/public-news-page`
+
+### Phase 4: Public News Page
+
+**Goal:** Public news page accessible without login, linked from the kiosk locked screen.
+
+#### Frontend Changes
+- ✅ `ckb-tracker/src/app/news/page.tsx` — New `/news` page: public, no auth required, fetches published news via `newsApi.list(true)`, shows expandable article cards with date/title/content, loading spinner, empty state, theme toggle, "Back to CKB Tracker" link
+- ✅ `ckb-tracker/src/app/kiosk/KioskLocked.tsx` — News cards now link to `/news`, added "View All" link in section header, hover effects on cards
+- ✅ `ckb-tracker/src/components/AppLayout.tsx` — Added `/news` to public routes (no sidebar)
+
+#### Tests
+- ✅ 177 frontend tests pass (vitest)
+- ✅ Frontend build succeeds (16 routes compiled)
+- ✅ Lint: 0 errors (41 pre-existing warnings)
