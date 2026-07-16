@@ -41,13 +41,9 @@ def create_attendance(
     )
 
     if existing:
-        raise HTTPException(
-            status_code=400, detail="Already checked in for this class today"
-        )
+        raise HTTPException(status_code=400, detail="Already checked in for this class today")
 
-    db_attendance = models.Attendance(
-        **attendance.model_dump(), attendance_date=today, status="pending"
-    )
+    db_attendance = models.Attendance(**attendance.model_dump(), attendance_date=today, status="pending")
     db.add(db_attendance)
     db.commit()
     db.refresh(db_attendance)
@@ -124,9 +120,7 @@ def check_in(
     )
 
     if existing:
-        raise HTTPException(
-            status_code=400, detail="Already checked in for this class today"
-        )
+        raise HTTPException(status_code=400, detail="Already checked in for this class today")
 
     db_attendance = models.Attendance(
         user_uuid=user_uuid,
@@ -223,7 +217,7 @@ def direct_attendance(
         class_instance_id=class_instance_id,
         teacher_uuid=teacher_uuid,
         attendance_date=today,
-        status="confirmed",
+        status="pending",
     )
     db.add(db_attendance)
     db.commit()
@@ -239,11 +233,7 @@ def confirm_attendance(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    attendance = (
-        db.query(models.Attendance)
-        .filter(models.Attendance.id == attendance_id)
-        .first()
-    )
+    attendance = db.query(models.Attendance).filter(models.Attendance.id == attendance_id).first()
     if not attendance:
         raise HTTPException(status_code=404, detail="Attendance not found")
 
@@ -274,11 +264,7 @@ def cancel_attendance(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    attendance = (
-        db.query(models.Attendance)
-        .filter(models.Attendance.id == attendance_id)
-        .first()
-    )
+    attendance = db.query(models.Attendance).filter(models.Attendance.id == attendance_id).first()
     if not attendance:
         raise HTTPException(status_code=404, detail="Attendance not found")
 
@@ -310,9 +296,7 @@ def bulk_confirm(
     user: models.User = Depends(get_current_user),
 ):
     ids = data.get("ids", [])
-    attendance_list = (
-        db.query(models.Attendance).filter(models.Attendance.id.in_(ids)).all()
-    )
+    attendance_list = db.query(models.Attendance).filter(models.Attendance.id.in_(ids)).all()
 
     for att in attendance_list:
         att.status = "confirmed"
