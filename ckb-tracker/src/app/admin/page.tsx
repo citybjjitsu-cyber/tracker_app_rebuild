@@ -33,7 +33,7 @@ import {
   api,
 } from '@/lib/api';
 import { cn, formatDate, DAYS_OF_WEEK, getRankColor } from '@/lib/utils';
-import { Camera, LogOut, Plus, Shield, X, Edit3 } from 'lucide-react';
+import { Camera, LogOut, Plus, Shield, X, Edit3, UserX, UserCheck } from 'lucide-react';
 import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
 
 export default function AdminPage() {
@@ -132,6 +132,7 @@ export default function AdminPage() {
   const [classEditForm, setClassEditForm] = useState({ class_name: '', day: '', time: '', points: 0, gym_id: '', class_type_id: '' });
   const [isImportingCsv, setIsImportingCsv] = useState(false);
   const [invites, setInvites] = useState<InviteRecord[]>([]);
+  const [showInactive, setShowInactive] = useState(false);
   const [inviteFirstName, setInviteFirstName] = useState('');
   const [inviteLastName, setInviteLastName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -167,7 +168,7 @@ export default function AdminPage() {
     if (isAdmin) {
       loadAllData();
     }
-  }, [isAdmin]);
+  }, [isAdmin, showInactive]);
 
   useEffect(() => {
     if (activeTab === 'lessons' || activeTab === 'assign') {
@@ -308,7 +309,7 @@ export default function AdminPage() {
   async function loadAllData() {
     try {
       const [usersData, classesData, rolesData, termsData, targetsData, curriculaData, lessonsData, gymsData, typesData, tiersData] = await Promise.all([
-        usersApi.list(),
+        usersApi.list(showInactive),
         classesApi.list(),
         rolesApi.list(),
         termsApi.list(),
@@ -394,6 +395,24 @@ export default function AdminPage() {
       alert(detail);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleToggleActive = async (user: User) => {
+    const action = user.is_current ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} ${user.first_name} ${user.last_name}?`)) return;
+    try {
+      await usersApi.toggleActive(user.user_uuid);
+      loadAllData();
+      if (selectedUser?.user_uuid === user.user_uuid) {
+        setSelectedUser(null);
+      }
+    } catch (error: unknown) {
+      console.error(`Error ${action} user:`, error);
+      const msg = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || error.message
+        : String(error);
+      alert(`Failed to ${action} user: ${msg}`);
     }
   };
 
@@ -968,6 +987,15 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle>Members</CardTitle>
                   <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showInactive}
+                        onChange={(e) => setShowInactive(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-slate-600"
+                      />
+                      Show Inactive
+                    </label>
                     <Input
                       placeholder="Search by name, rank, or email..."
                       value={searchQuery}
@@ -981,12 +1009,17 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Total Active Members: {studentStats.totalStudents}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                  {showInactive
+                    ? `Total Members: ${studentStats.totalStudents} (${users.filter(u => u.is_current).length} active, ${users.filter(u => !u.is_current).length} inactive)`
+                    : `Total Active Members: ${studentStats.totalStudents}`
+                  }
+                </p>
                 <div className="space-y-2">
                   {filteredUsers.map((u) => (
                     <div
                       key={u.user_uuid}
-                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer ${selectedUser?.user_uuid === u.user_uuid ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer ${selectedUser?.user_uuid === u.user_uuid ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'} ${!u.is_current ? 'opacity-50' : ''}`}
                       onClick={() => handleSelectUser(u)}
                     >
                       <div className="flex items-center gap-3">
@@ -996,7 +1029,16 @@ export default function AdminPage() {
                           <p className="text-sm text-slate-500 dark:text-slate-400">{u.email}</p>
                         </div>
                       </div>
-                      <RankBadge rank={u.rank} degree={u.rank_tier?.degree} />
+                      <div className="flex items-center gap-2">
+                        <RankBadge rank={u.rank} degree={u.rank_tier?.degree} />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleToggleActive(u); }}
+                          className={`p-1.5 rounded-lg transition-colors ${u.is_current ? 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-slate-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'}`}
+                          title={u.is_current ? 'Deactivate' : 'Reactivate'}
+                        >
+                          {u.is_current ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
