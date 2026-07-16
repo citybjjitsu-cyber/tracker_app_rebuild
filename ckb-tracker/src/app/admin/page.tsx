@@ -407,9 +407,12 @@ export default function AdminPage() {
       if (selectedUser?.user_uuid === user.user_uuid) {
         setSelectedUser(null);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error ${action} user:`, error);
-      alert(`Failed to ${action} user.`);
+      const msg = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || error.message
+        : String(error);
+      alert(`Failed to ${action} user: ${msg}`);
     }
   };
 
