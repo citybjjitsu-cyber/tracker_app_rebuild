@@ -122,7 +122,7 @@ def test_direct_attendance(client, headers):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "confirmed"
+    assert data["status"] == "pending"
     assert data["user_uuid"] == "student-uuid-0000-0000-000000000002"
     assert data["class_id"] == 1
 

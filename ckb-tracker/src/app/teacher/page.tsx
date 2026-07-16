@@ -53,6 +53,7 @@ export default function TeacherPage() {
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [showCreateComment, setShowCreateComment] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [manualStudentUuid, setManualStudentUuid] = useState('');
 
   const [newStudentForm, setNewStudentForm] = useState({ first_name: '', last_name: '', email: '' });
   const [studentCreateError, setStudentCreateError] = useState('');
@@ -224,6 +225,7 @@ export default function TeacherPage() {
     setIsProcessing(true);
     try {
       await attendanceApi.direct(studentUuid, selectedClass, undefined, user?.user_uuid);
+      setManualStudentUuid('');
       loadAttendance();
     } catch (error) {
       console.error('Error adding student:', error);
@@ -523,13 +525,11 @@ export default function TeacherPage() {
                 <div className="mt-4 border-t border-outline-variant/20 pt-4">
                   <details>
                     <summary className="cursor-pointer font-label text-on-surface-variant hover:text-on-surface transition-colors">+ Add Student Manually</summary>
-                    <div className="mt-2 p-3 bg-surface-container-low rounded-lg">
+                    <div className="mt-2 p-3 bg-surface-container-low rounded-lg flex gap-2">
                       <select
-                        className="w-full border border-outline-variant/20 bg-surface text-on-surface rounded-md p-2"
-                        onChange={(e) => {
-                          if (e.target.value) handleAddStudent(e.target.value);
-                        }}
-                        defaultValue=""
+                        className="flex-1 border border-outline-variant/20 bg-surface text-on-surface rounded-md p-2"
+                        value={manualStudentUuid}
+                        onChange={(e) => setManualStudentUuid(e.target.value)}
                       >
                         <option value="">Select a student...</option>
                         {users.map((u) => (
@@ -538,6 +538,13 @@ export default function TeacherPage() {
                           </option>
                         ))}
                       </select>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddStudent(manualStudentUuid)}
+                        disabled={!manualStudentUuid || isProcessing}
+                      >
+                        Add
+                      </Button>
                     </div>
                   </details>
                 </div>
