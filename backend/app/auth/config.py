@@ -4,6 +4,7 @@ import secrets
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 MAX_SESSION_HOURS = int(os.getenv("MAX_SESSION_HOURS", "24"))
+KIOSK_IDLE_MINUTES = int(os.getenv("KIOSK_IDLE_MINUTES", "240"))
 
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "False").lower() == "true"
 COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "Lax")

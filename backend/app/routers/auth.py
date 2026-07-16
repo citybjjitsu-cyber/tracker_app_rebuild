@@ -412,6 +412,7 @@ def refresh_token(
     )
 
     return {
+        "access_token": access_token,
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
         "csrf_token": csrf_token,

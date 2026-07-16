@@ -17,6 +17,7 @@ from app.routers.auth import (
 from app.auth.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
+    KIOSK_IDLE_MINUTES,
 )
 from app.auth.jwt_utils import (
     create_access_token,
@@ -124,11 +125,15 @@ def kiosk_unlock(
         user_agent=user_agent,
     )
 
+    csrf_token = generate_csrf_token()
+    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+
     return schemas.KioskUnlockResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         user=schemas.KioskUserResponse.model_validate(user),
         roles=[schemas.RoleResponse.model_validate(r) for r in roles],
+        idle_timeout_minutes=KIOSK_IDLE_MINUTES,
     )
 
 

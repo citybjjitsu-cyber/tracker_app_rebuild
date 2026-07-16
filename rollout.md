@@ -109,6 +109,126 @@
 
 ---
 
+## Phase 8: Kiosk Session Persistence
+**Branch:** `feature/kiosk-session`
+
+**Goal:** Fix kiosk so it stays authenticated and live on the "Find your name" screen for the full duration of a class block, without silent failures or unwanted idle locks.
+
+### Why
+
+- Kiosk staff unlocks once to allow mat-side student check-ins for a class
+- Current idle timeout (60s) is too aggressive — a class is 30–60+ minutes
+- Current access token expires in 10 minutes with no auto-refresh — kiosk breaks silently after 10 min
+- The "Find your name" screen must stay visible and responsive the entire time
+- Kiosk is a shared public terminal, not a personal session — different auth model
+
+### Pre-requisites
+
+- All Phase 1–7 features merged and stable
+- Device power/sleep settings handled on the physical device (out of scope)
+
+---
+
+| # | Task | Files |
+|---|------|-------|
+| 8a | Make kiosk idle timeout configurable — add `KIOSK_IDLE_MINUTES` env var (default `240` = 4 hours) | `app/auth/config.py`, `app/routers/kiosk.py` |
+| 8b | Update `KioskContext.tsx` idle timer to use backend-configured value instead of hardcoded 60s | `KioskContext.tsx`, `app/kiosk/page.tsx` (fetch config on unlock) |
+| 8c | Add auto-refresh interceptor for kiosk tokens — on 401, attempt silent refresh using httpOnly refresh cookie, retry the failed request | `lib/api.ts` |
+| 8d | On refresh failure (expired session), lock kiosk and redirect to home (same as explicit lock) | `KioskContext.tsx`, `lib/api.ts` |
+
+**Tests:** 128 backend ✅, 177 frontend ✅, frontend build ✅
+
+**Commit:** `fix: kiosk session persistence with configurable idle timeout and token auto-refresh`
+
+---
+
+## Phase 9: Database Migrations & Bootstrap
+**Branch:** `feature/db-migrations`
+
+**Goal:** Replace drop-and-recreate DB management with proper migrations (Alembic) and a repeatable bootstrap pattern. This is the foundation for reliable production deploys and future schema changes.
+
+### Why
+
+- `DROP_ALL_ON_STARTUP` and "Reset Database" are nuclear options — they destroy all data
+- No way to evolve the schema incrementally (adding a column means wiping the DB)
+- Auto-seeding demo data in `main.py` lifespan is fragile and dangerous in production
+- No CLI tooling to bootstrap an admin account after a DB reset
+- Every future schema change currently requires a full DB wipe
+
+### Pre-requisites
+
+- Render Basic plan DB (confirmed ✅ — has backup/restore)
+- All Phase 1–8 features merged and stable
+
+---
+
+### Step 1: Add Alembic
+| # | Task | Files |
+|---|------|-------|
+| 1a | Install Alembic: `uv add alembic` | `pyproject.toml` |
+| 1b | Initialize: `uv run alembic init backend/alembic` | `alembic/` directory |
+| 1c | Configure `alembic.ini` — set `sqlalchemy.url` to read from `DATABASE_URL` env var | `alembic.ini` |
+| 1d | Configure `alembic/env.py` — import `models.Base` for autogenerate support, read `DATABASE_URL` from env | `alembic/env.py` |
+| 1e | Verify: `uv run alembic heads` runs without error | — |
+
+### Step 2: Create Initial Migration
+| # | Task | Files |
+|---|------|-------|
+| 2a | Generate initial migration from current models: `uv run alembic revision --autogenerate -m "initial schema"` | `alembic/versions/001_initial.py` |
+| 2b | Review generated migration — ensure it matches current `create_all` output | `alembic/versions/001_initial.py` |
+| 2c | Test on a fresh SQLite DB: delete `ckb_tracker.db`, run `uv run alembic upgrade head`, verify tables exist | — |
+| 2d | Test downgrade: `uv run alembic downgrade base`, verify tables dropped cleanly | — |
+
+### Step 3: Create Bootstrap CLI Command
+| # | Task | Files |
+|---|------|-------|
+| 3a | Create `backend/app/cli.py` with Click or argparse | `app/cli.py` |
+| 3b | `bootstrap` command — creates: roles, admin account, kiosk service account. Idempotent (skips if already exists). Accepts `--email` and `--password` flags | `app/cli.py` |
+| 3c | `seed-demo` command — runs `seed_complete_data()` for dev/staging. Only works when `ENVIRONMENT != production` | `app/cli.py` |
+| 3d | `migrate-and-bootstrap` command — runs `alembic upgrade head` then `bootstrap`. Intended for Render start command | `app/cli.py` |
+| 3e | Add entry point to `pyproject.toml` so commands work via `uv run ckb bootstrap` | `pyproject.toml` |
+
+### Step 4: Remove Auto-Seed from Lifespan
+| # | Task | Files |
+|---|------|-------|
+| 4a | Remove the `user_count == 0` auto-seed block from `main.py` lifespan (lines ~106–143) | `main.py` |
+| 4b | Remove the `existing_tablet_role` / `existing_lite_admin_role` checks from lifespan (moved to bootstrap) | `main.py` |
+| 4c | Keep rank tier seeding and `rank_tier_id` backfill in lifespan (these are safe, idempotent migrations) | `main.py` |
+| 4d | Update Render start command to: `cd backend && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT` | `render.yaml` |
+
+### Step 5: Clean Up Seed Scripts
+| # | Task | Files |
+|---|------|-------|
+| 5a | Keep `seed_complete_data.py` — rename to `seed_demo.py` for clarity | `seed_demo.py` |
+| 5b | Remove `POST /admin/seed` endpoint (replaced by CLI `seed-demo` command) | `admin.py` |
+| 5c | Keep admin Database tab: backup, restore, reset (reset now just drops + migrates, no auto-seed) | `database.py` |
+| 5d | Update `reset_database` to run `alembic upgrade head` after dropping tables instead of `create_all` | `database.py` |
+
+### Step 6: Production Bootstrap Runbook
+| # | Task | Files |
+|---|------|-------|
+| 6a | Document the one-time bootstrap procedure in `BOOTSTRAP.md` | `BOOTSTRAP.md` |
+| 6b | After deploy, SSH or use Render shell: `uv run ckb bootstrap --email admin@yourgym.com --password SecurePass123` | — |
+| 6c | Verify: log in as admin, confirm roles exist, confirm empty user list (except admin) | — |
+| 6d | Build class structure via Admin UI (gyms, class types, schedules, terms, targets) | — |
+| 6e | Invite pilot users via Admin → Invites | — |
+| 6f | **Remove** `DROP_ALL_ON_STARTUP` from Render env vars (if set) | — |
+
+### Step 7: Update Deploy Workflow
+| # | Task | Files |
+|---|------|-------|
+| 7a | Update `deploy.yml` — add `alembic upgrade head` step before backend tests | `.github/workflows/deploy.yml` |
+| 7b | Update `test.yml` — add migration step to backend test job | `.github/workflows/test.yml` |
+| 7c | Add CI check: `uv run alembic check` (detects unapplied migrations) | `.github/workflows/test.yml` |
+
+---
+
+**Tests:** All existing tests must pass. Add tests for CLI bootstrap command (idempotency, creates roles + admin). Backend coverage ≥ 75%.
+
+**Commit:** `feat: add Alembic migrations and bootstrap CLI for production-ready DB management`
+
+---
+
 ## Rollout Order (Priority)
 
 | Order | Phase | Why |
@@ -120,6 +240,8 @@
 | 5 | Phase 4 | New feature (news page) |
 | 6 | Phase 7 | Important admin feature (deactivation) |
 | 7 | Phase 6 | Largest scope (teacher redesign) |
+| 8 | Phase 8 | Kiosk session must work before pilot testing |
+| 9 | Phase 9 | Production foundation (migrations, bootstrap, safe deploys) |
 
 ---
 

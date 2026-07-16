@@ -57,6 +57,52 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Kiosk token auto-refresh on 401
+let onKioskLockCallback: (() => void) | null = null;
+let kioskRefreshInProgress = false;
+
+export function setOnKioskLock(callback: (() => void) | null) {
+  onKioskLockCallback = callback;
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      getKioskStaffToken() &&
+      !originalRequest._kioskRetried &&
+      !kioskRefreshInProgress
+    ) {
+      originalRequest._kioskRetried = true;
+      kioskRefreshInProgress = true;
+
+      try {
+        const refreshResponse = await axios.post<{ access_token: string }>(
+          `${API_BASE_URL}/auth/refresh`,
+          null,
+          { withCredentials: true },
+        );
+
+        if (refreshResponse.data?.access_token) {
+          setKioskStaffToken(refreshResponse.data.access_token);
+          originalRequest.headers['Authorization'] = `Bearer ${refreshResponse.data.access_token}`;
+          return api(originalRequest);
+        }
+      } catch {
+        setKioskStaffToken(null);
+        onKioskLockCallback?.();
+      } finally {
+        kioskRefreshInProgress = false;
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 export const authApi = {
   login: async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password });

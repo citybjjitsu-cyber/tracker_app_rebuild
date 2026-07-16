@@ -17,6 +17,8 @@ vi.mock('@/lib/api', () => ({
     lock: vi.fn(),
   },
   setKioskStaffToken: vi.fn(),
+  getKioskStaffToken: vi.fn(() => null),
+  setOnKioskLock: vi.fn(),
 }))
 
 describe('KioskContext', () => {
