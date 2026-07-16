@@ -9,6 +9,7 @@ vi.mock('axios', () => {
     delete: vi.fn(),
     interceptors: {
       request: { use: vi.fn() },
+      response: { use: vi.fn() },
     },
     defaults: {},
   }

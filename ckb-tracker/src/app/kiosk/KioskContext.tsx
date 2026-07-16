@@ -2,10 +2,10 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { kioskApi, setKioskStaffToken } from '@/lib/api';
+import { kioskApi, setKioskStaffToken, getKioskStaffToken, setOnKioskLock } from '@/lib/api';
 import type { User } from '@/types';
 
-const IDLE_TIMEOUT_MS = 60000;
+const DEFAULT_IDLE_TIMEOUT_MS = 240 * 60 * 1000;
 
 interface KioskContextType {
   isUnlocked: boolean;
@@ -37,6 +37,7 @@ export function KioskProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimeoutMs = useRef(DEFAULT_IDLE_TIMEOUT_MS);
 
   const clearIdleTimer = useCallback(() => {
     if (idleTimerRef.current) {
@@ -75,6 +76,9 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     setError('');
     setIdentifiedUser(null);
     setSelectedClassIds([]);
+    if (data.idle_timeout_minutes) {
+      idleTimeoutMs.current = data.idle_timeout_minutes * 60 * 1000;
+    }
   }, []);
 
   const identifyUser = useCallback((user: User) => {
@@ -100,7 +104,7 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     if (isUnlocked) {
       idleTimerRef.current = setTimeout(() => {
         lockKiosk();
-      }, IDLE_TIMEOUT_MS);
+      }, idleTimeoutMs.current);
     }
   }, [isUnlocked, lockKiosk, clearIdleTimer]);
 
@@ -122,6 +126,11 @@ export function KioskProvider({ children }: { children: ReactNode }) {
       clearIdleTimer();
     };
   }, [isUnlocked, resetIdleTimer, clearIdleTimer]);
+
+  useEffect(() => {
+    setOnKioskLock(lockKiosk);
+    return () => setOnKioskLock(null);
+  }, [lockKiosk]);
 
   return (
     <KioskContext.Provider

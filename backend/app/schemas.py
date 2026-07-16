@@ -576,6 +576,7 @@ class KioskUnlockResponse(BaseModel):
     refresh_token: str
     user: KioskUserResponse
     roles: List[RoleResponse]
+    idle_timeout_minutes: int = 240
 
 
 class InviteSendRequest(BaseModel):
