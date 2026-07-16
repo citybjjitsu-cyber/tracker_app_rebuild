@@ -212,3 +212,44 @@ def test_email(
     if sent:
         return {"message": f"Test email sent to {body.email}"}
     raise HTTPException(status_code=502, detail=f"SMTP not configured or failed to send to {body.email}")
+
+
+@router.post("/users/{user_uuid}/toggle-active")
+@limiter.limit(WRITE_LIMIT)
+def toggle_user_active(
+    request: StarRequest,
+    user_uuid: str,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_admin_user),
+):
+    user = db.query(models.User).filter(models.User.user_uuid == user_uuid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.user_uuid == admin.user_uuid:
+        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
+
+    user.is_current = not user.is_current
+    if not user.is_current:
+        user.end_date = _utcnow()
+    else:
+        user.end_date = None
+        user.effective_date = _utcnow()
+    db.commit()
+    db.refresh(user)
+
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent")
+    action = "user_deactivated" if not user.is_current else "user_activated"
+    create_audit_log(
+        db,
+        action=action,
+        resource_type="user",
+        actor_uuid=str(admin.user_uuid),
+        resource_uuid=user_uuid,
+        detail=f"User {'deactivated' if not user.is_current else 'activated'}: {user.first_name} {user.last_name}",
+        ip_address=client_host,
+        user_agent=user_agent,
+    )
+
+    return {"is_current": user.is_current, "message": f"User {'activated' if user.is_current else 'deactivated'}"}

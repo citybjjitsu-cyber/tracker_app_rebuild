@@ -800,7 +800,7 @@ describe('usersApi (additional)', () => {
     vi.mocked(axios.default.get).mockResolvedValue({ data: [{ user_uuid: 'u1', first_name: 'John' }] })
     const result = await apiModule.usersApi.list()
 
-    expect(axios.default.get).toHaveBeenCalledWith('/users/')
+    expect(axios.default.get).toHaveBeenCalledWith('/users/', { params: {} })
     expect(result).toHaveLength(1)
   })
 

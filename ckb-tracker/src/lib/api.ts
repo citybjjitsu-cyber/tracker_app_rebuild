@@ -84,8 +84,8 @@ export const authApi = {
 };
 
 export const usersApi = {
-  list: async () => {
-    const response = await api.get<User[]>('/users/');
+  list: async (includeInactive: boolean = false) => {
+    const response = await api.get<User[]>('/users/', { params: includeInactive ? { include_inactive: true } : {} });
     return response.data;
   },
   get: async (uuid: string) => {
@@ -121,6 +121,10 @@ export const usersApi = {
   },
   deletePhoto: async (uuid: string) => {
     const response = await api.delete(`/users/${uuid}/photo`);
+    return response.data;
+  },
+  toggleActive: async (uuid: string) => {
+    const response = await api.post<{ is_current: boolean; message: string }>(`/admin/users/${uuid}/toggle-active`);
     return response.data;
   },
   importCsv: async (file: File) => {

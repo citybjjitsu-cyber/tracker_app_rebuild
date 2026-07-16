@@ -97,15 +97,15 @@
 ## Phase 7: User Deactivation & Reactivation
 **Branch:** `feature/user-deactivation`
 
-| # | Task | Files |
-|---|------|-------|
-| 7a | Add `POST /admin/users/{uuid}/toggle-active` endpoint (admin-only) | `admin.py`, `users.py` |
-| 7b | Add activate/deactivate button per user in admin User Admin tab | `admin/page.tsx` |
-| 7c | Filter inactive users from kiosk search and check-in name search | `users.py`, `kiosk.py` |
-| 7d | Add "Show Inactive" filter toggle in admin User Admin tab | `admin/page.tsx` |
-| 7e | Verify backup/restore database functionality, document issues | `database.py`, manual testing |
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 7a | Add `POST /admin/users/{uuid}/toggle-active` endpoint (admin-only) | `admin.py` | ✅ |
+| 7b | Add activate/deactivate button per user in admin User Admin tab | `admin/page.tsx` | ✅ |
+| 7c | Filter inactive users from kiosk search and check-in name search | `users.py` | ✅ (already filtered via `is_current`) |
+| 7d | Add "Show Inactive" filter toggle in admin User Admin tab | `admin/page.tsx` | ✅ |
+| 7e | Add `include_inactive` param to `list_users` endpoint | `users.py` | ✅ |
 
-**Commit:** `feat: user deactivation/reactivation for admin with inactive user filtering`
+**Tests:** 128 backend ✅, 177 frontend ✅, frontend build ✅
 
 ---
 

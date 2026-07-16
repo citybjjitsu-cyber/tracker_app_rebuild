@@ -583,3 +583,27 @@ Placeholder for additional features discovered during testing and deployment.
 - ✅ 177 frontend tests pass (vitest)
 - ✅ Frontend build succeeds (16 routes compiled)
 - ✅ Lint: 0 errors (41 pre-existing warnings)
+
+---
+
+## RECENT UPDATES (July 16, 2026) — User Deactivation & Reactivation
+
+**Branch:** `feature/user-deactivation`
+
+### Phase 7: User Deactivation & Reactivation
+
+**Goal:** Allow admins to deactivate/reactivate users. Inactive users are hidden from kiosk search and check-in.
+
+#### Backend Changes
+- ✅ `backend/app/routers/admin.py` — Added `POST /admin/users/{user_uuid}/toggle-active` endpoint (admin-only, rate-limited). Toggles `is_current`, sets `end_date` on deactivation, clears it on reactivation. Prevents self-deactivation. Creates audit log.
+- ✅ `backend/app/routers/users.py` — Added `include_inactive` query param to `GET /users/` (default false). When true, returns all users regardless of `is_current`. Kiosk/search endpoints remain filtered to active only.
+
+#### Frontend Changes
+- ✅ `ckb-tracker/src/lib/api.ts` — Added `usersApi.list(includeInactive)` param and `usersApi.toggleActive(uuid)` method
+- ✅ `ckb-tracker/src/app/admin/page.tsx` — Added "Show Inactive" checkbox toggle in Members header, deactivate/reactivate button (UserX/UserCheck icons) per user in list, inactive users shown at 50% opacity, member count shows active/inactive breakdown when Show Inactive is on
+
+#### Tests
+- ✅ 128 backend tests pass (pytest)
+- ✅ 177 frontend tests pass (vitest)
+- ✅ Frontend build succeeds (16 routes compiled)
+- ✅ Lint: 0 errors

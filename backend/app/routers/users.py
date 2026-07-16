@@ -127,8 +127,11 @@ def create_user(
 
 @router.get("/", response_model=List[schemas.UserResponse])
 @limiter.limit(READ_LIMIT)
-def list_users(request: Request, db: Session = Depends(get_db)):
-    return db.query(models.User).options(joinedload(models.User.rank_tier)).filter(models.User.is_current).all()
+def list_users(request: Request, db: Session = Depends(get_db), include_inactive: bool = False):
+    query = db.query(models.User).options(joinedload(models.User.rank_tier))
+    if not include_inactive:
+        query = query.filter(models.User.is_current)
+    return query.all()
 
 
 @router.get("/search", response_model=List[schemas.UserResponse], dependencies=[])
