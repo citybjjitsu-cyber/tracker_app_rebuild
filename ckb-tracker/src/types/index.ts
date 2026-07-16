@@ -46,6 +46,7 @@ export interface User {
   has_password?: boolean;
   rank?: Rank;
   rank_tier_id?: number;
+  rank_tier?: RankTier;
   last_graded_date?: string;
   comments?: string;
   nicknames?: string;

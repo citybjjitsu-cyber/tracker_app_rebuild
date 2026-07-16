@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
@@ -73,6 +73,7 @@ def kiosk_unlock(
 ):
     user = (
         db.query(models.User)
+        .options(joinedload(models.User.rank_tier))
         .filter(models.User.email == data.email, models.User.is_current)
         .first()
     )
@@ -86,9 +87,7 @@ def kiosk_unlock(
     roles = get_user_roles(db, user.user_uuid)
     role_names = [r["name"] for r in roles]
     if "Kiosk" not in role_names:
-        raise HTTPException(
-            status_code=403, detail="Kiosk service account required to unlock kiosk"
-        )
+        raise HTTPException(status_code=403, detail="Kiosk service account required to unlock kiosk")
 
     access_token, access_jti = create_access_token(user.user_uuid)
     refresh_token, refresh_jti = create_refresh_token(user.user_uuid)
@@ -170,6 +169,7 @@ def verify_user_pin(
 
     users = (
         db.query(models.User)
+        .options(joinedload(models.User.rank_tier))
         .filter(
             models.User.pin_hash.isnot(None),
             models.User.is_current,
@@ -262,6 +262,7 @@ def verify_pin_for_user(
 
     user = (
         db.query(models.User)
+        .options(joinedload(models.User.rank_tier))
         .filter(
             models.User.user_uuid == data.user_uuid,
             models.User.is_current,

@@ -125,6 +125,7 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     user_uuid: str
     rank_tier_id: Optional[int] = None
+    rank_tier: Optional[RankTierResponse] = None
     profile_image_url: Optional[str] = None
     image_offset_x: Optional[float] = None
     image_offset_y: Optional[float] = None
@@ -543,6 +544,7 @@ class KioskUserPinVerifyForUserRequest(BaseModel):
 class KioskUserResponse(UserBase):
     user_uuid: str
     rank_tier_id: Optional[int] = None
+    rank_tier: Optional[RankTierResponse] = None
     profile_image_url: Optional[str] = None
     image_offset_x: Optional[float] = None
     image_offset_y: Optional[float] = None

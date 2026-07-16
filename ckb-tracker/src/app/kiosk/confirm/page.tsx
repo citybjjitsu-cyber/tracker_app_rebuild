@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useKiosk } from '../KioskContext';
 import { classesApi, attendanceApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
+import { RankBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle2, ChevronLeft, Loader2, X } from 'lucide-react';
 import type { ClassSchedule } from '@/types';
@@ -88,7 +89,7 @@ export default function KioskConfirmPage() {
               <p className="font-bold text-[var(--foreground)] font-headline">
                 {identifiedUser.first_name} {identifiedUser.last_name}
               </p>
-              <p className="text-sm text-[var(--muted-foreground)]">{identifiedUser.rank} Belt</p>
+              <RankBadge rank={identifiedUser.rank} degree={identifiedUser.rank_tier?.degree} />
             </div>
           </div>
         )}
@@ -137,7 +138,7 @@ export default function KioskConfirmPage() {
             <h3 className="text-xl font-black font-headline text-[var(--foreground)]">
               {identifiedUser.first_name} {identifiedUser.last_name}
             </h3>
-            <p className="text-sm text-[var(--muted-foreground)]">{identifiedUser.rank} Belt</p>
+            <RankBadge rank={identifiedUser.rank} degree={identifiedUser.rank_tier?.degree} />
           </div>
         </div>
 

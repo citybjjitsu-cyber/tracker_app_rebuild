@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List
@@ -26,29 +26,17 @@ def list_roles(request: Request, db: Session = Depends(get_db)):
 @router.get("/user/{user_uuid}", response_model=List[schemas.UserRoleResponse])
 @limiter.limit(READ_LIMIT)
 def get_user_roles(request: Request, user_uuid: str, db: Session = Depends(get_db)):
-    return (
-        db.query(models.UserRole)
-        .filter(
-            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current
-        )
-        .all()
-    )
+    return db.query(models.UserRole).filter(models.UserRole.user_uuid == user_uuid, models.UserRole.is_current).all()
 
 
 @router.put("/user/{user_uuid}")
 @limiter.limit(WRITE_LIMIT)
-def update_user_roles(
-    request: Request, user_uuid: str, data: dict, db: Session = Depends(get_db)
-):
+def update_user_roles(request: Request, user_uuid: str, data: dict, db: Session = Depends(get_db)):
     role_ids = data.get("role_ids", [])
 
     # Archive old roles
     old_roles = (
-        db.query(models.UserRole)
-        .filter(
-            models.UserRole.user_uuid == user_uuid, models.UserRole.is_current
-        )
-        .all()
+        db.query(models.UserRole).filter(models.UserRole.user_uuid == user_uuid, models.UserRole.is_current).all()
     )
 
     for ur in old_roles:
@@ -78,9 +66,7 @@ def update_user_roles(
 
 @router.get("/user/{user_uuid}/history", response_model=List[schemas.UserRoleResponse])
 @limiter.limit(READ_LIMIT)
-def get_user_role_history(
-    request: Request, user_uuid: str, db: Session = Depends(get_db)
-):
+def get_user_role_history(request: Request, user_uuid: str, db: Session = Depends(get_db)):
     return (
         db.query(models.UserRole)
         .filter(models.UserRole.user_uuid == user_uuid)
@@ -97,16 +83,13 @@ def get_users_by_role(request: Request, role: str, db: Session = Depends(get_db)
         return []
 
     user_roles = (
-        db.query(models.UserRole)
-        .filter(
-            models.UserRole.role_id == role_obj.id, models.UserRole.is_current
-        )
-        .all()
+        db.query(models.UserRole).filter(models.UserRole.role_id == role_obj.id, models.UserRole.is_current).all()
     )
 
     user_uuids = [ur.user_uuid for ur in user_roles]
     return (
         db.query(models.User)
+        .options(joinedload(models.User.rank_tier))
         .filter(models.User.user_uuid.in_(user_uuids), models.User.is_current)
         .all()
     )

@@ -10,7 +10,7 @@ from fastapi import (
     Request,
 )
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
 from passlib.context import CryptContext
@@ -98,6 +98,10 @@ def create_user(
     db.commit()
     db.refresh(db_user)
 
+    db_user = (
+        db.query(models.User).options(joinedload(models.User.rank_tier)).filter(models.User.id == db_user.id).first()
+    )
+
     # Add Student role by default
     student_role = db.query(models.Role).filter(models.Role.name == "Student").first()
     if student_role:
@@ -124,7 +128,7 @@ def create_user(
 @router.get("/", response_model=List[schemas.UserResponse])
 @limiter.limit(READ_LIMIT)
 def list_users(request: Request, db: Session = Depends(get_db)):
-    return db.query(models.User).filter(models.User.is_current).all()
+    return db.query(models.User).options(joinedload(models.User.rank_tier)).filter(models.User.is_current).all()
 
 
 @router.get("/search", response_model=List[schemas.UserResponse], dependencies=[])
@@ -132,6 +136,7 @@ def list_users(request: Request, db: Session = Depends(get_db)):
 def search_users(request: Request, query: str, db: Session = Depends(get_db)):
     return (
         db.query(models.User)
+        .options(joinedload(models.User.rank_tier))
         .filter(
             models.User.is_current,
             (models.User.first_name.ilike(f"%{query}%"))
@@ -300,7 +305,12 @@ async def import_users_csv(
 @router.get("/{user_uuid}", response_model=schemas.UserResponse)
 @limiter.limit(READ_LIMIT)
 def get_user(request: Request, user_uuid: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
+    user = (
+        db.query(models.User)
+        .options(joinedload(models.User.rank_tier))
+        .filter(models.User.user_uuid == user_uuid, models.User.is_current)
+        .first()
+    )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -332,6 +342,12 @@ def update_user(
             db_user.pin_hash = pwd_context.hash(user.pin)
         db.commit()
         db.refresh(db_user)
+        db_user = (
+            db.query(models.User)
+            .options(joinedload(models.User.rank_tier))
+            .filter(models.User.id == db_user.id)
+            .first()
+        )
 
         client_host = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent")
@@ -375,6 +391,9 @@ def update_user(
         db_user.pin_hash = pwd_context.hash(user.pin)
     db.commit()
     db.refresh(db_user)
+    db_user = (
+        db.query(models.User).options(joinedload(models.User.rank_tier)).filter(models.User.id == db_user.id).first()
+    )
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")

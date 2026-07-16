@@ -991,7 +991,7 @@ export default function AdminPage() {
                           <p className="text-sm text-slate-500 dark:text-slate-400">{u.email}</p>
                         </div>
                       </div>
-                      <RankBadge rank={u.rank} />
+                      <RankBadge rank={u.rank} degree={u.rank_tier?.degree} />
                     </div>
                   ))}
                 </div>
@@ -1049,7 +1049,7 @@ export default function AdminPage() {
                     label="Rank"
                     value={userForm.rank}
                     onChange={(e) => setUserForm({ ...userForm, rank: e.target.value as Rank })}
-                    options={['White', 'Blue', 'Purple', 'Brown', 'Black'].map(r => ({ value: r, label: r }))}
+                    options={rankTiers.map(t => ({ value: t.rank, label: t.display_name }))}
                   />
                   <Input
                     label="Nicknames"
@@ -1420,11 +1420,9 @@ export default function AdminPage() {
                   value={newUserForm.rank}
                   onChange={(e) => setNewUserForm({ ...newUserForm, rank: e.target.value as Rank })}
                 >
-                  <option value="White">White</option>
-                  <option value="Blue">Blue</option>
-                  <option value="Purple">Purple</option>
-                  <option value="Brown">Brown</option>
-                  <option value="Black">Black</option>
+                  {rankTiers.map(t => (
+                    <option key={t.id} value={t.rank}>{t.display_name}</option>
+                  ))}
                 </select>
               </div>
               <Input
@@ -2418,7 +2416,7 @@ export default function AdminPage() {
                     />
                     <div>
                       <h3 className="text-xl font-bold text-slate-900 dark:text-white">{selectedStudentAnalytics.first_name} {selectedStudentAnalytics.last_name}</h3>
-                      <RankBadge rank={selectedStudentAnalytics.rank} />
+                      <RankBadge rank={selectedStudentAnalytics.rank} degree={selectedStudentAnalytics.rank_tier?.degree} />
                     </div>
                   </div>
 
