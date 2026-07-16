@@ -66,6 +66,12 @@ class UserBase(BaseModel):
     last_graded_date: Optional[date] = None
 
 
+class TeacherStudentCreate(BaseModel):
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    email: EmailStr = Field(max_length=255)
+
+
 class UserCreate(UserBase):
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
     pin: Optional[str] = Field(default=None, min_length=4, max_length=8, pattern=PIN_REGEX)
