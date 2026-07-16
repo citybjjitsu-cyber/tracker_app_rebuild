@@ -4,7 +4,7 @@ from app.database import SessionLocal
 from app import models, schemas
 from typing import List
 from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
-from app.routers.auth import get_admin_user, get_current_user
+from app.routers.auth import get_admin_user
 from app.services.audit import create_audit_log
 
 router = APIRouter()

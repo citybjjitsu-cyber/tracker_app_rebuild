@@ -17,7 +17,7 @@ from passlib.context import CryptContext
 from app.database import Base
 from app.main import app
 from app import models
-from app.routers.kiosk import get_db, clear_pin_lockout, PIN_ATTEMPTS
+from app.routers.kiosk import get_db, PIN_ATTEMPTS
 from app.routers.attendance import get_db as att_get_db
 from app.routers.auth import get_db as auth_get_db
 from app.routers.admin import get_db as admin_get_db
