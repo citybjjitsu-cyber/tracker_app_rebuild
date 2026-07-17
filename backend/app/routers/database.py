@@ -6,7 +6,7 @@ from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from sqlalchemy.orm import Session
-from app.database import SessionLocal, engine
+from app.database import SessionLocal
 from app import models, schemas
 from app.routers.auth import get_admin_user
 from app.auth.limiter import (
@@ -116,22 +116,6 @@ def get_stats(
         total_attendance=db.query(models.Attendance).count(),
         size=size_str,
         kiosk_pin_set=kiosk_pin_set,
-    )
-
-
-@router.get("/export-seed")
-@limiter.limit(DB_EXPORT_LIMIT)
-def export_seed(
-    request: Request,
-    db: Session = Depends(get_db),
-    admin: models.User = Depends(get_admin_user),
-):
-    from fastapi.responses import JSONResponse
-
-    data = _export_all_data(db)
-    return JSONResponse(
-        content=data,
-        headers={"Content-Disposition": "attachment; filename=seed-data.json"},
     )
 
 
@@ -283,26 +267,34 @@ def reset_database(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
-    mode = body.mode if body else None
-    models.Base.metadata.drop_all(bind=engine)
-    models.Base.metadata.create_all(bind=engine)
+    import subprocess
+    import sys
+
+    from sqlalchemy import text
+
+    # Drop all tables
+    db.execute(text("PRAGMA foreign_keys = OFF"))
+    models.Base.metadata.drop_all(bind=db.get_bind())
+    db.execute(text("PRAGMA foreign_keys = ON"))
+    db.commit()
+
+    # Rebuild schema via Alembic
+    subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        check=True,
+        capture_output=True,
+    )
 
     # Seed basic roles
     roles = [
         models.Role(name="Student", description="Member attending classes"),
         models.Role(name="Teacher", description="Instructor teaching classes"),
         models.Role(name="Admin", description="Administrator with full access"),
+        models.Role(name="Tablet", description="Tablet/TV display kiosk"),
+        models.Role(name="Lite-Admin", description="Limited admin access"),
     ]
     for role in roles:
         db.add(role)
     db.commit()
 
-    if mode == "seed":
-        import importlib
-
-        seed_module = importlib.import_module("seed_complete_data")
-        seed_module.seed_data()
-        db.commit()
-        return {"message": "Database reset and seeded with demo data"}
-    else:
-        return {"message": "Database reset (roles only kept)"}
+    return {"message": "Database reset complete"}
