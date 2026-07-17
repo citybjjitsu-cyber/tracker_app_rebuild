@@ -156,6 +156,20 @@ jobs:
         run: npx playwright install chromium --with-deps
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: ''
+      - name: Run database migrations
+        working-directory: backend
+        env:
+          ALLOWED_HOSTS: '*'
+        run: uv run alembic upgrade head
+      - name: Bootstrap E2E test users
+        working-directory: backend
+        env:
+          ALLOWED_HOSTS: '*'
+        run: |
+          uv run ckb bootstrap \
+            --email "${{ secrets.E2E_KIOSK_EMAIL || 'kiosk@ckbtracker.com' }}" \
+            --password "${{ secrets.E2E_KIOSK_PASSWORD || 'kiosk123' }}" \
+            --first-name Kiosk --last-name Service || true
       - name: Run Playwright e2e tests
         env:
           ALLOWED_HOSTS: '*'
