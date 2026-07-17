@@ -184,9 +184,8 @@
 |---|------|-------|
 | 3a | Create `backend/app/cli.py` with Click or argparse | `app/cli.py` |
 | 3b | `bootstrap` command — creates: roles, admin account, kiosk service account. Idempotent (skips if already exists). Accepts `--email` and `--password` flags | `app/cli.py` |
-| 3c | `seed-demo` command — runs `seed_complete_data()` for dev/staging. Only works when `ENVIRONMENT != production` | `app/cli.py` |
-| 3d | `migrate-and-bootstrap` command — runs `alembic upgrade head` then `bootstrap`. Intended for Render start command | `app/cli.py` |
-| 3e | Add entry point to `pyproject.toml` so commands work via `uv run ckb bootstrap` | `pyproject.toml` |
+| 3c | `migrate-and-bootstrap` command — runs `alembic upgrade head` then `bootstrap`. Intended for Render start command | `app/cli.py` |
+| 3d | Add entry point to `pyproject.toml` so commands work via `uv run ckb bootstrap` | `pyproject.toml` |
 
 ### Step 4: Remove Auto-Seed from Lifespan
 | # | Task | Files |
@@ -195,14 +194,16 @@
 | 4b | Remove the `existing_tablet_role` / `existing_lite_admin_role` checks from lifespan (moved to bootstrap) | `main.py` |
 | 4c | Keep rank tier seeding and `rank_tier_id` backfill in lifespan (these are safe, idempotent migrations) | `main.py` |
 | 4d | Update Render start command to: `cd backend && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT` | `render.yaml` |
+| 4e | Add `KIOSK_IDLE_MINUTES: "240"` to `render.yaml` env vars | `render.yaml` |
 
 ### Step 5: Clean Up Seed Scripts
 | # | Task | Files |
 |---|------|-------|
-| 5a | Keep `seed_complete_data.py` — rename to `seed_demo.py` for clarity | `seed_demo.py` |
-| 5b | Remove `POST /admin/seed` endpoint (replaced by CLI `seed-demo` command) | `admin.py` |
-| 5c | Keep admin Database tab: backup, restore, reset (reset now just drops + migrates, no auto-seed) | `database.py` |
-| 5d | Update `reset_database` to run `alembic upgrade head` after dropping tables instead of `create_all` | `database.py` |
+| 5a | Delete `seed_complete_data.py` entirely (demo data removed) | `seed_complete_data.py` |
+| 5b | Remove `POST /admin/seed` endpoint | `admin.py` |
+| 5c | Remove `GET /database/export-seed` endpoint (replaced by generic JSON export) | `database.py` |
+| 5d | Keep admin Database tab: backup, restore, reset (reset now just drops + migrates, no auto-seed) | `database.py` |
+| 5e | Update `reset_database` to run `alembic upgrade head` after dropping tables instead of `create_all` | `database.py` |
 
 ### Step 6: Production Bootstrap Runbook
 | # | Task | Files |
@@ -255,3 +256,158 @@ After each phase is merged to `main`:
 - [ ] Changed features verified manually on Vercel preview
 - [ ] Backend tests pass (pytest, coverage ≥ 75%)
 - [ ] Frontend tests pass (vitest, thresholds met)
+
+---
+
+## First-Time Bootstrap (Repeatable)
+
+This is the one-time setup for a fresh deployment. Repeatable if the database is wiped.
+
+1. Deploy code to Render (push to `main` triggers CD)
+2. Render start command runs `alembic upgrade head` → creates all tables from migrations
+3. Open Render Shell → run bootstrap:
+   ```
+   uv run ckb bootstrap --email admin@yourgym.com --password SecurePass123!
+   ```
+4. This creates:
+   - 6 roles: Student, Teacher, Admin, Tablet, Lite-Admin, Kiosk
+   - 1 admin user (your email + password)
+   - 1 kiosk service account (kiosk@ckbtracker.com, role=Kiosk)
+   - 35 rank tiers (7 ranks × 5 degrees, seeded by lifespan on first start)
+5. Log in to Vercel frontend as admin
+6. Build class structure via Admin UI:
+   - Gym Locations → Class Types → Class Schedules → Terms → Term Targets
+7. Invite pilot users via Admin → Invites
+
+**Verify:** Log in as admin → confirm roles exist → confirm empty user list (only admin) → kiosk unlock works.
+
+---
+
+## Testing Rollout (Prod Vercel, Fresh DB)
+
+**Pre-conditions:** Phase 9 merged to `main`, Render + Vercel auto-deployed, fresh database.
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Check Render logs | `alembic upgrade head` ran, no seed data, no errors |
+| 2 | Render Shell: `uv run ckb bootstrap --email admin@yourgym.com --password ...` | 6 roles + admin + kiosk account created |
+| 3 | Log in as admin at Vercel URL | Dashboard loads, empty user list (admin only) |
+| 4 | Create 1 gym location, 1 class type, 1 class schedule | Visible in admin UI |
+| 5 | Create 1 test student via Admin UI | Student appears in user list |
+| 6 | Unlock kiosk → find student → enter PIN → check-in | Attendance recorded |
+| 7 | Wait 10+ minutes → verify kiosk stays live | Auto-refresh works, no 401 errors |
+| 8 | Test admin invite flow: invite → accept → set PIN → kiosk check-in | Full loop works |
+| 9 | Test teacher page: log in as teacher → view attendance | Correct data shown |
+| 10 | Test deactivation: deactivate student → verify hidden from kiosk | Student not in search |
+
+**Teardown after testing:** Admin Database tab → `POST /database/reset` → re-bootstrap via Render Shell.
+
+---
+
+## Production Rollout
+
+**Pre-conditions:** Testing phase complete, all features verified, no outstanding bugs.
+
+| Step | Action | Notes |
+|------|--------|-------|
+| 1 | Final merge to `main` | All Phase 9 work included |
+| 2 | Reset database if testing data exists | Render Shell: `POST /database/reset`, then re-bootstrap |
+| 3 | Bootstrap production admin | `uv run ckb bootstrap --email production-admin@yourgym.com --password ...` |
+| 4 | Configure production env vars in Render | See table below |
+| 5 | Build class structure | Gym locations, class types, schedules, terms, targets |
+| 6 | Invite real users | Admin → Invites → send emails |
+| 7 | Each user: accept invite → set password → set PIN | Verify login + kiosk check-in |
+| 8 | Verify kiosk on physical tablet device | Staff unlock → student check-in → stays live 4+ hours |
+| 9 | Monitor Render logs for errors | Watch first 24 hours closely |
+
+### Production Environment Variables (Render Dashboard)
+
+| Key | Value | Notes |
+|-----|-------|-------|
+| `DATABASE_URL` | Auto-injected from DB | — |
+| `JWT_SECRET_KEY` | Set manually | Strong random string |
+| `CORS_ORIGINS` | `https://yourgym.vercel.app` | Comma-separated if multiple |
+| `ALLOWED_HOSTS` | `yourgym.vercel.app` | — |
+| `COOKIE_SECURE` | `True` | — |
+| `COOKIE_SAMESITE` | `None` | Required for cross-origin |
+| `ENVIRONMENT` | `production` | — |
+| `HSTS_ENABLED` | `True` | — |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `10` | — |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | `7` | — |
+| `MAX_SESSION_HOURS` | `24` | — |
+| `KIOSK_IDLE_MINUTES` | `240` | 4 hours, adjust as needed |
+| `SMTP_HOST` | Set manually | For invite emails |
+| `SMTP_PORT` | `587` | — |
+| `SMTP_USER` | Set manually | — |
+| `SMTP_PASSWORD` | Set manually | — |
+| `INVITE_FROM_EMAIL` | Set manually | — |
+
+---
+
+## Rollback Plan
+
+### During Testing (no real user data)
+
+| Scenario | Action | Risk |
+|----------|--------|------|
+| Frontend bug | Vercel → Deployments → previous deploy → "Promote to Production" | None |
+| Backend code bug | Render → Manual Deploy → redeploy previous commit | None |
+| DB migration broke schema | Render Shell: `uv run alembic downgrade -1` | Low (no user data) |
+| Total reset | Render Shell: `uv run alembic downgrade base` → re-bootstrap | None (fresh DB) |
+| Nuclear option | Set `DROP_ALL_ON_STARTUP=true` in Render → redeploy → unset → re-bootstrap | None |
+
+### After Production Rollout (real user data exists)
+
+| Scenario | Action | Data Impact |
+|----------|--------|-------------|
+| Frontend bug | Vercel → previous deploy (instant) | None |
+| Backend code bug | Render → redeploy previous commit | None (DB unchanged) |
+| DB migration broke schema | `uv run alembic downgrade -1` via Render Shell, then redeploy previous code | Minimal (1 migration rolled back) |
+| DB corruption / data loss | Render → Database → "Restore from backup" (PITR on Basic plan) | Point-in-time restore |
+| App-level backup | Admin Database tab → Export JSON → Import to restore | Manual, full restore |
+| Total disaster | Render PITR restore → redeploy previous code → verify | Full restore from backup |
+
+### Key Principle
+
+> Vercel rollback is instant and zero-risk. Render rollback requires care: always **downgrade the database first** if the schema changed, then redeploy the older code. Never redeploy old code against a newer schema.
+
+---
+
+## Admin Onboarding Runbook
+
+### Day 1 — First Deploy
+
+1. Confirm Render service shows "Live" status (check deploy logs)
+2. Open Render Shell → run bootstrap command with your admin credentials
+3. Open Vercel URL → log in as admin
+4. Create gym locations (name + address for each mat location)
+5. Create class types (Gi, No-Gi, MMA, Open Mat, Kids, etc.)
+6. Create class schedules (day, time, gym, type for each recurring class)
+7. Create current term (e.g., "Fall 2026") with start/end dates
+8. Set rank tier targets for the term
+
+### Day 2 — Invite Users
+
+1. Admin → Invites → send invite to each staff member (teacher/admin email)
+2. Send invites to pilot students
+3. Each person: click email link → set password → set 4-digit PIN
+4. Verify login works for each role (admin, teacher, student)
+
+### Day 3 — Kiosk Setup
+
+1. Assign tablet device to kiosk URL (your Vercel domain)
+2. Staff unlocks kiosk with their credentials
+3. Verify students appear in search
+4. Test: student enters PIN → check-in recorded → attendance visible in teacher view
+5. Verify kiosk stays live for 4+ hours without locking
+
+### Ongoing Operations
+
+| Task | How |
+|------|-----|
+| Add new user | Admin → Invites → send email → user accepts → sets PIN |
+| Change class schedule | Admin → Class Schedules → edit |
+| Review attendance | Teacher page or Admin → Attendance |
+| Backup data | Admin Database → Export JSON (do periodically) |
+| Deploy updates | Push to `main` → auto-deploys → migrations run automatically |
+| Rollback | Follow Rollback Plan above |
