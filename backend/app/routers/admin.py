@@ -5,7 +5,7 @@ from starlette.requests import Request as StarRequest
 from app import models, schemas
 from app.auth.limiter import INVITE_LIMIT, READ_LIMIT, WRITE_LIMIT, limiter
 from app.database import SessionLocal
-from app.routers.auth import get_admin_user, get_lite_admin_user
+from app.routers.auth import get_lite_admin_user
 from app.services.audit import create_audit_log
 from app.services.email import (
     resolve_base_url,
@@ -34,24 +34,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-@router.post("/seed")
-@limiter.limit("1/minute")
-def seed_database(
-    request: StarRequest,
-    user: models.User = Depends(get_admin_user),
-):
-    try:
-        from seed_complete_data import seed_data
-
-        seed_data()
-        return {"message": "Database seeded successfully"}
-    except Exception as e:
-        import logging
-
-        logging.error(f"Seed failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/invites", response_model=List[schemas.InviteListResponse])

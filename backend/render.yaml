@@ -14,7 +14,7 @@ services:
     name: ckb-tracker-api-dev
     env: python
     buildCommand: cd backend && pip install uv && uv sync
-    startCommand: cd backend && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: cd backend && uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -54,3 +54,5 @@ services:
         sync: false
       - key: INVITE_FROM_EMAIL
         sync: false
+      - key: KIOSK_IDLE_MINUTES
+        value: "240"

@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 import os
 import logging
 
-from app.database import engine, SessionLocal
+from app.database import SessionLocal
 from app import models
 from app.routers import (
     themes,
@@ -102,60 +102,6 @@ async def lifespan(application: FastAPI):
         except Exception as e:
             db.rollback()
             logging.warning(f"Could not backfill rank_tier_id (column may not exist yet): {e}")
-
-        user_count = db.query(models.User).count()
-        if user_count == 0:
-            db.close()
-            logging.info("Database is empty. Auto-seeding with demo data...")
-            from seed_complete_data import seed_data
-
-            seed_data()
-
-            # Re-open DB to backfill rank_tier_id for seeded users
-            db = SessionLocal()
-            try:
-                users_without_tier = (
-                    db.query(models.User)
-                    .filter(
-                        models.User.rank_tier_id.is_(None),
-                        models.User.is_current,
-                    )
-                    .all()
-                )
-                if users_without_tier:
-                    for u in users_without_tier:
-                        tier = (
-                            db.query(models.RankTier)
-                            .filter(
-                                models.RankTier.rank == u.rank,
-                                models.RankTier.degree == 0,
-                            )
-                            .first()
-                        )
-                        if tier:
-                            u.rank_tier_id = tier.id
-                    db.commit()
-                    logging.info(f"Backfilled rank_tier_id for {len(users_without_tier)} seeded users")
-            except Exception as e:
-                db.rollback()
-                logging.warning(f"Could not backfill rank_tier_id for seeded users: {e}")
-            finally:
-                db.close()
-        else:
-            existing_tablet_role = db.query(models.Role).filter(models.Role.name == "Tablet").first()
-            if existing_tablet_role is None:
-                tablet_role = models.Role(name="Tablet", description="Tablet-only user for check-in kiosk")
-                db.add(tablet_role)
-                db.commit()
-
-            existing_lite_admin_role = db.query(models.Role).filter(models.Role.name == "Lite-Admin").first()
-            if existing_lite_admin_role is None:
-                lite_admin_role = models.Role(
-                    name="Lite-Admin",
-                    description="Can send invites and reset passwords/PINs. Limited admin access.",
-                )
-                db.add(lite_admin_role)
-                db.commit()
     finally:
         db.close()
     yield
@@ -294,12 +240,6 @@ async def log_requests(request: Request, call_next):
 
     return response
 
-
-# Create tables (with optional drop for testing/env sync)
-if os.getenv("DROP_ALL_ON_STARTUP", "").lower() in ("1", "true"):
-    models.Base.metadata.drop_all(bind=engine)
-    logging.info("Dropped all tables (DROP_ALL_ON_STARTUP is enabled)")
-models.Base.metadata.create_all(bind=engine)
 
 # Include routers
 app.include_router(users.router, prefix="/users", tags=["Users"])

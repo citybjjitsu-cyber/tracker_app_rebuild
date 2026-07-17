@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "ckb-tracker-backend"
 version = "0.1.0"
@@ -16,7 +20,11 @@ dependencies = [
     "pillow>=12.2.0",
     "psycopg2-binary>=2.9.9",
     "email-validator>=2.2.0",
+    "alembic>=1.18.5",
 ]
+
+[project.scripts]
+ckb = "app.cli:main"
 
 [tool.ruff]
 line-length = 120
@@ -25,7 +33,6 @@ line-length = 120
 ignore = ["E402"]
 
 [tool.ruff.lint.per-file-ignores]
-"seed_complete_data.py" = ["F841", "S311"]
 "app/routers/__init__.py" = ["F401"]
 "tests/*" = ["S101", "S105"]
 "scripts/*" = ["S105"]
@@ -52,6 +59,9 @@ show_missing = true
 skip_covered = true
 # Hard fail thresholds for CI
 fail_under = 75
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [tool.coverage.html]
 directory = "coverage_html"

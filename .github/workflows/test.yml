@@ -26,6 +26,9 @@ jobs:
         run: uv run ruff check . --no-cache
       - name: Ruff SAST (security rules)
         run: uv run ruff check --select S .
+      - name: Check Alembic migration heads
+        run: |
+          uv run alembic check 2>&1 || echo "::warning::Alembic detected ungenerated migrations"
 
   lint-frontend:
     name: Lint & Audit (Frontend)
@@ -68,6 +71,10 @@ jobs:
         run: uv sync
       - name: Check Python version
         run: python --version && uv --version
+      - name: Run migrations
+        env:
+          DATABASE_URL: "sqlite:///./test_migrations.db"
+        run: uv run alembic upgrade head
       - name: Run tests
         env:
           ALLOWED_HOSTS: '*'

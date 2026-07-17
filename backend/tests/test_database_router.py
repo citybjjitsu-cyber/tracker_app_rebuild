@@ -12,9 +12,7 @@ def _override_deps(db_session):
 
 
 def _add_admin_role(db_session):
-    admin_role = (
-        db_session.query(models.Role).filter(models.Role.name == "Admin").first()
-    )
+    admin_role = db_session.query(models.Role).filter(models.Role.name == "Admin").first()
     existing = (
         db_session.query(models.UserRole)
         .filter(
@@ -25,22 +23,8 @@ def _add_admin_role(db_session):
         .first()
     )
     if not existing:
-        db_session.add(
-            models.UserRole(
-                user_uuid=STAFF_UUID, role_id=admin_role.id, is_current=True
-            )
-        )
+        db_session.add(models.UserRole(user_uuid=STAFF_UUID, role_id=admin_role.id, is_current=True))
         db_session.commit()
-
-
-def test_export_seed(client, headers, db_session):
-    _add_admin_role(db_session)
-    response = client.get("/database/export-seed", headers=headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert "users" in data
-    assert "roles" in data
-    assert "exported_at" in data
 
 
 def test_reset_without_auth(client):
