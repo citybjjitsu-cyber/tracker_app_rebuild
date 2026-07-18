@@ -446,6 +446,9 @@ def update_user(
     db_user.rank = user.rank if user.rank is not None else db_user.rank
     if user.rank_tier_id is not None:
         db_user.rank_tier_id = user.rank_tier_id
+        tier = db.query(models.RankTier).filter(models.RankTier.id == user.rank_tier_id).first()
+        if tier:
+            db_user.rank = tier.rank
     elif user.rank is not None:
         tier = (
             db.query(models.RankTier)
