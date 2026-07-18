@@ -1524,6 +1524,7 @@ export default function AdminPage() {
                 label="Points"
                 type="number"
                 step="any"
+                min="0"
                 value={classForm.points}
                 onChange={(e) => setClassForm({ ...classForm, points: Number(e.target.value) })}
               />
@@ -1743,6 +1744,7 @@ export default function AdminPage() {
                         {editingTierId === tier.id ? (
                           <input
                             type="number"
+                            step="any"
                             min="0"
                             className="w-24 text-right px-2 py-1 rounded border border-outline-variant/20 bg-surface-container-lowest text-on-surface text-sm"
                             value={editingTierPoints}
@@ -1903,6 +1905,7 @@ export default function AdminPage() {
                       <div className="flex gap-2">
                         <input
                           type="number"
+                          step="any"
                           className="flex-1 px-3 py-2 rounded-lg border border-outline-variant/20 bg-surface-container-lowest text-on-surface text-sm"
                           placeholder="0"
                           value={promoAmount}
@@ -3252,6 +3255,7 @@ export default function AdminPage() {
                 label="Points"
                 type="number"
                 step="any"
+                min="0"
                 value={classEditForm.points}
                 onChange={(e) => setClassEditForm({ ...classEditForm, points: Number(e.target.value) })}
               />
