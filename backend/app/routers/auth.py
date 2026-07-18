@@ -677,6 +677,11 @@ def send_invite(
         )
         db.add(user)
         db.flush()
+
+        student_role = db.query(models.Role).filter(models.Role.name == "Student").first()
+        if student_role:
+            db.add(models.UserRole(user_uuid=user.user_uuid, role_id=student_role.id, is_current=True))
+            db.flush()
     else:
         if user.password_hash is not None:
             raise HTTPException(status_code=400, detail="User already has a password set")
