@@ -306,6 +306,68 @@ def debug_db():
         return {"db_url_prefix": masked, "error": str(e)}
 
 
+@app.get("/debug/login/{email}")
+def debug_login(email: str):
+    import traceback
+    from app.database import SessionLocal
+    from app import models
+    from app.auth.jwt_utils import create_access_token, create_refresh_token, store_token_record
+    from app.auth.config import ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
+    from datetime import timedelta
+    from app.routers.auth import get_user_roles
+
+    steps = []
+    db = SessionLocal()
+    try:
+        steps.append("1. query user")
+        user = db.query(models.User).filter(models.User.email == email, models.User.is_current).first()
+        if not user:
+            return {"steps": steps, "error": "user not found"}
+        steps.append(f"2. user found: {user.email}, uuid={user.user_uuid}")
+
+        steps.append("3. get_user_roles")
+        roles = get_user_roles(db, user.user_uuid)
+        steps.append(f"4. roles: {roles}")
+
+        steps.append("5. create_access_token")
+        access_token, access_jti = create_access_token(user.user_uuid)
+        steps.append("6. access_token created")
+
+        steps.append("7. create_refresh_token")
+        refresh_token, refresh_jti = create_refresh_token(user.user_uuid)
+        steps.append("8. refresh_token created")
+
+        steps.append("9. store access token")
+        from datetime import datetime as _dt, timezone as _tz
+
+        store_token_record(
+            db,
+            access_jti,
+            str(user.user_uuid),
+            "access",
+            _dt.now(_tz.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        steps.append("10. access token stored")
+
+        steps.append("11. store refresh token")
+        store_token_record(
+            db,
+            refresh_jti,
+            str(user.user_uuid),
+            "refresh",
+            _dt.now(_tz.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+        steps.append("12. refresh token stored")
+
+        steps.append("13. ALL PASSED")
+        return {"steps": steps}
+    except Exception as e:
+        steps.append(f"ERROR: {type(e).__name__}: {e}")
+        return {"steps": steps, "traceback": traceback.format_exc()}
+    finally:
+        db.close()
+
+
 @app.get("/")
 def read_root():
     return {"message": "CKB Tracker API is live!"}
