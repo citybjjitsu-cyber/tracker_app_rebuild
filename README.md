@@ -635,28 +635,54 @@ curl -X POST https://ckb-tracker-api-dev.onrender.com/users/import-csv \
 CSV columns: `first_name, last_name, email, rank, nicknames, comments`
 Max 500 rows per import.
 
+### Object Creation Hierarchy
+
+When setting up a new gym, create objects in this order due to database dependencies:
+
+#### Tier 0 — No dependencies (create first)
+1. **Gym Location** — physical gym name/address
+2. **Class Types** — e.g. "Kids BJJ", "Adult BJJ", "Muay Thai"
+3. **Rank Tiers** — belt ranks (White, Blue, Purple, Brown, Black + degrees)
+4. **Terms** — term name + start/end dates
+
+#### Tier 1 — Depends on Tier 0
+5. **Users** (via invite) — optionally linked to a Rank Tier
+6. **Term Targets** — linked to a Term
+
+#### Tier 2 — Depends on Tier 0–1
+7. **Class Schedules** — linked to Gym Location + Class Type (both optional but recommended)
+8. **Curriculum** — linked to a Class Schedule
+
+#### Tier 3 — Depends on Tier 2
+9. **Lessons** — linked to a Curriculum
+10. **Class Instances** — linked to a Class Schedule (teacher + lesson optional)
+
+#### Tier 4 — Depends on Tier 3
+11. **Attendance** — linked to a User + Class Schedule
+12. **Class Feedback** — linked to Attendance + Class Instance + User
+
+#### Visual Flow
+```
+Gym Location  ─┐
+               ├─> Class Schedule ─> Curriculum ─> Lesson
+Class Type   ─┘         │
+                        └────────────────────────> Class Instance ─> Attendance ─> Feedback
+Term ─> Term Targets
+Rank Tiers ─> Users ─> (all of the above)
+```
+
 ### Reset the Database
 
-To wipe all data and start fresh:
+Via the Admin UI: **Admin → Database → Reset** (drops all tables and rebuilds from models).
 
-1. Set `DROP_ALL_ON_STARTUP=1` in Render Dashboard env vars
-2. Restart the Render web service
-3. Remove the env var to prevent future wipes
-4. On next deploy (or restart), the seed data is regenerated
+Or via CLI: `uv run ckb migrate-and-bootstrap --email admin@example.com --password YourPassword`
 
-### Demo Credentials
+### Bootstrap an Admin (after fresh deploy)
 
-| Role | Email | Password | PIN |
-|------|-------|----------|-----|
-| Kiosk unlock | kiosk@ckbtracker.com | kiosk123 | — |
-| Admin | admin@example.com | admin123 | — |
-| Teacher | mike@example.com | password123 | — |
-| Teacher | sarah@example.com | password123 | — |
-| Tablet | tablet@example.com | tablet123 | 1006 |
-| Student | john@example.com | password123 | 1001 |
-| Student | jane@example.com | password123 | 1002 |
-| No PIN | nopin@example.com | password123 | (none) |
-| Inactive | inactive@example.com | (disabled) | — |
+```
+cd backend
+uv run ckb bootstrap --email admin@example.com --password SecurePass123 --first-name Admin --last-name User
+```
 
 ---
 

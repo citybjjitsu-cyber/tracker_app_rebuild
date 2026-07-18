@@ -149,7 +149,7 @@
 
 ### Why
 
-- `DROP_ALL_ON_STARTUP` and "Reset Database" are nuclear options — they destroy all data
+- ~~`DROP_ALL_ON_STARTUP` and "Reset Database" are nuclear options — they destroy all data~~ *(removed in Phase 9)*
 - No way to evolve the schema incrementally (adding a column means wiping the DB)
 - Auto-seeding demo data in `main.py` lifespan is fragile and dangerous in production
 - No CLI tooling to bootstrap an admin account after a DB reset
@@ -212,7 +212,7 @@
 | 6c | Verify: log in as admin, confirm roles exist, confirm empty user list (except admin) | — |
 | 6d | Build class structure via Admin UI (gyms, class types, schedules, terms, targets) | — |
 | 6e | Invite pilot users via Admin → Invites | — |
-| 6f | **Remove** `DROP_ALL_ON_STARTUP` from Render env vars (if set) | — |
+| 6f | ~~Remove `DROP_ALL_ON_STARTUP` from Render env vars~~ *(done — code no longer reads it)* | — |
 
 ### Step 7: Update Deploy Workflow
 | # | Task | Files |

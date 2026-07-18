@@ -88,6 +88,35 @@ def _export_all_data(db: Session) -> dict:
     }
 
 
+def _format_size(size_bytes: int) -> str:
+    if size_bytes > 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    if size_bytes > 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes} B"
+
+
+def _get_db_size(db: Session) -> str:
+    from sqlalchemy import text
+
+    url = str(db.get_bind().url)
+    if url.startswith("sqlite"):
+        db_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "ckb_tracker.db",
+        )
+        try:
+            return _format_size(os.path.getsize(db_path))
+        except OSError:
+            return "N/A"
+    else:
+        try:
+            row = db.execute(text("SELECT pg_database_size(current_database())")).scalar()
+            return _format_size(int(row)) if row else "N/A"
+        except Exception:
+            return "N/A"
+
+
 @router.get("/stats", response_model=schemas.DbStatsResponse)
 @limiter.limit(READ_LIMIT)
 def get_stats(
@@ -95,17 +124,7 @@ def get_stats(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
-    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ckb_tracker.db")
-    try:
-        size_bytes = os.path.getsize(db_path)
-        if size_bytes > 1024 * 1024:
-            size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
-        elif size_bytes > 1024:
-            size_str = f"{size_bytes / 1024:.1f} KB"
-        else:
-            size_str = f"{size_bytes} B"
-    except OSError:
-        size_str = "N/A"
+    size_str = _get_db_size(db)
 
     kiosk = db.query(models.KioskAuth).first()
     kiosk_pin_set = kiosk is not None
@@ -267,25 +286,28 @@ def reset_database(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
 ):
-    import subprocess
-    import sys
-
     from sqlalchemy import text
 
-    # Drop all tables
+    # Disable FK checks for the session (works on both SQLite and PostgreSQL)
+    db.execute(text("SET session_replication_role = 'replica'"))
     db.execute(text("PRAGMA foreign_keys = OFF"))
+    db.commit()
+
+    # Drop all tables
     models.Base.metadata.drop_all(bind=db.get_bind())
+    db.commit()
+
+    # Re-enable FK checks
+    db.execute(text("SET session_replication_role = 'origin'"))
     db.execute(text("PRAGMA foreign_keys = ON"))
     db.commit()
 
-    # Rebuild schema via Alembic
-    subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
-        check=True,
-        capture_output=True,
-    )
+    # Rebuild schema from models (no subprocess/alembic needed)
+    models.Base.metadata.create_all(bind=db.get_bind())
+    db.commit()
 
-    # Seed basic roles
+    # Seed basic roles (skip if already exist)
+    existing = {r.name for r in db.query(models.Role.name).all()}
     roles = [
         models.Role(name="Student", description="Member attending classes"),
         models.Role(name="Teacher", description="Instructor teaching classes"),
@@ -294,7 +316,8 @@ def reset_database(
         models.Role(name="Lite-Admin", description="Limited admin access"),
     ]
     for role in roles:
-        db.add(role)
+        if role.name not in existing:
+            db.add(role)
     db.commit()
 
     return {"message": "Database reset complete"}
