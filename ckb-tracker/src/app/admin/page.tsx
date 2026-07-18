@@ -1523,6 +1523,7 @@ export default function AdminPage() {
               <Input
                 label="Points"
                 type="number"
+                step="any"
                 value={classForm.points}
                 onChange={(e) => setClassForm({ ...classForm, points: Number(e.target.value) })}
               />
@@ -3250,6 +3251,7 @@ export default function AdminPage() {
               <Input
                 label="Points"
                 type="number"
+                step="any"
                 value={classEditForm.points}
                 onChange={(e) => setClassEditForm({ ...classEditForm, points: Number(e.target.value) })}
               />
