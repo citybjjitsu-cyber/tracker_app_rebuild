@@ -282,6 +282,30 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/debug/db")
+def debug_db():
+    import os
+    from sqlalchemy import text
+    from app.database import SessionLocal
+
+    db_url = os.getenv("DATABASE_URL", "NOT SET")
+    masked = db_url[:20] + "..." if len(db_url) > 20 else db_url
+    try:
+        db = SessionLocal()
+        result = db.execute(text("SELECT COUNT(*) FROM users"))
+        count = result.scalar()
+        emails = [r[0] for r in db.execute(text("SELECT email FROM users")).fetchall()]
+        db.close()
+        return {
+            "db_url_prefix": masked,
+            "dialect": db_url.split(":")[0] if ":" in db_url else "unknown",
+            "user_count": count,
+            "emails": emails,
+        }
+    except Exception as e:
+        return {"db_url_prefix": masked, "error": str(e)}
+
+
 @app.get("/")
 def read_root():
     return {"message": "CKB Tracker API is live!"}
