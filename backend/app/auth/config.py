@@ -6,9 +6,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 MAX_SESSION_HOURS = int(os.getenv("MAX_SESSION_HOURS", "24"))
 KIOSK_IDLE_MINUTES = int(os.getenv("KIOSK_IDLE_MINUTES", "240"))
 
-_env = os.getenv("ENVIRONMENT", "development")
-_default_secure = "True" if _env == "production" else "False"
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", _default_secure).lower() == "true"
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "True").lower() == "true"
 COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "Lax")
 COOKIE_HTTPONLY = True
 COOKIE_PATH = "/"
