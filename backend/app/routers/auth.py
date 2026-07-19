@@ -647,8 +647,6 @@ def accept_invite(
 
     return schemas.AcceptInviteResponse(
         message="Account set up successfully",
-        access_token=access_token,
-        refresh_token=refresh_token,
         user=schemas.KioskUserResponse.model_validate(user),
         roles=[schemas.RoleResponse.model_validate(r) for r in roles],
     )

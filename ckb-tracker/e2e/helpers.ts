@@ -353,7 +353,7 @@ export async function clearAuthState(page: Page) {
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {})
   await page.evaluate(() => {
     try {
-      localStorage.removeItem('csrf_token')
+      sessionStorage.removeItem('csrf_token')
       localStorage.removeItem('kiosk_state')
       sessionStorage.clear()
     } catch {

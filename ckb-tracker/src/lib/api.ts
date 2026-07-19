@@ -46,7 +46,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null;
+  const csrfToken = typeof window !== 'undefined' ? sessionStorage.getItem('csrf_token') : null;
   if (csrfToken && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '')) {
     config.headers['X-CSRF-Token'] = csrfToken;
   }
