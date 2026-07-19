@@ -4,6 +4,7 @@ import tempfile
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["ALLOWED_HOSTS"] = "*"
+os.environ["COOKIE_SECURE"] = "False"
 
 db_fd, db_path = tempfile.mkstemp(suffix=".db")
 os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"

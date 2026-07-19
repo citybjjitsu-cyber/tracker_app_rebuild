@@ -592,9 +592,9 @@ class KioskUnlockResponse(BaseModel):
 
 
 class InviteSendRequest(BaseModel):
-    email: str = Field(min_length=1)
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    email: EmailStr = Field(min_length=1, max_length=255)
+    first_name: Optional[str] = Field(default=None, max_length=100)
+    last_name: Optional[str] = Field(default=None, max_length=100)
 
 
 class InviteValidateResponse(BaseModel):
