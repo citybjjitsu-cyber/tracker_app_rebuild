@@ -229,6 +229,53 @@
 
 ---
 
+## Phase 10: Security Hardening (XSS, Cookies, Input Validation)
+**Branch:** `feature/security-hardening`
+
+**Goal:** Address findings from XSS/cookie security audit. No critical XSS vulnerabilities found (React auto-escaping handles all rendering), but several defense-in-depth improvements needed.
+
+### Why
+
+- CSRF token stored in `localStorage` — accessible to any future XSS vector
+- `COOKIE_SECURE` defaults to `False` — auth cookies could be sent over HTTP if misconfigured
+- `accept-invite` response leaks raw tokens in body (redundant with httponly cookies)
+- `profile_image_url` has no URL protocol validation
+- Theme CSS values injected via `style.setProperty()` without validation
+- `first_name` interpolated into HTML email templates without escaping
+
+---
+
+### Step 1: CSRF Token Storage
+| # | Task | Files |
+|---|------|-------|
+| 1a | Move CSRF token from `localStorage` to `sessionStorage` — reduces persistence window, still works for double-submit pattern | `useAuth.tsx`, `api.ts` |
+
+### Step 2: Cookie Security
+| # | Task | Files |
+|---|------|-------|
+| 2a | Default `COOKIE_SECURE` to `True` when `ENVIRONMENT=production` | `auth/config.py` |
+| 2b | Remove `access_token` and `refresh_token` from `AcceptInviteResponse` schema (already in httponly cookies) | `schemas.py`, `auth.py` |
+
+### Step 3: Input Validation
+| # | Task | Files |
+|---|------|-------|
+| 3a | Add URL scheme validation to `profile_image_url` — whitelist `http`, `https`, and relative `/uploads/` paths | `schemas.py` |
+| 3b | Validate theme CSS property values against safe color/property patterns (reject `javascript:`, `-moz-binding`, etc.) | `themes.py`, `useTheme.tsx` |
+| 3c | HTML-escape `first_name` in email templates using `html.escape()` | `services/email.py` |
+
+### Step 4: CSP Hardening
+| # | Task | Files |
+|---|------|-------|
+| 4a | Remove `'unsafe-eval'` from production CSP in `next.config.ts` (keep for dev only) | `next.config.ts` |
+
+---
+
+**Tests:** All existing tests pass. Add tests for URL scheme validation and theme value validation.
+
+**Commit:** `fix(security): CSRF storage hardening, cookie defaults, input validation, and CSP improvements`
+
+---
+
 ## Rollout Order (Priority)
 
 | Order | Phase | Why |
@@ -242,6 +289,7 @@
 | 7 | Phase 6 | Largest scope (teacher redesign) |
 | 8 | Phase 8 | Kiosk session must work before pilot testing |
 | 9 | Phase 9 | Production foundation (migrations, bootstrap, safe deploys) |
+| 10 | Phase 10 | Security hardening (CSRF, cookies, input validation, CSP) |
 
 ---
 
