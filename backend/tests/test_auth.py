@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from tests.conftest import STAFF_UUID, STUDENT_UUID, PINLESS_UUID, STAFF_PASSWORD
+from tests.conftest import STAFF_UUID, PINLESS_UUID, STAFF_PASSWORD
 from app import models
 from app.auth.jwt_utils import hash_token
 
