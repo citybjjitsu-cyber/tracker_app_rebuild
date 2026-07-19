@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = Boolean(user);
 
   const logout = async () => {
-    const csrfToken = localStorage.getItem('csrf_token');
+    const csrfToken = sessionStorage.getItem('csrf_token');
     try {
       await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
@@ -51,14 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setRoles([]);
       setCsrfToken(null);
-      localStorage.removeItem('csrf_token');
+      sessionStorage.removeItem('csrf_token');
       await new Promise(resolve => setTimeout(resolve, 50));
       router.push('/');
     }
   };
 
   const logoutAll = async () => {
-    const csrfToken = localStorage.getItem('csrf_token');
+    const csrfToken = sessionStorage.getItem('csrf_token');
     try {
       await fetch(`${API_BASE_URL}/auth/logout-all`, {
         method: 'POST',
@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setRoles([]);
       setCsrfToken(null);
-      localStorage.removeItem('csrf_token');
+      sessionStorage.removeItem('csrf_token');
       await new Promise(resolve => setTimeout(resolve, 50));
       router.push('/');
     }
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRoles(data.roles || []);
         setCsrfToken(data.csrf_token || null);
         if (data.csrf_token) {
-          localStorage.setItem('csrf_token', data.csrf_token);
+          sessionStorage.setItem('csrf_token', data.csrf_token);
         }
       } else {
         const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -105,13 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRoles(refreshData.roles || []);
           setCsrfToken(refreshData.csrf_token || null);
           if (refreshData.csrf_token) {
-            localStorage.setItem('csrf_token', refreshData.csrf_token);
+            sessionStorage.setItem('csrf_token', refreshData.csrf_token);
           }
         } else {
           setUser(null);
           setRoles([]);
           setCsrfToken(null);
-          localStorage.removeItem('csrf_token');
+          sessionStorage.removeItem('csrf_token');
         }
       }
     } catch (error) {
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles(data.roles || []);
     setCsrfToken(data.csrf_token || null);
     if (data.csrf_token) {
-      localStorage.setItem('csrf_token', data.csrf_token);
+      sessionStorage.setItem('csrf_token', data.csrf_token);
     }
   };
 

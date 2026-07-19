@@ -92,6 +92,18 @@ class UserCreate(UserBase):
             raise ValueError("Password must contain at least one special character")
         return v
 
+    @field_validator("profile_image_url")
+    @classmethod
+    def validate_profile_image_url(cls, v):
+        if v is None:
+            return v
+        from urllib.parse import urlparse
+
+        parsed = urlparse(v)
+        if parsed.scheme and parsed.scheme not in ("http", "https"):
+            raise ValueError("profile_image_url must use http or https scheme")
+        return v
+
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
@@ -613,8 +625,6 @@ class AcceptInviteRequest(BaseModel):
 
 class AcceptInviteResponse(BaseModel):
     message: str
-    access_token: str
-    refresh_token: str
     user: KioskUserResponse
     roles: List[RoleResponse]
 

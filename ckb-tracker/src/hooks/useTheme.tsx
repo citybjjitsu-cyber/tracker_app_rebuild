@@ -23,6 +23,12 @@ const THEME_VAR_KEYS = [
   '--ring', '--radius', '--headline-font', '--body-font',
 ] as const;
 
+const SAFE_CSS_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\(|hsla?\(|oklch\(|var\(--|inherit|transparent|currentColor|none|[\d.]+(?:px|em|rem|%|vh|vw|deg|s|ms)?)$/;
+
+function isSafeCssValue(value: string): boolean {
+  return SAFE_CSS_RE.test(value);
+}
+
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'dark';
   const stored = localStorage.getItem('theme') as Theme | null;
@@ -43,7 +49,7 @@ function applyThemeVars(config: ThemeConfig, isDark: boolean) {
   const vars = isDark && config.dark ? { ...config, ...config.dark } : config;
   Object.entries(vars).forEach(([key, value]) => {
     if (key === 'dark' || key === 'headline_font' || key === 'body_font' || key === 'logo_url') return;
-    if (typeof value === 'string') {
+    if (typeof value === 'string' && isSafeCssValue(value)) {
       root.style.setProperty(key, value);
     }
   });
