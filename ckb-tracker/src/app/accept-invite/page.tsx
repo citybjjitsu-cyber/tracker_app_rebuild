@@ -63,7 +63,7 @@ function AcceptInviteForm() {
     try {
       await inviteApi.accept(token, password, pin)
       setSuccess(true)
-      setTimeout(() => router.push('/'), 2000)
+      setTimeout(() => router.push('/login'), 2000)
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to set up account. Please try again.'
       setError(detail)
@@ -84,7 +84,7 @@ function AcceptInviteForm() {
       <div style={{ textAlign: 'center', padding: '48px 0' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
         <h2 style={{ color: '#fff', margin: '0 0 8px' }}>Account Set Up!</h2>
-        <p style={{ color: '#888', margin: 0 }}>Redirecting you to the app...</p>
+        <p style={{ color: '#888', margin: 0 }}>Redirecting you to login...</p>
       </div>
     )
   }
