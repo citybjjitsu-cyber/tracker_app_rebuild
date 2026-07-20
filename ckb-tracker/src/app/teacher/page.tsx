@@ -68,10 +68,6 @@ export default function TeacherPage() {
   }, [isTeacher, isAdmin]);
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  useEffect(() => {
     if (selectedClass && selectedDate) {
       loadAttendance();
     }
@@ -417,6 +413,7 @@ export default function TeacherPage() {
                           key={cls.id}
                           onClick={(e) => {
                             e.stopPropagation();
+                            setSelectedStudents([]);
                             setSelectedDate(dateStr);
                             setSelectedClass(cls.id);
                           }}
