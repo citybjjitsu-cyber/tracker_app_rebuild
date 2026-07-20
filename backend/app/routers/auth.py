@@ -624,31 +624,8 @@ def accept_invite(
     invite.consumed_at = _utcnow()
     db.commit()
 
-    access_token, access_jti = create_access_token(user.user_uuid)
-    refresh_token, refresh_jti = create_refresh_token(user.user_uuid)
-    store_token_record(
-        db,
-        access_jti,
-        user.user_uuid,
-        "access",
-        _utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    store_token_record(
-        db,
-        refresh_jti,
-        user.user_uuid,
-        "refresh",
-        _utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-    )
-
-    roles = get_user_roles(db, user.user_uuid)
-    csrf_token = generate_csrf_token()
-    set_auth_cookies(response, access_token, refresh_token, csrf_token)
-
     return schemas.AcceptInviteResponse(
         message="Account set up successfully",
-        user=schemas.KioskUserResponse.model_validate(user),
-        roles=[schemas.RoleResponse.model_validate(r) for r in roles],
     )
 
 

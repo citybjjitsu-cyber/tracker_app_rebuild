@@ -625,8 +625,6 @@ class AcceptInviteRequest(BaseModel):
 
 class AcceptInviteResponse(BaseModel):
     message: str
-    user: KioskUserResponse
-    roles: List[RoleResponse]
 
 
 class ResendInviteRequest(BaseModel):

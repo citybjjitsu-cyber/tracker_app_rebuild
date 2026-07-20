@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+from passlib.context import CryptContext
+
 from tests.conftest import STAFF_UUID, PINLESS_UUID, STAFF_PASSWORD
 from app import models
 from app.auth.jwt_utils import hash_token
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def test_login_valid_staff(client):
@@ -263,15 +267,52 @@ def test_accept_invite(client, db_session):
     assert response.status_code == 200
     data = response.json()
     assert data["message"] == "Account set up successfully"
-    assert "user" in data
-    assert "roles" in data
 
     user = db_session.query(models.User).filter(models.User.user_uuid == PINLESS_UUID).first()
     assert user.password_hash is not None
     assert user.pin_hash is not None
+    assert pwd_context.verify("NewPass1!", user.password_hash)
+    assert pwd_context.verify("5678", user.pin_hash)
 
     db_session.refresh(invite)
     assert invite.consumed_at is not None
+
+
+def test_accept_invite_then_login(client, db_session):
+    raw_token = "test-accept-then-login-token"
+    token_hash_val = hash_token(raw_token)
+
+    invite = models.InviteToken(
+        token_hash=token_hash_val,
+        user_uuid=PINLESS_UUID,
+        expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=7),
+        sent_count=1,
+    )
+    db_session.add(invite)
+    db_session.commit()
+
+    accept_resp = client.post(
+        "/auth/accept-invite",
+        json={
+            "token": raw_token,
+            "password": "LoginTest1!",
+            "pin": "1234",
+        },
+    )
+    assert accept_resp.status_code == 200
+
+    user = db_session.query(models.User).filter(models.User.user_uuid == PINLESS_UUID).first()
+    assert pwd_context.verify("LoginTest1!", user.password_hash)
+
+    login_resp = client.post(
+        "/auth/login",
+        json={"email": user.email, "password": "LoginTest1!"},
+    )
+    assert login_resp.status_code == 200
+    data = login_resp.json()
+    assert "user" in data
+    assert "roles" in data
+    assert data["user"]["user_uuid"] == PINLESS_UUID
 
 
 def test_accept_invite_consumed(client, db_session):
@@ -387,9 +428,6 @@ def test_reset_password(client, db_session):
     assert response.json()["message"] == "Password reset successfully"
 
     user = db_session.query(models.User).filter(models.User.user_uuid == STAFF_UUID).first()
-    from passlib.context import CryptContext
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     assert pwd_context.verify("NewPassword1!", user.password_hash)
 
 
@@ -429,9 +467,6 @@ def test_reset_pin(client, db_session):
     assert response.json()["message"] == "PIN reset successfully"
 
     user = db_session.query(models.User).filter(models.User.user_uuid == STAFF_UUID).first()
-    from passlib.context import CryptContext
-
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     assert pwd_context.verify("9999", user.pin_hash)
 
 
