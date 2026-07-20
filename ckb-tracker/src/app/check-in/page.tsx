@@ -21,6 +21,7 @@ import {
   Search,
   X,
   ChevronRight,
+  ChevronLeft,
   AlertCircle,
   Check,
   LogOut
@@ -293,13 +294,13 @@ export default function CheckInPage() {
 
   const confirmComplete = () => {
     stopCamera();
-    setSelectedUser(null);
-    setSessionTimeLeft(120);
-    setTodayAttendance([]);
-    setShowCompleteConfirm(false);
-    setShowPhotoUpload(false);
     setPendingCheckIns([]);
     closePinModal();
+    if (isTeacher) {
+      router.push('/teacher');
+    } else {
+      router.push('/portal');
+    }
   };
 
   const handleCreateMember = async () => {
@@ -512,6 +513,14 @@ export default function CheckInPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+          {!isTablet && (
+            <button
+              onClick={() => router.push(isTeacher ? '/teacher' : '/portal')}
+              className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
           <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center">
             <span className="text-white font-bold font-headline">CKB</span>
           </div>
