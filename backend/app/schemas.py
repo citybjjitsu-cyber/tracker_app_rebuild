@@ -345,11 +345,17 @@ class CheckInRequest(BaseModel):
     user_uuid: str = Field(min_length=1, max_length=64)
     class_id: int
     class_instance_id: Optional[int] = None
+    check_in_date: Optional[date] = None
+
+
+class ClassCheckInItem(BaseModel):
+    class_id: int
+    check_in_date: Optional[date] = None
 
 
 class BulkCheckInRequest(BaseModel):
     user_uuid: str = Field(min_length=1, max_length=64)
-    class_ids: List[int] = Field(min_length=1)
+    classes: List[ClassCheckInItem] = Field(min_length=1)
 
 
 class AttendanceCreate(AttendanceBase):
