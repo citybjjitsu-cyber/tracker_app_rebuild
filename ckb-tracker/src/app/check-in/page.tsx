@@ -795,7 +795,7 @@ export default function CheckInPage() {
                   </div>
                   <div className="border-l border-outline-variant/30 pl-4">
                     <p className="text-[9px] uppercase tracking-widest text-on-surface-variant mb-1">Classes Checked</p>
-                    <p className="text-xl font-black text-on-surface font-headline">{todayAttendance.length}</p>
+                    <p className="text-xl font-black text-on-surface font-headline">{attendanceRecords.length}</p>
                   </div>
                 </div>
               </div>
