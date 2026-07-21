@@ -202,12 +202,12 @@ export default function CheckInPage() {
 
   const handleConfirmCheckIn = () => {
     if (pendingCheckIns.length === 0 || !selectedUser) return;
-    if (isTeacher || isAdmin) {
-      submitBulkCheckIn();
-    } else {
+    if (isTablet) {
       setPinValue('');
       setPinError('');
       setShowPinModal(true);
+    } else {
+      submitBulkCheckIn();
     }
   };
 
@@ -806,7 +806,7 @@ export default function CheckInPage() {
                     disabled={isFormLoading || isVerifyingPin}
                     className="bg-primary-container text-white px-8 py-4 rounded-lg font-headline font-black text-base uppercase tracking-widest shadow-xl shadow-primary-container/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                   >
-                    {isFormLoading ? 'Checking in...' : `Confirm with PIN (${pendingCheckIns.length})`}
+                    {isFormLoading ? 'Checking in...' : isTablet ? `Confirm with PIN (${pendingCheckIns.length})` : `Confirm (${pendingCheckIns.length})`}
                   </button>
                 )}
                 {hasCheckedIn && (
@@ -1000,7 +1000,7 @@ export default function CheckInPage() {
                 <div className="flex gap-3 mt-6 pt-6 border-t border-outline-variant/20">
                   {pendingCheckIns.length > 0 && (
                     <Button className="flex-1" onClick={handleConfirmCheckIn} disabled={isFormLoading || isVerifyingPin} isLoading={isFormLoading}>
-                      {isFormLoading ? 'Checking in...' : `Confirm with PIN (${pendingCheckIns.length})`}
+                      {isFormLoading ? 'Checking in...' : isTablet ? `Confirm with PIN (${pendingCheckIns.length})` : `Confirm (${pendingCheckIns.length})`}
                     </Button>
                   )}
                   {hasCheckedIn && (
