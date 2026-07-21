@@ -271,19 +271,6 @@ export default function CheckInPage() {
     }
   };
 
-  const handleStartOver = () => {
-    if (confirm('Start over with a new student?')) {
-      stopCamera();
-      setSelectedUser(null);
-      setSessionTimeLeft(120);
-      setAttendanceRecords([]);
-      setShowCompleteConfirm(false);
-      setShowPhotoUpload(false);
-      setPendingCheckIns([]);
-      closePinModal();
-    }
-  };
-
   const handleComplete = () => {
     setShowCompleteConfirm(true);
   };
@@ -997,8 +984,8 @@ export default function CheckInPage() {
                   <Button className="flex-1" onClick={handleComplete} disabled={isFormLoading} isLoading={isFormLoading}>
                     {isFormLoading ? 'Checking in...' : 'Confirm'}
                   </Button>
-                  <Button variant="outline" onClick={handleStartOver}>
-                    Start Over
+                  <Button variant="outline" onClick={() => logout()}>
+                    Logout
                   </Button>
                 </div>
               )}
