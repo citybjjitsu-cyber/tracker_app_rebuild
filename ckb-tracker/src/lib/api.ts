@@ -249,11 +249,12 @@ export const attendanceApi = {
     });
     return response.data;
   },
-  checkIn: async (userUuid: string, classId: number, classInstanceId?: number) => {
+  checkIn: async (userUuid: string, classId: number, classInstanceId?: number, checkInDate?: string) => {
     const response = await api.post('/attendance/check-in', {
       user_uuid: userUuid,
       class_id: classId,
       class_instance_id: classInstanceId,
+      check_in_date: checkInDate,
     });
     return response.data;
   },
@@ -275,8 +276,8 @@ export const attendanceApi = {
     const response = await api.delete(`/attendance/${id}/cancel`);
     return response.data;
   },
-  bulkCheckIn: async (userUuid: string, classIds: number[]) => {
-    const response = await api.post('/attendance/bulk-check-in', { user_uuid: userUuid, class_ids: classIds });
+  bulkCheckIn: async (userUuid: string, classes: { class_id: number; check_in_date?: string }[]) => {
+    const response = await api.post('/attendance/bulk-check-in', { user_uuid: userUuid, classes });
     return response.data;
   },
   bulkConfirm: async (ids: number[]) => {

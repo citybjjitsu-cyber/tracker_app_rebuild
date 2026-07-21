@@ -34,7 +34,7 @@ export default function CheckInPage() {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
-  const [todayAttendance, setTodayAttendance] = useState<Attendance[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [error, setError] = useState('');
   const [sessionTimeLeft, setSessionTimeLeft] = useState(120);
@@ -64,7 +64,7 @@ export default function CheckInPage() {
     comments: '',
   });
 
-  const [pendingCheckIns, setPendingCheckIns] = useState<number[]>([]);
+  const [pendingCheckIns, setPendingCheckIns] = useState<{ classId: number; checkInDate: string }[]>([]);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinValue, setPinValue] = useState('');
   const [pinError, setPinError] = useState('');
@@ -78,6 +78,18 @@ export default function CheckInPage() {
 
   const today = new Date();
   const todayDayName = DAYS_OF_WEEK[today.getDay()];
+
+  const weekDates = useMemo(() => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - dayOfWeek);
+    return DAYS_OF_WEEK.map((_, i) => {
+      const d = new Date(sunday);
+      d.setDate(sunday.getDate() + i);
+      return d.toISOString().split('T')[0];
+    });
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -101,16 +113,15 @@ export default function CheckInPage() {
 
   useEffect(() => {
     if (selectedUser) {
-      const fetchTodayAttendance = async () => {
+      const fetchAttendance = async () => {
         try {
-          const today = new Date().toISOString().split('T')[0];
           const attendance = await attendanceApi.getByUser(selectedUser.user_uuid);
-          setTodayAttendance(attendance.filter(a => a.attendance_date === today));
+          setAttendanceRecords(attendance);
         } catch (error) {
           console.error('Error fetching attendance:', error);
         }
       };
-      fetchTodayAttendance();
+      fetchAttendance();
     }
   }, [selectedUser]);
 
@@ -179,12 +190,14 @@ export default function CheckInPage() {
     setShowCompleteConfirm(false);
   };
 
-  const togglePendingCheckIn = (classId: number) => {
-    setPendingCheckIns(prev =>
-      prev.includes(classId)
-        ? prev.filter(id => id !== classId)
-        : [...prev, classId]
-    );
+  const togglePendingCheckIn = (classId: number, dateStr: string) => {
+    setPendingCheckIns(prev => {
+      const exists = prev.find(p => p.classId === classId && p.checkInDate === dateStr);
+      if (exists) {
+        return prev.filter(p => !(p.classId === classId && p.checkInDate === dateStr));
+      }
+      return [...prev, { classId, checkInDate: dateStr }];
+    });
   };
 
   const handleConfirmCheckIn = () => {
@@ -203,18 +216,13 @@ export default function CheckInPage() {
     setIsFormLoading(true);
     setError('');
     try {
-      await attendanceApi.bulkCheckIn(selectedUser.user_uuid, pendingCheckIns);
+      await attendanceApi.bulkCheckIn(
+        selectedUser.user_uuid,
+        pendingCheckIns.map(p => ({ class_id: p.classId, check_in_date: p.checkInDate }))
+      );
       setPendingCheckIns([]);
-      setTodayAttendance(prev => {
-        const existing = prev.filter(a => {
-          const stillPending = pendingCheckIns.includes(a.class_id);
-          return !stillPending;
-        });
-        return existing;
-      });
-      const today = new Date().toISOString().split('T')[0];
       const attendance = await attendanceApi.getByUser(selectedUser.user_uuid);
-      setTodayAttendance(attendance.filter(a => a.attendance_date === today));
+      setAttendanceRecords(attendance);
       setVerifySuccess(true);
       setTimeout(() => setVerifySuccess(false), 3000);
     } catch (error: unknown) {
@@ -265,9 +273,8 @@ export default function CheckInPage() {
     setIsFormLoading(true);
     try {
       await attendanceApi.cancel(attendanceId);
-      const today = new Date().toISOString().split('T')[0];
       const attendance = await attendanceApi.getByUser(selectedUser!.user_uuid);
-      setTodayAttendance(attendance.filter(a => a.attendance_date === today));
+      setAttendanceRecords(attendance);
     } catch (error) {
       console.error('Cancel error:', error);
     } finally {
@@ -280,7 +287,7 @@ export default function CheckInPage() {
       stopCamera();
       setSelectedUser(null);
       setSessionTimeLeft(120);
-      setTodayAttendance([]);
+      setAttendanceRecords([]);
       setShowCompleteConfirm(false);
       setShowPhotoUpload(false);
       setPendingCheckIns([]);
@@ -486,16 +493,16 @@ export default function CheckInPage() {
     router.push('/');
   };
 
-  const getAttendanceStatus = (classId: number): { status: string; attendance?: Attendance } => {
-    const attendance = todayAttendance.find(a => a.class_id === classId);
+  const getAttendanceStatus = (classId: number, dateStr: string): { status: string; attendance?: Attendance } => {
+    const attendance = attendanceRecords.find(a => a.class_id === classId && a.attendance_date === dateStr);
     if (!attendance) {
-      if (pendingCheckIns.includes(classId)) return { status: 'queued' };
+      if (pendingCheckIns.some(p => p.classId === classId && p.checkInDate === dateStr)) return { status: 'queued' };
       return { status: 'not_checked_in' };
     }
     return { status: attendance.status, attendance };
   };
 
-  const hasCheckedIn = todayAttendance.length > 0;
+  const hasCheckedIn = attendanceRecords.length > 0;
 
   const formatTimeLeft = () => {
     const minutes = Math.floor(sessionTimeLeft / 60);
@@ -553,7 +560,7 @@ export default function CheckInPage() {
             Complete Check-In Session?
           </h2>
           <p className="text-on-surface-variant mb-6">
-            You have checked into {todayAttendance.length} class{todayAttendance.length !== 1 ? 'es' : ''} today.
+            You have checked into {attendanceRecords.length} class{attendanceRecords.length !== 1 ? 'es' : ''} today.
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => setShowCompleteConfirm(false)}>
@@ -788,7 +795,7 @@ export default function CheckInPage() {
                   </div>
                   <div className="border-l border-outline-variant/30 pl-4">
                     <p className="text-[9px] uppercase tracking-widest text-on-surface-variant mb-1">Classes Checked</p>
-                    <p className="text-xl font-black text-on-surface font-headline">{todayAttendance.length}</p>
+                    <p className="text-xl font-black text-on-surface font-headline">{attendanceRecords.length}</p>
                   </div>
                 </div>
               </div>
@@ -895,11 +902,12 @@ export default function CheckInPage() {
                 <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface">Weekly Registration</h2>
               </div>
               <div className="text-right">
-                <p className="text-xs text-primary-container font-black uppercase tracking-[0.2em]">{todayAttendance.length} CLASSES CHECKED</p>
+                <p className="text-xs text-primary-container font-black uppercase tracking-[0.2em]">{attendanceRecords.length} CLASSES CHECKED</p>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                {DAYS_OF_WEEK.map((day) => {
+                {DAYS_OF_WEEK.map((day, dayIndex) => {
+                  const dayDateStr = weekDates[dayIndex];
                   const dayClasses = classes.filter(c => c.day?.toLowerCase() === day.toLowerCase()).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
                   const isTodayDay = day === todayDayName;
                   
@@ -917,7 +925,7 @@ export default function CheckInPage() {
                         <div className="space-y-3">
                           {dayClasses.length > 0 ? (
                             dayClasses.map((cls) => {
-                              const { status, attendance } = getAttendanceStatus(cls.id);
+                              const { status, attendance } = getAttendanceStatus(cls.id, dayDateStr);
                               
                               return (
                                 <div
@@ -938,7 +946,7 @@ export default function CheckInPage() {
                                       <Button
                                         size="sm"
                                         className="w-full text-[10px] font-black uppercase tracking-tight"
-                                        onClick={() => togglePendingCheckIn(cls.id)}
+                                        onClick={() => togglePendingCheckIn(cls.id, dayDateStr)}
                                         disabled={isFormLoading}
                                       >
                                         Check In
@@ -949,7 +957,7 @@ export default function CheckInPage() {
                                         size="sm"
                                         variant="success"
                                         className="w-full text-[10px] font-black uppercase tracking-tight"
-                                        onClick={() => togglePendingCheckIn(cls.id)}
+                                        onClick={() => togglePendingCheckIn(cls.id, dayDateStr)}
                                       >
                                         Selected ✓
                                       </Button>
@@ -1037,10 +1045,10 @@ export default function CheckInPage() {
                   Selected Classes ({pendingCheckIns.length})
                 </p>
                 <ul className="text-sm text-on-surface space-y-1">
-                  {pendingCheckIns.map(id => {
-                    const cls = classes.find(c => c.id === id);
+                  {pendingCheckIns.map(item => {
+                    const cls = classes.find(c => c.id === item.classId);
                     return cls ? (
-                      <li key={id} className="flex items-center gap-2">
+                      <li key={`${item.classId}-${item.checkInDate}`} className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary-container flex-shrink-0" />
                         {cls.class_name} <span className="text-on-surface-variant">{cls.time}</span>
                       </li>

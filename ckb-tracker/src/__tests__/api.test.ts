@@ -83,11 +83,11 @@ describe('attendanceApi', () => {
       data: { created: [{ id: 1, class_id: 1, status: 'pending' }], errors: [] },
     })
 
-    const result = await apiModule.attendanceApi.bulkCheckIn('user-uuid', [1, 2])
+    const result = await apiModule.attendanceApi.bulkCheckIn('user-uuid', [{ class_id: 1 }, { class_id: 2 }])
 
     expect(axios.default.post).toHaveBeenCalledWith(
       '/attendance/bulk-check-in',
-      { user_uuid: 'user-uuid', class_ids: [1, 2] },
+      { user_uuid: 'user-uuid', classes: [{ class_id: 1 }, { class_id: 2 }] },
     )
     expect(result.created).toHaveLength(1)
   })
