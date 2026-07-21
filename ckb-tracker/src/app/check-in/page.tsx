@@ -200,17 +200,6 @@ export default function CheckInPage() {
     });
   };
 
-  const handleConfirmCheckIn = () => {
-    if (pendingCheckIns.length === 0 || !selectedUser) return;
-    if (isTablet) {
-      setPinValue('');
-      setPinError('');
-      setShowPinModal(true);
-    } else {
-      submitBulkCheckIn();
-    }
-  };
-
   const submitBulkCheckIn = async () => {
     if (!selectedUser || pendingCheckIns.length === 0) return;
     setIsFormLoading(true);
@@ -299,7 +288,20 @@ export default function CheckInPage() {
     setShowCompleteConfirm(true);
   };
 
-  const confirmComplete = () => {
+  const confirmComplete = async () => {
+    if (pendingCheckIns.length > 0 && selectedUser) {
+      setIsFormLoading(true);
+      try {
+        await attendanceApi.bulkCheckIn(
+          selectedUser.user_uuid,
+          pendingCheckIns.map(p => ({ class_id: p.classId, check_in_date: p.checkInDate }))
+        );
+      } catch (err) {
+        console.error('Check-in submit error:', err);
+      } finally {
+        setIsFormLoading(false);
+      }
+    }
     stopCamera();
     setPendingCheckIns([]);
     closePinModal();
@@ -557,10 +559,12 @@ export default function CheckInPage() {
             <CheckCircle2 className="w-8 h-8 text-primary-container" />
           </div>
           <h2 className="text-xl font-bold text-on-surface font-headline mb-2">
-            Complete Check-In Session?
+            {pendingCheckIns.length > 0 ? 'Confirm Check-In?' : 'Complete Session?'}
           </h2>
           <p className="text-on-surface-variant mb-6">
-            You have checked into {attendanceRecords.length} class{attendanceRecords.length !== 1 ? 'es' : ''} today.
+            {pendingCheckIns.length > 0
+              ? `Submit ${pendingCheckIns.length} class${pendingCheckIns.length !== 1 ? 'es' : ''} and complete your session.`
+              : `You have checked into ${attendanceRecords.length} class${attendanceRecords.length !== 1 ? 'es' : ''}.`}
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => setShowCompleteConfirm(false)}>
@@ -568,7 +572,7 @@ export default function CheckInPage() {
             </Button>
             <Button variant="success" onClick={confirmComplete}>
               <Check className="w-4 h-4 mr-2" />
-              Complete Session
+              Confirm
             </Button>
           </div>
         </div>
@@ -800,21 +804,13 @@ export default function CheckInPage() {
                 </div>
               </div>
               <div className="relative z-10 ml-auto self-center flex flex-col items-end gap-2">
-                {pendingCheckIns.length > 0 && (
-                  <button
-                    onClick={handleConfirmCheckIn}
-                    disabled={isFormLoading || isVerifyingPin}
-                    className="bg-primary-container text-white px-8 py-4 rounded-lg font-headline font-black text-base uppercase tracking-widest shadow-xl shadow-primary-container/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {isFormLoading ? 'Checking in...' : isTablet ? `Confirm with PIN (${pendingCheckIns.length})` : `Confirm (${pendingCheckIns.length})`}
-                  </button>
-                )}
-                {hasCheckedIn && (
+                {(hasCheckedIn || pendingCheckIns.length > 0) && (
                   <button
                     onClick={handleComplete}
-                    className="text-xs text-on-surface-variant hover:text-on-surface underline transition-colors"
+                    disabled={isFormLoading}
+                    className="bg-primary-container text-white px-8 py-4 rounded-lg font-headline font-black text-base uppercase tracking-widest shadow-xl shadow-primary-container/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                   >
-                    Complete Session
+                    {isFormLoading ? 'Checking in...' : 'Confirm'}
                   </button>
                 )}
               </div>
@@ -998,17 +994,9 @@ export default function CheckInPage() {
                </div>
              {(hasCheckedIn || pendingCheckIns.length > 0) && (
                 <div className="flex gap-3 mt-6 pt-6 border-t border-outline-variant/20">
-                  {pendingCheckIns.length > 0 && (
-                    <Button className="flex-1" onClick={handleConfirmCheckIn} disabled={isFormLoading || isVerifyingPin} isLoading={isFormLoading}>
-                      {isFormLoading ? 'Checking in...' : isTablet ? `Confirm with PIN (${pendingCheckIns.length})` : `Confirm (${pendingCheckIns.length})`}
-                    </Button>
-                  )}
-                  {hasCheckedIn && (
-                    <Button className="flex-1" onClick={handleComplete}>
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      Complete Session
-                    </Button>
-                  )}
+                  <Button className="flex-1" onClick={handleComplete} disabled={isFormLoading} isLoading={isFormLoading}>
+                    {isFormLoading ? 'Checking in...' : 'Confirm'}
+                  </Button>
                   <Button variant="outline" onClick={handleStartOver}>
                     Start Over
                   </Button>
