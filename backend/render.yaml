@@ -56,3 +56,5 @@ services:
         sync: false
       - key: KIOSK_IDLE_MINUTES
         value: "240"
+      - key: UPLOADS_DIR
+        value: /opt/render/project/src/backend/uploads

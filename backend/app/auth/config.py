@@ -21,3 +21,9 @@ JWT_ALGORITHM = "HS256"
 
 CSRF_TOKEN_COOKIE_NAME = "csrf_token"
 CSRF_HEADER_NAME = "X-CSRF-Token"
+
+# Uploads directory — on Render this points to the persistent disk mount
+UPLOADS_DIR = os.environ.get(
+    "UPLOADS_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads"),
+)
