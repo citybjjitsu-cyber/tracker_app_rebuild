@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { cn, getInitials } from '@/lib/utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -13,6 +14,8 @@ interface AvatarProps {
 }
 
 export function Avatar({ src, firstName = '', lastName = '', size = 'md', offsetX = 0, offsetY = 0, className }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
+
   const sizeClasses = {
     xs: 'h-6 w-6 text-[10px]',
     sm: 'h-8 w-8 text-xs',
@@ -37,7 +40,11 @@ export function Avatar({ src, firstName = '', lastName = '', size = 'md', offset
 
   const imageSrc = getImageUrl(src);
 
-  if (imageSrc) {
+  const handleImageError = useCallback(() => {
+    setImgError(true);
+  }, []);
+
+  if (imageSrc && !imgError) {
     return (
       <img
         src={imageSrc}
@@ -49,6 +56,7 @@ export function Avatar({ src, firstName = '', lastName = '', size = 'md', offset
           className
         )}
         style={{ objectPosition }}
+        onError={handleImageError}
       />
     );
   }

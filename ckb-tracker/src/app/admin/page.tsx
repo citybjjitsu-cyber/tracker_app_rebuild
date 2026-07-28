@@ -1023,7 +1023,7 @@ export default function AdminPage() {
                       onClick={() => handleSelectUser(u)}
                     >
                       <div className="flex items-center gap-3">
-                        <Avatar src={u.profile_image_url} firstName={u.first_name} lastName={u.last_name} offsetX={u.image_offset_x} offsetY={u.image_offset_y} />
+                        <Avatar src={u.profile_image_url} firstName={u.first_name} lastName={u.last_name} offsetX={u.image_offset_x} offsetY={u.image_offset_y} size="lg" />
                         <div>
                           <p className="font-medium text-slate-900 dark:text-white">{u.first_name} {u.last_name}</p>
                           <p className="text-sm text-slate-500 dark:text-slate-400">{u.email}</p>

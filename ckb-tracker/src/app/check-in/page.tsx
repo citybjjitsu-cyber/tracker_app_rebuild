@@ -618,7 +618,7 @@ export default function CheckInPage() {
                       lastName={user.last_name}
                       offsetX={user.image_offset_x}
                       offsetY={user.image_offset_y}
-                      size="lg"
+                      size="xl"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-on-surface font-headline">
