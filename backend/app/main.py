@@ -271,10 +271,10 @@ app.include_router(admin.router)
 
 # Serve uploaded photos statically
 import os
+from app.auth.config import UPLOADS_DIR
 
-uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
-os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+os.makedirs(os.path.join(UPLOADS_DIR, "photos"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 
 @app.get("/health")
