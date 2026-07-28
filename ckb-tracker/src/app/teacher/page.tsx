@@ -473,6 +473,7 @@ export default function TeacherPage() {
                           lastName={att.user?.last_name}
                           offsetX={att.user?.image_offset_x}
                           offsetY={att.user?.image_offset_y}
+                          size="lg"
                         />
                         <div>
                           <p className="font-medium text-on-surface">
