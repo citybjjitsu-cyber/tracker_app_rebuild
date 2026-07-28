@@ -8,7 +8,7 @@ const cspHeader = `
   default-src 'self';
   script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : " 'unsafe-inline'"};
   style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob:;
+  img-src 'self' data: blob: ${apiUrl};
   font-src 'self' data:;
   connect-src 'self' ${apiUrl};
   frame-ancestors 'none';
