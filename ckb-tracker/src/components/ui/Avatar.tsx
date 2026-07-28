@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useCallback } from 'react';
 import { cn, getInitials } from '@/lib/utils';
 
