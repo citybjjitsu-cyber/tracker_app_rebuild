@@ -846,7 +846,7 @@ describe('usersApi (additional)', () => {
     const file = new File([''], 'photo.jpg', { type: 'image/jpeg' })
     const result = await apiModule.usersApi.uploadPhoto('u1', file, 10, 20)
 
-    expect(axios.default.post).toHaveBeenCalledWith('/users/u1/photo', expect.any(FormData), { headers: { 'Content-Type': undefined } })
+    expect(axios.default.post).toHaveBeenCalledWith('/users/u1/photo', expect.any(FormData))
     expect(result.url).toBe('photo.jpg')
   })
 
@@ -880,9 +880,7 @@ describe('usersApi (additional)', () => {
     const file = new File(['a,b,c'], 'users.csv', { type: 'text/csv' })
     const result = await apiModule.usersApi.importCsv(file)
 
-    expect(axios.default.post).toHaveBeenCalledWith('/users/import-csv', expect.any(FormData), {
-      headers: { 'Content-Type': undefined },
-    })
+    expect(axios.default.post).toHaveBeenCalledWith('/users/import-csv', expect.any(FormData))
     expect(result.imported).toBe(5)
   })
 
