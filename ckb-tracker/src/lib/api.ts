@@ -54,6 +54,9 @@ api.interceptors.request.use((config) => {
   if (kioskToken) {
     config.headers['Authorization'] = `Bearer ${kioskToken}`;
   }
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });
 
@@ -155,9 +158,7 @@ export const usersApi = {
     formData.append('file', file);
     formData.append('offset_x', offsetX.toString());
     formData.append('offset_y', offsetY.toString());
-    const response = await api.post(`/users/${uuid}/photo`, formData, {
-      headers: { 'Content-Type': undefined },
-    });
+    const response = await api.post(`/users/${uuid}/photo`, formData);
     return response.data;
   },
   updatePhotoPosition: async (uuid: string, offsetX: number, offsetY: number) => {
@@ -182,9 +183,7 @@ export const usersApi = {
   importCsv: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post('/users/import-csv', formData, {
-      headers: { 'Content-Type': undefined },
-    });
+    const response = await api.post('/users/import-csv', formData);
     return response.data;
   },
   exportCsv: async () => {
