@@ -1003,6 +1003,7 @@ export default function AdminPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-64"
+                      autoComplete="off"
                     />
                     <Button size="sm" onClick={() => setIsCreatingUser(true)}>
                       <Plus className="w-4 h-4 mr-1" /> Add Member
