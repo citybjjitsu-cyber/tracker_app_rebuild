@@ -229,10 +229,10 @@
 
 ---
 
-## Phase 10: Security Hardening (XSS, Cookies, Input Validation)
+## Phase 10: Security Hardening (XSS, Cookies, Input Validation, CSP)
 **Branch:** `feature/security-hardening`
 
-**Goal:** Address findings from XSS/cookie security audit. No critical XSS vulnerabilities found (React auto-escaping handles all rendering), but several defense-in-depth improvements needed.
+**Goal:** Address findings from XSS/cookie security audit, fix CSP to allow profile photo display, and implement persistent photo storage.
 
 ### Why
 
@@ -242,54 +242,76 @@
 - `profile_image_url` has no URL protocol validation
 - Theme CSS values injected via `style.setProperty()` without validation
 - `first_name` interpolated into HTML email templates without escaping
+- Frontend CSP `img-src` missing backend API URL — all profile photos blocked by browser
+- Photo uploads not persisted across Render deploys/restarts
 
 ---
 
-### Step 1: CSRF Token Storage
-| # | Task | Files |
-|---|------|-------|
-| 1a | Move CSRF token from `localStorage` to `sessionStorage` — reduces persistence window, still works for double-submit pattern | `useAuth.tsx`, `api.ts` |
+### Step 1: CSRF Token Storage ✅
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 1a | Move CSRF token from `localStorage` to `sessionStorage` — reduces persistence window, still works for double-submit pattern | `useAuth.tsx`, `api.ts` | ✅ |
 
-### Step 2: Cookie Security
-| # | Task | Files |
-|---|------|-------|
-| 2a | Default `COOKIE_SECURE` to `True` when `ENVIRONMENT=production` | `auth/config.py` |
-| 2b | Remove `access_token` and `refresh_token` from `AcceptInviteResponse` schema (already in httponly cookies) | `schemas.py`, `auth.py` |
+### Step 2: Cookie Security ✅
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 2a | Default `COOKIE_SECURE` to `True` when `ENVIRONMENT=production` | `auth/config.py` | ✅ |
+| 2b | Remove `access_token` and `refresh_token` from `AcceptInviteResponse` schema (already in httponly cookies) | `schemas.py`, `auth.py` | ✅ |
 
-### Step 3: Input Validation
-| # | Task | Files |
-|---|------|-------|
-| 3a | Add URL scheme validation to `profile_image_url` — whitelist `http`, `https`, and relative `/uploads/` paths | `schemas.py` |
-| 3b | Validate theme CSS property values against safe color/property patterns (reject `javascript:`, `-moz-binding`, etc.) | `themes.py`, `useTheme.tsx` |
-| 3c | HTML-escape `first_name` in email templates using `html.escape()` | `services/email.py` |
+### Step 3: Input Validation ✅
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 3a | Add URL scheme validation to `profile_image_url` — whitelist `http`, `https`, and relative `/uploads/` paths | `schemas.py` | ✅ |
+| 3b | Validate theme CSS property values against safe color/property patterns (reject `javascript:`, `-moz-binding`, etc.) | `themes.py`, `useTheme.tsx` | ✅ |
+| 3c | HTML-escape `first_name` in email templates using `html.escape()` | `services/email.py` | ✅ |
 
-### Step 4: CSP Hardening
-| # | Task | Files |
-|---|------|-------|
-| 4a | Remove `'unsafe-eval'` from production CSP in `next.config.ts` (keep for dev only) | `next.config.ts` |
+### Step 4: CSP & Photo Display ✅
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 4a | Remove `'unsafe-eval'` from production CSP in `next.config.ts` (keep for dev only) | `next.config.ts` | ✅ |
+| 4b | Add backend API URL to `img-src` CSP directive — **root cause of all profile photos failing to display** | `next.config.ts` | ✅ |
+| 4c | Add `'use client'` directive to Avatar component (uses `useState`/`useCallback` hooks) | `Avatar.tsx` | ✅ |
+| 4d | Add `onError` handler to Avatar — falls back to initials when image fails to load (graceful degradation) | `Avatar.tsx` | ✅ |
+| 4e | Increase Avatar sizes for identification — check-in/kiosk search `lg`→`xl`, teacher/admin list `md`→`lg` | `check-in/page.tsx`, `page.tsx`, `teacher/page.tsx`, `admin/page.tsx` | ✅ |
+
+### Step 5: Photo Upload & Persistent Storage ✅
+| # | Task | Files | Status |
+|---|------|-------|--------|
+| 5a | Configurable `UPLOADS_DIR` env var — Render persistent disk at `/opt/render/project/src/backend/uploads` | `auth/config.py` | ✅ |
+| 5b | Backend static file mount uses `UPLOADS_DIR` | `main.py` | ✅ |
+| 5c | Upload/delete endpoints use `UPLOADS_DIR` | `users.py` | ✅ |
+| 5d | Render Blueprint includes `UPLOADS_DIR` env var | `render.yaml` | ✅ |
+| 5e | Fix FormData Content-Type — strip `application/json` default for `FormData` uploads in axios interceptor | `api.ts` | ✅ |
+| 5f | Fix CORS regex — `ckb-tracker.*` instead of `ckb-tracker-.*` to match `ckb-tracker.vercel.app` | `main.py` | ✅ |
 
 ---
 
-**Tests:** All existing tests pass. Add tests for URL scheme validation and theme value validation.
+**Tests:** 128 backend ✅, 177 frontend ✅, lint 0 errors, build ✅
 
-**Commit:** `fix(security): CSRF storage hardening, cookie defaults, input validation, and CSP improvements`
+**Commits:**
+- `fix(security): CSRF storage hardening, cookie defaults, input validation, and CSP improvements`
+- `feat: configurable uploads directory for Render persistent disk`
+- `fix: set Content-Type undefined for FormData uploads to bypass axios default JSON header`
+- `fix: strip Content-Type for FormData in interceptor and fix CORS regex`
+- `feat(ui): improve Avatar display with error fallback and larger sizes for identification`
+- `fix: add backend API URL to frontend CSP img-src so profile photos load cross-origin`
 
 ---
 
 ## Rollout Order (Priority)
 
-| Order | Phase | Why |
-|-------|-------|-----|
-| 1 | Phase 1 | Quick wins, cleanup, security fixes |
-| 2 | Phase 2 | Critical bug fixes (password flows) |
-| 3 | Phase 3 | Quick UX improvement |
-| 4 | Phase 5 | Highest user-facing impact (rank display) |
-| 5 | Phase 4 | New feature (news page) |
-| 6 | Phase 7 | Important admin feature (deactivation) |
-| 7 | Phase 6 | Largest scope (teacher redesign) |
-| 8 | Phase 8 | Kiosk session must work before pilot testing |
-| 9 | Phase 9 | Production foundation (migrations, bootstrap, safe deploys) |
-| 10 | Phase 10 | Security hardening (CSRF, cookies, input validation, CSP) |
+| Order | Phase | Branch | Status |
+|-------|-------|--------|--------|
+| 1 | Phase 1 | `feature/admin-cleanup` | ✅ Merged |
+| 2 | Phase 2 | `fix/auth-password-flows` | ✅ Merged |
+| 3 | Phase 3 | `feature/home-page-signin-ux` | ✅ Merged |
+| 4 | Phase 5 | `feature/rank-degree-display` | ✅ Merged |
+| 5 | Phase 4 | `feature/public-news-page` | ✅ Merged |
+| 6 | Phase 7 | `feature/user-deactivation` | ✅ Merged |
+| 7 | Phase 6 | `feature/teacher-view-redesign` | ✅ Merged |
+| 8 | Phase 8 | `feature/kiosk-session` | ✅ Merged |
+| 9 | Phase 9 | `feature/db-migrations` | ⏳ Pending |
+| 10 | Phase 10 | `feature/security-hardening` | ✅ In Progress |
 
 ---
 

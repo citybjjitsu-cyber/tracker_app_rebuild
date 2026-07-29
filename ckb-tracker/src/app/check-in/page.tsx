@@ -12,7 +12,6 @@ import { cn, formatDate, debounce, DAYS_OF_WEEK } from '@/lib/utils';
 import type { User, ClassSchedule, Attendance } from '@/types';
 import { 
   Camera, 
-  Upload, 
   Trash2, 
   CheckCircle2, 
   Clock,
@@ -370,6 +369,7 @@ export default function CheckInPage() {
       setCameraStream(null);
     }
     setCameraError(null);
+    setPhotoMethod('upload');
   };
 
   const capturePhoto = async () => {
@@ -807,14 +807,6 @@ export default function CheckInPage() {
           {showPhotoUpload && (
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-4">
               <div className="flex gap-2 mb-3">
-                <Button
-                  variant={photoMethod === 'upload' ? 'primary' : 'outline'}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => { setPhotoMethod('upload'); stopCamera(); }}
-                >
-                  <Upload className="w-4 h-4 mr-1" /> Upload
-                </Button>
                 <Button
                   variant={photoMethod === 'camera' ? 'primary' : 'outline'}
                   size="sm"

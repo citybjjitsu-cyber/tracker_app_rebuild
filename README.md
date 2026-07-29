@@ -16,7 +16,7 @@ Martial arts school attendance tracking, student progress monitoring, and gym ma
 | Auth | JWT (access + refresh tokens), CSRF double-submit cookie, bcrypt |
 | Testing | pytest + pytest-cov (backend), Vitest (frontend unit), Playwright (E2E) |
 | CI/CD | GitHub Actions → test → deploy to Vercel + Render |
-| Infrastructure | Vercel (frontend), Render (backend + PostgreSQL) |
+| Infrastructure | Vercel (frontend), Render (backend + PostgreSQL + persistent disk for photos) |
 
 ---
 
@@ -333,7 +333,9 @@ terms ── term_targets                    (points needed per rank per term)
 | POST | `/users` | Admin | Create user |
 | PUT | `/users/{uuid}` | Admin | Update user |
 | DELETE | `/users/{uuid}` | Admin | Soft-delete user |
-| POST | `/users/{uuid}/photo` | JWT | Upload profile photo |
+| POST | `/users/{uuid}/photo` | Admin | Upload profile photo (saved to Render persistent disk) |
+| DELETE | `/users/{uuid}/photo` | Admin | Delete profile photo |
+| PUT | `/users/{uuid}/photo-position` | Admin | Update photo crop position (offsetX, offsetY) |
 
 ### Classes (`/classes`)
 
@@ -572,7 +574,7 @@ Forgot password/PIN flows follow the same tokenized email pattern (1-hour expiry
 - **PIN lockout**: 3 failed attempts → 5-minute cooldown with `Retry-After` header
 - **Password policy**: 8+ chars, uppercase, lowercase, digit, special character required
 - **Audit logging**: 15+ event types tracked with actor, IP, user-agent, success/failure
-- **Security headers**: HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy
+- **Security headers**: HSTS, CSP (allows cross-origin images from API), X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy
 - **Request size limits**: 1 MB JSON, 10 MB multipart
 - **Global exception handler**: No stack trace leakage in production
 - **Server-side session management**: JTI blacklisting, 24-hour absolute session cap
