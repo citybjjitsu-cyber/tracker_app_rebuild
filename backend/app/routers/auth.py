@@ -493,24 +493,31 @@ def logout_all(
 @limiter.limit(READ_LIMIT)
 def get_current_user_info(
     request: Request,
+    response: Response,
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     roles = get_user_roles(db, user.user_uuid)
     csrf_token = generate_csrf_token()
-    response = {
+
+    from app.auth.config import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_SAMESITE, COOKIE_SECURE, CSRF_TOKEN_COOKIE_NAME
+
+    access_expire = ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    response.set_cookie(
+        key=CSRF_TOKEN_COOKIE_NAME,
+        value=csrf_token,
+        max_age=access_expire,
+        httponly=False,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
+        path="/",
+    )
+
+    return {
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
         "csrf_token": csrf_token,
     }
-
-    class MockResponse:
-        def set_cookie(self, key, value, max_age, httponly, samesite, secure, path):
-            pass
-
-    set_auth_cookies(MockResponse(), "", "", csrf_token)
-
-    return response
 
 
 @router.get("/check-password/{user_uuid}")
