@@ -604,6 +604,7 @@ export default function AdminPage() {
       setCameraStream(null);
     }
     setCameraError(null);
+    setPhotoMethod('upload');
   };
 
   const capturePhoto = async () => {
@@ -683,6 +684,7 @@ export default function AdminPage() {
       newUserCameraStream.getTracks().forEach(track => track.stop());
       setNewUserCameraStream(null);
     }
+    setNewUserPhotoMethod('upload');
   };
 
   const captureNewUserPhoto = () => {
@@ -1212,17 +1214,6 @@ export default function AdminPage() {
                     <h4 className="font-medium mb-2 text-slate-900 dark:text-white">Photo Management</h4>
                     <div className="flex gap-2 mb-2">
                       <Button
-                        variant={photoMethod === 'upload' ? 'primary' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          setPhotoMethod('upload');
-                          stopCamera();
-                        }}
-                      >
-                        Upload
-                      </Button>
-                      <Button
                         variant={photoMethod === 'camera' ? 'primary' : 'outline'}
                         size="sm"
                         className="flex-1"
@@ -1231,7 +1222,7 @@ export default function AdminPage() {
                           startCamera();
                         }}
                       >
-                        Camera
+                        <Camera className="w-4 h-4 mr-1" /> Camera
                       </Button>
                     </div>
                     {photoMethod === 'upload' ? (
@@ -1376,16 +1367,6 @@ export default function AdminPage() {
                 )}
                 <div className="flex gap-2 mt-3">
                   <Button
-                    variant={newUserPhotoMethod === 'upload' ? 'primary' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setNewUserPhotoMethod('upload');
-                      stopNewUserCamera();
-                    }}
-                  >
-                    Upload
-                  </Button>
-                  <Button
                     variant={newUserPhotoMethod === 'camera' ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => {
@@ -1393,7 +1374,7 @@ export default function AdminPage() {
                       startNewUserCamera();
                     }}
                   >
-                    Camera
+                    <Camera className="w-4 h-4 mr-1" /> Camera
                   </Button>
                 </div>
                 {newUserPhotoMethod === 'upload' ? (
