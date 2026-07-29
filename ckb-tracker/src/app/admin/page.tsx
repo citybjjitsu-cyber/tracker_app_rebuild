@@ -641,7 +641,8 @@ export default function AdminPage() {
       loadAllData();
     } catch (error) {
       console.error('Photo upload error:', error);
-      alert('Failed to upload photo');
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (error as Error)?.message || 'Failed to upload photo';
+      alert(detail);
     } finally {
       setIsProcessing(false);
     }
@@ -657,7 +658,8 @@ export default function AdminPage() {
       loadAllData();
     } catch (error) {
       console.error('Delete photo error:', error);
-      alert('Failed to delete photo');
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || (error as Error)?.message || 'Failed to delete photo';
+      alert(detail);
     } finally {
       setIsProcessing(false);
     }
