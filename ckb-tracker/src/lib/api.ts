@@ -437,6 +437,13 @@ export const classTypesApi = {
   },
 };
 
+export interface AttendanceOverview {
+  range: { start: string; end: string };
+  totals: { total_check_ins: number; distinct_students: number; distinct_classes: number };
+  series: { date: string; count: number }[];
+  by_class: { class_id: number; class_name: string; count: number }[];
+}
+
 export const dashboardApi = {
   getStats: async (uuid: string) => {
     const response = await api.get<DashboardStats>(`/dashboard/stats/${uuid}`);
@@ -444,6 +451,20 @@ export const dashboardApi = {
   },
   getAttendanceTrend: async (uuid: string, days: number = 90) => {
     const response = await api.get(`/dashboard/attendance-trend/${uuid}?days=${days}`);
+    return response.data;
+  },
+  getAttendanceOverview: async (params?: {
+    start_date?: string;
+    end_date?: string;
+    class_ids?: number[];
+  }) => {
+    const response = await api.get<AttendanceOverview>('/dashboard/attendance-overview', {
+      params: {
+        start_date: params?.start_date,
+        end_date: params?.end_date,
+        class_ids: params?.class_ids && params.class_ids.length > 0 ? params.class_ids.join(',') : undefined,
+      },
+    });
     return response.data;
   },
 };

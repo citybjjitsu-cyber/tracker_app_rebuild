@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { useChartColors } from '@/hooks/useChartColors';
 
 import {
   usersApi,
@@ -32,13 +33,27 @@ import {
   resetApi,
   api,
 } from '@/lib/api';
+import type { AttendanceOverview } from '@/lib/api';
 import { cn, formatDate, DAYS_OF_WEEK, getRankColor } from '@/lib/utils';
 import { Camera, LogOut, Plus, Shield, X, Edit3, UserX, UserCheck } from 'lucide-react';
 import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function AdminPage() {
   const { user, isAdmin, isAuthenticated, isLoading, login, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('users');
+  const { colors, chartBaseOptions } = useChartColors();
+  const [activeTab, setActiveTab] = useState('attendance-overview');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [users, setUsers] = useState<User[]>([]);
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
@@ -102,6 +117,16 @@ export default function AdminPage() {
 
   const [dbStats, setDbStats] = useState<Record<string, unknown> | null>(null);
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
+
+  // Attendance Overview tab state
+  const today = new Date().toISOString().split('T')[0];
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [overviewStartDate, setOverviewStartDate] = useState<string>(thirtyDaysAgo);
+  const [overviewEndDate, setOverviewEndDate] = useState<string>(today);
+  const [overviewClassIds, setOverviewClassIds] = useState<number[]>([]);
+  const [overviewData, setOverviewData] = useState<AttendanceOverview | null>(null);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
+  const [overviewError, setOverviewError] = useState<string>('');
   const [performanceStats, setPerformanceStats] = useState<{ stats: DashboardStats; trend: AttendanceTrend[] } | null>(null);
   const [selectedStudentAnalytics, setSelectedStudentAnalytics] = useState<User | null>(null);
   const [feedbackFilters, setFeedbackFilters] = useState({ startDate: '', endDate: '', classes: '', rating: 'all' });
@@ -189,6 +214,13 @@ export default function AdminPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'attendance-overview' && isAdmin) {
+      loadAttendanceOverview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, isAdmin, overviewStartDate, overviewEndDate, overviewClassIds]);
 
   useEffect(() => {
     if (activeTab === 'news') {
@@ -864,6 +896,26 @@ export default function AdminPage() {
     }
   };
 
+  async function loadAttendanceOverview() {
+    setIsLoadingOverview(true);
+    setOverviewError('');
+    try {
+      const data = await dashboardApi.getAttendanceOverview({
+        start_date: overviewStartDate || undefined,
+        end_date: overviewEndDate || undefined,
+        class_ids: overviewClassIds,
+      });
+      setOverviewData(data);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const detail = err?.response?.data?.detail || err?.message || 'Failed to load attendance overview';
+      setOverviewError(detail);
+      console.error('Error loading attendance overview:', error);
+    } finally {
+      setIsLoadingOverview(false);
+    }
+  }
+
   const searchFeedback = async () => {
     setIsLoadingFeedback(true);
     try {
@@ -906,6 +958,7 @@ export default function AdminPage() {
   );
 
   const tabs = [
+    { id: 'attendance-overview', label: 'Attendance Overview' },
     { id: 'users', label: 'User Admin' },
     { id: 'invites', label: 'Invites' },
     { id: 'classes', label: 'Class Schedule' },
@@ -955,19 +1008,19 @@ export default function AdminPage() {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-headline font-bold text-on-surface">Admin Settings</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-on-surface-variant">{user?.email}</span>
-            <Button variant="outline" size="sm" onClick={() => logout()}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <h1 className="text-xl sm:text-2xl font-headline font-bold text-on-surface">Admin Settings</h1>
+          <div className="flex items-center justify-between sm:justify-end gap-3">
+            <span className="text-xs sm:text-sm text-on-surface-variant truncate max-w-[60vw]">{user?.email}</span>
+            <Button variant="outline" size="sm" onClick={() => logout()} className="flex-shrink-0">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
           </div>
         </div>
 
-      <div className="flex gap-4 mb-6 border-b border-outline-variant/20 overflow-x-auto">
+      <div className="flex gap-4 mb-6 border-b border-outline-variant/20 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -983,14 +1036,205 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {activeTab === 'attendance-overview' && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Start Date</label>
+                  <Input
+                    type="date"
+                    value={overviewStartDate}
+                    onChange={(e) => setOverviewStartDate(e.target.value)}
+                    max={overviewEndDate || undefined}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">End Date</label>
+                  <Input
+                    type="date"
+                    value={overviewEndDate}
+                    onChange={(e) => setOverviewEndDate(e.target.value)}
+                    min={overviewStartDate || undefined}
+                    max={today}
+                  />
+                </div>
+                <div className="sm:col-span-2 lg:col-span-2">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+                    Classes {overviewClassIds.length > 0 && (
+                      <span className="text-primary-container normal-case tracking-normal">
+                        ({overviewClassIds.length} selected)
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      className="flex-1 border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2 text-sm"
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'all') {
+                          setOverviewClassIds([]);
+                        } else if (val) {
+                          const id = Number(val);
+                          setOverviewClassIds(prev => prev.includes(id) ? prev : [...prev, id]);
+                        }
+                      }}
+                    >
+                      <option value="">+ Add class filter…</option>
+                      <option value="all">All classes (clear filter)</option>
+                      {classes
+                        .filter(c => !overviewClassIds.includes(c.id))
+                        .map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.class_name}{c.day ? ` — ${c.day}` : ''}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  {overviewClassIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {overviewClassIds.map(id => {
+                        const cls = classes.find(c => c.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary-container/20 text-on-surface text-xs"
+                          >
+                            {cls?.class_name || `Class #${id}`}
+                            <button
+                              type="button"
+                              onClick={() => setOverviewClassIds(prev => prev.filter(x => x !== id))}
+                              className="text-on-surface-variant hover:text-on-surface"
+                              aria-label="Remove filter"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {overviewError && (
+                <div className="p-3 bg-error-container/20 border border-error/30 rounded-lg text-sm text-on-error-container mb-4">
+                  {overviewError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div className="text-center p-3 sm:p-4 rounded-lg bg-surface-container-low border border-outline-variant/10">
+                  <p className="text-2xl sm:text-3xl font-black font-headline text-on-surface">
+                    {isLoadingOverview ? '…' : (overviewData?.totals.total_check_ins ?? 0)}
+                  </p>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-on-surface-variant mt-1">Total Check-ins</p>
+                </div>
+                <div className="text-center p-3 sm:p-4 rounded-lg bg-surface-container-low border border-outline-variant/10">
+                  <p className="text-2xl sm:text-3xl font-black font-headline text-primary-container">
+                    {isLoadingOverview ? '…' : (overviewData?.totals.distinct_students ?? 0)}
+                  </p>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-on-surface-variant mt-1">Unique Students</p>
+                </div>
+                <div className="text-center p-3 sm:p-4 rounded-lg bg-surface-container-low border border-outline-variant/10">
+                  <p className="text-2xl sm:text-3xl font-black font-headline text-on-surface">
+                    {isLoadingOverview ? '…' : (overviewData?.totals.distinct_classes ?? 0)}
+                  </p>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-on-surface-variant mt-1">Classes Attended</p>
+                </div>
+                <div className="text-center p-3 sm:p-4 rounded-lg bg-surface-container-low border border-outline-variant/10">
+                  <p className="text-2xl sm:text-3xl font-black font-headline text-on-surface">
+                    {isLoadingOverview
+                      ? '…'
+                      : overviewData && overviewData.series.length > 0
+                        ? Math.round((overviewData.totals.total_check_ins / overviewData.series.length) * 10) / 10
+                        : 0}
+                  </p>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-on-surface-variant mt-1">Avg per Day</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-surface-container-low border border-outline-variant/10 p-3 sm:p-4 mb-6">
+                <h3 className="text-sm font-bold text-on-surface mb-3">Check-ins Over Time</h3>
+                <div className="relative w-full h-64 sm:h-80">
+                  {isLoadingOverview ? (
+                    <div className="flex items-center justify-center h-full text-on-surface-variant">Loading…</div>
+                  ) : overviewData && overviewData.series.length > 0 ? (
+                    <Bar
+                      data={{
+                        labels: overviewData.series.map(s => s.date),
+                        datasets: [{
+                          label: 'Check-ins',
+                          data: overviewData.series.map(s => s.count),
+                          backgroundColor: colors.primary,
+                          borderColor: colors.primaryBorder,
+                          borderWidth: 1,
+                        }],
+                      }}
+                      options={{
+                        ...chartBaseOptions,
+                        plugins: { ...chartBaseOptions.plugins, legend: { display: false } },
+                        scales: {
+                          x: { ...chartBaseOptions.scales.x, ticks: { color: colors.textMuted, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { display: false } },
+                          y: { ...chartBaseOptions.scales.y, beginAtZero: true, ticks: { stepSize: 1, color: colors.textMuted, precision: 0 }, grid: { color: colors.grid } },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-on-surface-variant text-sm">No attendance data in the selected range</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-surface-container-low border border-outline-variant/10 p-3 sm:p-4">
+                <h3 className="text-sm font-bold text-on-surface mb-3">Breakdown by Class</h3>
+                {isLoadingOverview ? (
+                  <p className="text-sm text-on-surface-variant">Loading…</p>
+                ) : overviewData && overviewData.by_class.length > 0 ? (
+                  <div className="space-y-2">
+                    {overviewData.by_class.map(row => {
+                      const maxCount = overviewData.by_class[0].count || 1;
+                      const pct = Math.round((row.count / maxCount) * 100);
+                      return (
+                        <div key={row.class_id} className="flex items-center gap-3">
+                          <span className="text-xs sm:text-sm text-on-surface w-32 sm:w-48 truncate flex-shrink-0" title={row.class_name}>
+                            {row.class_name}
+                          </span>
+                          <div className="flex-1 bg-surface-container rounded-full h-4 sm:h-5 relative overflow-hidden">
+                            <div
+                              className="bg-primary-container h-full rounded-full transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-xs sm:text-sm font-bold text-on-surface w-10 sm:w-12 text-right flex-shrink-0">
+                            {row.count}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-on-surface-variant">No class attendance data in the selected range</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {activeTab === 'users' && (
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <CardTitle>Members</CardTitle>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                     <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -1004,10 +1248,10 @@ export default function AdminPage() {
                       placeholder="Search by name, rank, or email..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64"
+                      className="w-full sm:w-64"
                       autoComplete="off"
                     />
-                    <Button size="sm" onClick={() => setIsCreatingUser(true)}>
+                    <Button size="sm" onClick={() => setIsCreatingUser(true)} className="sm:flex-shrink-0">
                       <Plus className="w-4 h-4 mr-1" /> Add Member
                     </Button>
                   </div>
@@ -2455,7 +2699,7 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
                       <p className="text-2xl font-bold text-slate-900 dark:text-white">{performanceStats.stats?.totalPoints || 0}</p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">Total Points</p>
@@ -2545,7 +2789,7 @@ export default function AdminPage() {
 
             {feedbackStats ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
                     <p className="text-2xl font-bold text-slate-900 dark:text-white">{feedbackStats.totalFeedback || 0}</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Total</p>
@@ -2622,7 +2866,7 @@ export default function AdminPage() {
               <CardTitle>Database Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-slate-50 rounded-lg">
                   <p className="text-2xl font-bold">{String(dbStats?.size ?? 'N/A')}</p>
                   <p className="text-sm text-slate-500">Size</p>

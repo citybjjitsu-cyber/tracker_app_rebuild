@@ -209,12 +209,12 @@ export default function PortalPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6 mb-6 relative overflow-hidden">
+    <div className="max-w-6xl mx-auto px-4 sm:px-0">
+      <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6 mb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/10 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-14 h-14 flex-shrink-0 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
               <Avatar
                 src={user.profile_image_url}
                 firstName={user.first_name}
@@ -225,30 +225,30 @@ export default function PortalPage() {
                 className="w-full h-full rounded-[10px]"
               />
             </div>
-            <div>
-              <h1 className="font-headline text-2xl font-black uppercase tracking-tight text-on-surface">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-headline text-lg sm:text-2xl font-black uppercase tracking-tight text-on-surface truncate">
                 {user.first_name} {user.last_name}
               </h1>
-              <p className="text-on-surface-variant text-sm">{user.email}</p>
-              <div className="flex items-center gap-2 mt-1">
+              <p className="text-on-surface-variant text-xs sm:text-sm truncate">{user.email}</p>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <RankBadge rank={user.rank} degree={user.rank_tier?.degree} />
                 {user.nicknames && <Badge variant="outline">{user.nicknames}</Badge>}
               </div>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="text-error">
+          <Button variant="outline" onClick={handleLogout} className="text-error self-start sm:self-auto flex-shrink-0">
             <LogOut className="w-4 h-4 mr-2" />
             Logout
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
         {(['analytics', 'feedback', 'comments'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2.5 rounded-lg font-headline font-bold uppercase tracking-widest text-xs transition-all ${
+            className={`flex-shrink-0 px-4 sm:px-5 py-2.5 rounded-lg font-headline font-bold uppercase tracking-widest text-xs transition-all ${
               activeTab === tab
                 ? 'bg-primary-container text-on-primary-container shadow-lg shadow-primary-container/20'
                 : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
@@ -261,7 +261,7 @@ export default function PortalPage() {
 
       {activeTab === 'analytics' && (
         <>
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <StatsCard label="Total Classes" value={stats?.totalClasses || 0} />
             <StatsCard label="Total Points" value={stats?.totalPoints || 0} accent />
             <StatsCard label="This Month" value={stats?.classesThisMonth || 0} />
@@ -272,12 +272,12 @@ export default function PortalPage() {
           </div>
 
           {stats?.current_target && stats?.current_rank_tier && (
-            <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6 mb-6">
-              <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-4">
+            <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6 mb-6">
+              <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-4">
                 Target Progress: <span className="text-primary-container">{stats.current_rank_tier.display_name}</span>
               </h2>
-              <div className="flex items-center justify-center gap-8">
-                <div className="relative w-40 h-40">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8">
+                <div className="relative w-36 h-36 sm:w-40 sm:h-40 flex-shrink-0">
                   <Doughnut
                     data={{
                       labels: ['Completed', 'Remaining'],
@@ -294,7 +294,7 @@ export default function PortalPage() {
                     <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">/ {stats.current_target} pts</p>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 text-center sm:text-left">
                   <p className="font-headline font-bold text-lg text-on-surface">{stats.current_rank_tier.display_name} Target</p>
                   <p className="text-sm font-bold text-primary-container">
                     {stats.progress_percentage != null ? `${Math.round(stats.progress_percentage)}%` : '0%'} complete
@@ -304,29 +304,31 @@ export default function PortalPage() {
             </div>
           )}
 
-          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6 mb-6">
-            <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-4">Attendance Trend (Last 14 Days)</h2>
-            <Bar data={chartData} options={chartOptions} />
+          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6 mb-6">
+            <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-4">Attendance Trend (Last 14 Days)</h2>
+            <div className="relative w-full h-56 sm:h-72">
+              <Bar data={chartData} options={chartOptions} />
+            </div>
           </div>
 
-          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6">
-            <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-4">Recent Attendance History</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6">
+            <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-4">Recent Attendance History</h2>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full min-w-[420px]">
                 <thead>
                   <tr className="border-b border-outline-variant/20">
-                    <th className="text-left py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Date</th>
-                    <th className="text-left py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Class</th>
-                    <th className="text-left py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
+                    <th className="text-left py-3 px-4 sm:px-0 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Date</th>
+                    <th className="text-left py-3 px-4 sm:px-0 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Class</th>
+                    <th className="text-left py-3 px-4 sm:px-0 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentAttendance.map((att) => (
                     <tr key={att.id} className="border-b border-outline-variant/10">
-                      <td className="py-3 text-sm text-on-surface">{formatDate(att.attendance_date)}</td>
-                      <td className="py-3 text-sm text-on-surface">{att.class_schedule?.class_name || 'Class'}</td>
-                      <td className="py-3">
-                        <span className={`text-[10px] font-bold uppercase tracking-widest ${att.status === 'confirmed' ? 'text-green-500' : 'text-amber-400'}`}>
+                      <td className="py-3 px-4 sm:px-0 text-sm text-on-surface whitespace-nowrap">{formatDate(att.attendance_date)}</td>
+                      <td className="py-3 px-4 sm:px-0 text-sm text-on-surface">{att.class_schedule?.class_name || 'Class'}</td>
+                      <td className="py-3 px-4 sm:px-0">
+                        <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${att.status === 'confirmed' ? 'text-green-500' : 'text-amber-400'}`}>
                           {att.status === 'confirmed' ? 'Confirmed' : 'Pending'}
                         </span>
                       </td>
@@ -341,8 +343,8 @@ export default function PortalPage() {
 
       {activeTab === 'feedback' && (
         <div className="space-y-6">
-          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6">
-            <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-1">Submit Feedback</h2>
+          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6">
+            <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-1">Submit Feedback</h2>
             <p className="text-sm text-on-surface-variant mb-4">Feedback must be submitted within 7 days of attending</p>
             {pendingFeedback.length === 0 ? (
               <p className="text-on-surface-variant text-center py-4">No classes awaiting feedback</p>
@@ -353,7 +355,7 @@ export default function PortalPage() {
                     <p className="font-bold text-on-surface">{className}</p>
                     <p className="text-sm text-on-surface-variant">{formatDate(attendance.attendance_date)}</p>
                     <div className="mt-3 space-y-3">
-                      <div className="flex gap-4">
+                      <div className="flex flex-wrap gap-4">
                         <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
                           <input type="radio" name={`rating-${attendance.id}`} checked={feedbackForm.rating === 'thumbs_up'} onChange={() => setFeedbackForm({ ...feedbackForm, rating: 'thumbs_up' })} />
                           Thumbs Up
@@ -380,8 +382,8 @@ export default function PortalPage() {
             )}
           </div>
 
-          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6">
-            <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-4">Submitted Feedback</h2>
+          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6">
+            <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-4">Submitted Feedback</h2>
             {feedbackHistory.length === 0 ? (
               <p className="text-on-surface-variant text-center py-4">No feedback submitted yet</p>
             ) : (
@@ -405,8 +407,8 @@ export default function PortalPage() {
 
       {activeTab === 'comments' && (
         <div className="space-y-6">
-          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-6">
-            <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-1">Comments</h2>
+          <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6">
+            <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-1">Comments</h2>
             <p className="text-sm text-on-surface-variant mb-4">Feedback and conversations from teachers and admins</p>
             <CommentFeed
               comments={comments}
