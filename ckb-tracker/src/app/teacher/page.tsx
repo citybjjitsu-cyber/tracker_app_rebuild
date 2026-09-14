@@ -320,7 +320,7 @@ export default function TeacherPage() {
           </div>
         </div>
 
-        <div className="flex gap-6 mb-6 border-b border-outline-variant/20">
+        <div className="flex gap-6 mb-6 border-b border-outline-variant/20 sm:overflow-x-auto">
           {(['attendance', 'feedback', 'comments', 'students'] as const).map((tab) => (
             <button
               key={tab}
@@ -383,7 +383,7 @@ export default function TeacherPage() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-7 gap-2 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
               {WEEK_DAYS.map((day, i) => {
                 const dateStr = toDateString(weekDates[i]);
                 const isToday = dateStr === new Date().toISOString().split('T')[0];
@@ -392,7 +392,7 @@ export default function TeacherPage() {
                 return (
                   <div
                     key={day}
-                    className={`rounded-lg border p-2 min-h-[100px] cursor-pointer transition-colors ${
+                    className={`rounded-lg border p-3 min-h-[100px] cursor-pointer transition-colors ${
                       isSelected
                         ? 'border-primary-container bg-primary-container/10'
                         : isToday
@@ -435,7 +435,7 @@ export default function TeacherPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 glass-panel rounded-lg">
                 <p className="text-2xl font-bold font-headline text-on-surface">{attendance.length}</p>
                 <p className="text-on-surface-variant text-sm">Total Students</p>
@@ -456,7 +456,7 @@ export default function TeacherPage() {
                   {attendance.map((att) => (
                     <div
                       key={att.id}
-                      className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border-l-[3px] data-strip"
+                      className="sm:flex-col flex items-center justify-between p-3 bg-surface-container-low rounded-lg border-l-[3px] data-strip"
                     >
                       <div className="flex items-center gap-3">
                         {att.status === 'pending' && (
@@ -631,7 +631,7 @@ export default function TeacherPage() {
               </div>
             </div>
 
-            <div className="bg-surface-container-low rounded-lg overflow-hidden">
+            <div className="bg-surface-container-low rounded-lg overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-surface-container">
                   <tr>
