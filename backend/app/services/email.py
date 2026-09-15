@@ -3,6 +3,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from html import escape as html_escape
 from typing import Optional
 
 SMTP_HOST = os.getenv("SMTP_HOST", "")
@@ -95,6 +96,7 @@ This is a test email from <strong style="color:#fff;">CKB Tracker</strong>. If y
 
 def send_invite_email(recipient_email: str, first_name: str, token: str, base_url: Optional[str] = None) -> bool:
     invite_link = f"{base_url or INVITE_BASE_URL}/accept-invite?token={token}"
+    safe_name = html_escape(first_name)
 
     text_body = (
         f"Hi {first_name},\n\n"
@@ -107,7 +109,7 @@ def send_invite_email(recipient_email: str, first_name: str, token: str, base_ur
     html_body = _html_wrap(
         "You're Invited!",
         f"""<tr><td style="padding-bottom:16px;">
-<p style="margin:0;font-size:14px;line-height:1.6;color:#a0a0a0;">Hi {first_name},</p>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#a0a0a0;">Hi {safe_name},</p>
 <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#a0a0a0;">
 You've been added to <strong style="color:#fff;">CKB Tracker</strong>. Set up your password and PIN to get started.
 </p>
@@ -127,6 +129,7 @@ def send_password_reset_email(
     recipient_email: str, first_name: str, token: str, base_url: Optional[str] = None
 ) -> bool:
     reset_link = f"{base_url or INVITE_BASE_URL}/reset-password?token={token}"
+    safe_name = html_escape(first_name)
 
     text_body = (
         f"Hi {first_name},\n\n"
@@ -139,7 +142,7 @@ def send_password_reset_email(
     html_body = _html_wrap(
         "Reset Your Password",
         f"""<tr><td style="padding-bottom:16px;">
-<p style="margin:0;font-size:14px;line-height:1.6;color:#a0a0a0;">Hi {first_name},</p>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#a0a0a0;">Hi {safe_name},</p>
 <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#a0a0a0;">
 A password reset was requested for your account.
 </p>
@@ -157,6 +160,7 @@ A password reset was requested for your account.
 
 def send_pin_reset_email(recipient_email: str, first_name: str, token: str, base_url: Optional[str] = None) -> bool:
     reset_link = f"{base_url or INVITE_BASE_URL}/reset-pin?token={token}"
+    safe_name = html_escape(first_name)
 
     text_body = (
         f"Hi {first_name},\n\n"
@@ -169,7 +173,7 @@ def send_pin_reset_email(recipient_email: str, first_name: str, token: str, base
     html_body = _html_wrap(
         "Reset Your PIN",
         f"""<tr><td style="padding-bottom:16px;">
-<p style="margin:0;font-size:14px;line-height:1.6;color:#a0a0a0;">Hi {first_name},</p>
+<p style="margin:0;font-size:14px;line-height:1.6;color:#a0a0a0;">Hi {safe_name},</p>
 <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#a0a0a0;">
 A PIN reset was requested for your account. You'll use this PIN to check in at the kiosk.
 </p>

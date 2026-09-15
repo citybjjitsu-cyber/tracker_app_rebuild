@@ -83,11 +83,11 @@ describe('attendanceApi', () => {
       data: { created: [{ id: 1, class_id: 1, status: 'pending' }], errors: [] },
     })
 
-    const result = await apiModule.attendanceApi.bulkCheckIn('user-uuid', [1, 2])
+    const result = await apiModule.attendanceApi.bulkCheckIn('user-uuid', [{ class_id: 1 }, { class_id: 2 }])
 
     expect(axios.default.post).toHaveBeenCalledWith(
       '/attendance/bulk-check-in',
-      { user_uuid: 'user-uuid', class_ids: [1, 2] },
+      { user_uuid: 'user-uuid', classes: [{ class_id: 1 }, { class_id: 2 }] },
     )
     expect(result.created).toHaveLength(1)
   })
@@ -880,9 +880,7 @@ describe('usersApi (additional)', () => {
     const file = new File(['a,b,c'], 'users.csv', { type: 'text/csv' })
     const result = await apiModule.usersApi.importCsv(file)
 
-    expect(axios.default.post).toHaveBeenCalledWith('/users/import-csv', expect.any(FormData), {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    expect(axios.default.post).toHaveBeenCalledWith('/users/import-csv', expect.any(FormData))
     expect(result.imported).toBe(5)
   })
 
@@ -976,7 +974,7 @@ describe('attendanceApi (additional)', () => {
 
 describe('axios interceptor', () => {
   it('adds CSRF token for state-changing methods', async () => {
-    localStorage.setItem('csrf_token', 'csrf-xyz')
+    sessionStorage.setItem('csrf_token', 'csrf-xyz')
     const axios = await import('axios')
     await import('@/lib/api')
 
@@ -987,7 +985,7 @@ describe('axios interceptor', () => {
   })
 
   it('does not add CSRF token for GET requests', async () => {
-    localStorage.setItem('csrf_token', 'csrf-xyz')
+    sessionStorage.setItem('csrf_token', 'csrf-xyz')
     const axios = await import('axios')
     await import('@/lib/api')
 

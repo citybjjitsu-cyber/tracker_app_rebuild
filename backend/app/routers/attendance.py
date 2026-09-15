@@ -111,26 +111,26 @@ def check_in(
     class_id = data.class_id
     class_instance_id = data.class_instance_id
 
-    today = date.today()
+    target_date = data.check_in_date or date.today()
 
     existing = (
         db.query(models.Attendance)
         .filter(
             models.Attendance.user_uuid == user_uuid,
             models.Attendance.class_id == class_id,
-            models.Attendance.attendance_date == today,
+            models.Attendance.attendance_date == target_date,
         )
         .first()
     )
 
     if existing:
-        raise HTTPException(status_code=400, detail="Already checked in for this class today")
+        raise HTTPException(status_code=400, detail="Already checked in for this class on this date")
 
     db_attendance = models.Attendance(
         user_uuid=user_uuid,
         class_id=class_id,
         class_instance_id=class_instance_id,
-        attendance_date=today,
+        attendance_date=target_date,
         status="pending",
     )
     db.add(db_attendance)
@@ -161,29 +161,29 @@ def bulk_check_in(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    today = date.today()
     created = []
     errors = []
 
-    for class_id in data.class_ids:
+    for item in data.classes:
+        target_date = item.check_in_date or date.today()
         existing = (
             db.query(models.Attendance)
             .filter(
                 models.Attendance.user_uuid == data.user_uuid,
-                models.Attendance.class_id == class_id,
-                models.Attendance.attendance_date == today,
+                models.Attendance.class_id == item.class_id,
+                models.Attendance.attendance_date == target_date,
             )
             .first()
         )
 
         if existing:
-            errors.append({"class_id": class_id, "detail": "Already checked in today"})
+            errors.append({"class_id": item.class_id, "detail": "Already checked in for this date"})
             continue
 
         db_attendance = models.Attendance(
             user_uuid=data.user_uuid,
-            class_id=class_id,
-            attendance_date=today,
+            class_id=item.class_id,
+            attendance_date=target_date,
             status="pending",
         )
         db.add(db_attendance)

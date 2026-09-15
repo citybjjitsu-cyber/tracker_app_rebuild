@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
 from app import models, schemas
-from datetime import date
+from datetime import date, timedelta
 from collections import defaultdict
+from typing import Optional
+from app.database import SessionLocal
 from app.auth.limiter import limiter, DASHBOARD_LIMIT
+from app.routers.auth import get_admin_user
 
 router = APIRouter()
 
@@ -93,8 +95,6 @@ def get_dashboard_stats(request: Request, user_uuid: str, db: Session = Depends(
 @router.get("/attendance-trend/{user_uuid}")
 @limiter.limit(DASHBOARD_LIMIT)
 def get_attendance_trend(request: Request, user_uuid: str, days: int = 90, db: Session = Depends(get_db)):
-    from datetime import timedelta
-
     today = date.today()
     start_date = today - timedelta(days=days)
 
@@ -121,3 +121,106 @@ def get_attendance_trend(request: Request, user_uuid: str, days: int = 90, db: S
     result = [{"date": d, "count": v["count"], "points": v["points"]} for d, v in sorted(trend.items())]
 
     return result
+
+
+@router.get("/attendance-overview")
+@limiter.limit(DASHBOARD_LIMIT)
+def get_attendance_overview(
+    request: Request,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    class_ids: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(get_admin_user),
+):
+    """
+    Admin-only endpoint. Returns aggregated attendance across all students, filterable
+    by date range and one or more class ids.
+
+    Query params:
+      start_date: ISO date (YYYY-MM-DD). Defaults to 30 days before end_date.
+      end_date:   ISO date (YYYY-MM-DD). Defaults to today.
+      class_ids:  comma-separated class ids. Empty/omitted = all classes.
+
+    Returns:
+      {
+        "range": {"start": "...", "end": "..."},
+        "totals": {"total_check_ins": N, "distinct_students": N, "distinct_classes": N},
+        "series": [ { "date": "YYYY-MM-DD", "count": N } ... ],  # one entry per date in range
+        "by_class": [ { "class_id": N, "class_name": "...", "count": N } ... ]
+      }
+    """
+    today = date.today()
+
+    try:
+        end_d = date.fromisoformat(end_date) if end_date else today
+    except ValueError:
+        end_d = today
+    try:
+        start_d = date.fromisoformat(start_date) if start_date else end_d - timedelta(days=30)
+    except ValueError:
+        start_d = end_d - timedelta(days=30)
+
+    if start_d > end_d:
+        start_d, end_d = end_d, start_d
+
+    parsed_class_ids: list[int] = []
+    if class_ids:
+        for token in class_ids.split(","):
+            token = token.strip()
+            if token.isdigit():
+                parsed_class_ids.append(int(token))
+
+    query = db.query(models.Attendance).filter(
+        models.Attendance.status == "confirmed",
+        models.Attendance.attendance_date >= start_d,
+        models.Attendance.attendance_date <= end_d,
+    )
+    if parsed_class_ids:
+        query = query.filter(models.Attendance.class_id.in_(parsed_class_ids))
+
+    records = query.all()
+
+    per_day: dict[str, int] = defaultdict(int)
+    per_class: dict[int, int] = defaultdict(int)
+    students: set[str] = set()
+
+    for rec in records:
+        per_day[rec.attendance_date.isoformat()] += 1
+        if rec.class_id is not None:
+            per_class[int(rec.class_id)] += 1
+        if rec.user_uuid:
+            students.add(str(rec.user_uuid))
+
+    # Fill in every date in the range so the chart has continuous x-axis
+    series: list[dict] = []
+    cursor = start_d
+    while cursor <= end_d:
+        iso = cursor.isoformat()
+        series.append({"date": iso, "count": per_day.get(iso, 0)})
+        cursor = cursor + timedelta(days=1)
+
+    # Resolve class names for by_class breakdown
+    by_class: list[dict] = []
+    if per_class:
+        class_rows = db.query(models.ClassSchedule).filter(models.ClassSchedule.id.in_(list(per_class.keys()))).all()
+        name_map = {int(c.id): str(c.class_name) for c in class_rows}
+        for cid, cnt in sorted(per_class.items(), key=lambda kv: kv[1], reverse=True):
+            by_class.append(
+                {
+                    "class_id": cid,
+                    "class_name": name_map.get(cid, f"Class #{cid}"),
+                    "count": cnt,
+                }
+            )
+
+    return {
+        "range": {"start": start_d.isoformat(), "end": end_d.isoformat()},
+        "totals": {
+            "total_check_ins": len(records),
+            "distinct_students": len(students),
+            "distinct_classes": len(per_class),
+        },
+        "series": series,
+        "by_class": by_class,
+    }

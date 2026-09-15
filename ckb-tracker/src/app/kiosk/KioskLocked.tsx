@@ -62,22 +62,25 @@ export function KioskLocked() {
       </div>
 
       <div className="flex flex-col items-center gap-3">
-        <button
-          onClick={() => setShowLogin(true)}
-          className="flex items-center gap-3 px-8 py-4 bg-[var(--primary)] text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all active:scale-[0.98] shadow-lg shadow-[var(--primary)]/20"
-        >
-          <Shield className="w-5 h-5" />
-          Kiosk Sign In
-        </button>
         <Link
           href="/login"
-          className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm border-2 border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--primary)] hover:bg-[var(--card)] transition-all"
+          className="flex items-center gap-3 px-8 py-4 bg-[var(--primary)] text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all active:scale-[0.98] shadow-lg shadow-[var(--primary)]/20"
         >
-          <LogIn className="w-4 h-4" />
-          Staff Login
+          <LogIn className="w-5 h-5" />
+          User Login
         </Link>
         <p className="text-xs text-[var(--muted-foreground)]">
-          For admin and teacher portal access
+          All user types
+        </p>
+        <button
+          onClick={() => setShowLogin(true)}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm border-2 border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--primary)] hover:bg-[var(--card)] transition-all"
+        >
+          <Shield className="w-4 h-4" />
+          Kiosk Sign In
+        </button>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          For mat-side kiosk activation
         </p>
       </div>
 

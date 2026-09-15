@@ -6,7 +6,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 MAX_SESSION_HOURS = int(os.getenv("MAX_SESSION_HOURS", "24"))
 KIOSK_IDLE_MINUTES = int(os.getenv("KIOSK_IDLE_MINUTES", "240"))
 
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "False").lower() == "true"
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "True").lower() == "true"
 COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "Lax")
 COOKIE_HTTPONLY = True
 COOKIE_PATH = "/"
@@ -21,3 +21,9 @@ JWT_ALGORITHM = "HS256"
 
 CSRF_TOKEN_COOKIE_NAME = "csrf_token"
 CSRF_HEADER_NAME = "X-CSRF-Token"
+
+# Uploads directory — on Render this points to the persistent disk mount
+UPLOADS_DIR = os.environ.get(
+    "UPLOADS_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads"),
+)

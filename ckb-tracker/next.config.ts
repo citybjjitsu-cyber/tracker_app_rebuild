@@ -2,11 +2,13 @@ import type { NextConfig } from "next";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval';
+  script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : " 'unsafe-inline'"};
   style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob:;
+  img-src 'self' data: blob: ${apiUrl};
   font-src 'self' data:;
   connect-src 'self' ${apiUrl};
   frame-ancestors 'none';

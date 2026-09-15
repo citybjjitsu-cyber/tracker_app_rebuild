@@ -68,10 +68,6 @@ export default function TeacherPage() {
   }, [isTeacher, isAdmin]);
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  useEffect(() => {
     if (selectedClass && selectedDate) {
       loadAttendance();
     }
@@ -361,6 +357,7 @@ export default function TeacherPage() {
         </div>
 
         <div className="flex gap-6 mb-6 border-b border-outline-variant/20 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
+        <div className="flex gap-6 mb-6 border-b border-outline-variant/20 sm:overflow-x-auto">
           {(['attendance', 'feedback', 'comments', 'students'] as const).map((tab) => (
             <button
               key={tab}
@@ -427,6 +424,7 @@ export default function TeacherPage() {
 
             {/* Desktop View: 7-column calendar grid */}
             <div className="hidden md:grid grid-cols-7 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
               {WEEK_DAYS.map((day, i) => {
                 const dateStr = toDateString(weekDates[i]);
                 const isToday = dateStr === new Date().toISOString().split('T')[0];
@@ -436,6 +434,7 @@ export default function TeacherPage() {
                   <div
                     key={day}
                     className={`rounded-lg border p-3 min-h-[120px] cursor-pointer transition-all duration-200 ${
+                    className={`rounded-lg border p-3 cursor-pointer transition-colors ${
                       isSelected
                         ? 'border-primary-container bg-primary-container/10 ring-1 ring-primary-container'
                         : isToday
@@ -573,6 +572,7 @@ export default function TeacherPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 glass-panel rounded-lg">
                 <p className="text-2xl font-bold font-headline text-on-surface">{attendance.length}</p>
                 <p className="text-on-surface-variant text-sm">Total Students</p>
@@ -593,7 +593,7 @@ export default function TeacherPage() {
                   {attendance.map((att) => (
                     <div
                       key={att.id}
-                      className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border-l-[3px] data-strip"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-surface-container-low rounded-lg border-l-[3px] data-strip"
                     >
                       <div className="flex items-center gap-3">
                         {att.status === 'pending' && (
@@ -610,6 +610,7 @@ export default function TeacherPage() {
                           lastName={att.user?.last_name}
                           offsetX={att.user?.image_offset_x}
                           offsetY={att.user?.image_offset_y}
+                          size="lg"
                         />
                         <div>
                           <p className="font-medium text-on-surface">
@@ -767,7 +768,7 @@ export default function TeacherPage() {
               </div>
             </div>
 
-            <div className="bg-surface-container-low rounded-lg overflow-hidden">
+            <div className="bg-surface-container-low rounded-lg overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-surface-container">
                   <tr>

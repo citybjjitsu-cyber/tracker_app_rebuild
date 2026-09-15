@@ -46,13 +46,16 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null;
+  const csrfToken = typeof window !== 'undefined' ? sessionStorage.getItem('csrf_token') : null;
   if (csrfToken && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '')) {
     config.headers['X-CSRF-Token'] = csrfToken;
   }
   const kioskToken = getKioskStaffToken();
   if (kioskToken) {
     config.headers['Authorization'] = `Bearer ${kioskToken}`;
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
   }
   return config;
 });
@@ -180,9 +183,7 @@ export const usersApi = {
   importCsv: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post('/users/import-csv', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/users/import-csv', formData);
     return response.data;
   },
   exportCsv: async () => {
@@ -249,11 +250,12 @@ export const attendanceApi = {
     });
     return response.data;
   },
-  checkIn: async (userUuid: string, classId: number, classInstanceId?: number) => {
+  checkIn: async (userUuid: string, classId: number, classInstanceId?: number, checkInDate?: string) => {
     const response = await api.post('/attendance/check-in', {
       user_uuid: userUuid,
       class_id: classId,
       class_instance_id: classInstanceId,
+      check_in_date: checkInDate,
     });
     return response.data;
   },
@@ -275,8 +277,8 @@ export const attendanceApi = {
     const response = await api.delete(`/attendance/${id}/cancel`);
     return response.data;
   },
-  bulkCheckIn: async (userUuid: string, classIds: number[]) => {
-    const response = await api.post('/attendance/bulk-check-in', { user_uuid: userUuid, class_ids: classIds });
+  bulkCheckIn: async (userUuid: string, classes: { class_id: number; check_in_date?: string }[]) => {
+    const response = await api.post('/attendance/bulk-check-in', { user_uuid: userUuid, classes });
     return response.data;
   },
   bulkConfirm: async (ids: number[]) => {
@@ -435,6 +437,13 @@ export const classTypesApi = {
   },
 };
 
+export interface AttendanceOverview {
+  range: { start: string; end: string };
+  totals: { total_check_ins: number; distinct_students: number; distinct_classes: number };
+  series: { date: string; count: number }[];
+  by_class: { class_id: number; class_name: string; count: number }[];
+}
+
 export const dashboardApi = {
   getStats: async (uuid: string) => {
     const response = await api.get<DashboardStats>(`/dashboard/stats/${uuid}`);
@@ -442,6 +451,20 @@ export const dashboardApi = {
   },
   getAttendanceTrend: async (uuid: string, days: number = 90) => {
     const response = await api.get(`/dashboard/attendance-trend/${uuid}?days=${days}`);
+    return response.data;
+  },
+  getAttendanceOverview: async (params?: {
+    start_date?: string;
+    end_date?: string;
+    class_ids?: number[];
+  }) => {
+    const response = await api.get<AttendanceOverview>('/dashboard/attendance-overview', {
+      params: {
+        start_date: params?.start_date,
+        end_date: params?.end_date,
+        class_ids: params?.class_ids && params.class_ids.length > 0 ? params.class_ids.join(',') : undefined,
+      },
+    });
     return response.data;
   },
 };

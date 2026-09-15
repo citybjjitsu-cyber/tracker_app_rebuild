@@ -43,7 +43,13 @@ def list_invites(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_lite_admin_user),
 ):
-    invites = db.query(models.InviteToken).order_by(models.InviteToken.created_at.desc()).limit(100).all()
+    invites = (
+        db.query(models.InviteToken)
+        .filter(models.InviteToken.consumed_at.is_(None))
+        .order_by(models.InviteToken.created_at.desc())
+        .limit(100)
+        .all()
+    )
 
     result = []
     for inv in invites:

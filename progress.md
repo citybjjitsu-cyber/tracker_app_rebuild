@@ -607,3 +607,49 @@ Placeholder for additional features discovered during testing and deployment.
 - ✅ 177 frontend tests pass (vitest)
 - ✅ Frontend build succeeds (16 routes compiled)
 - ✅ Lint: 0 errors
+
+---
+
+## RECENT UPDATES (July 28, 2026) — Photo Storage & Display
+
+**Branch:** `feature/security-hardening`
+
+### Photo Storage (Render Persistent Disk)
+
+**Goal:** Persist profile photos across Render deploys/restarts using the persistent disk mount.
+
+#### Backend Changes
+- ✅ `backend/app/auth/config.py` — Added `UPLOADS_DIR` env var config with local dev fallback
+- ✅ `backend/app/main.py` — Updated static file mount to use `UPLOADS_DIR`
+- ✅ `backend/app/routers/users.py` — Updated upload/delete endpoints to use `UPLOADS_DIR`
+- ✅ `backend/render.yaml` — Added `UPLOADS_DIR` env var pointing to `/opt/render/project/src/backend/uploads`
+
+#### Frontend Changes
+- ✅ `ckb-tracker/src/lib/api.ts` — Fixed FormData Content-Type: axios interceptor strips `application/json` default when `config.data instanceof FormData`
+- ✅ `backend/app/main.py` — Fixed CORS regex: `ckb-tracker.*` instead of `ckb-tracker-.*` to match `ckb-tracker.vercel.app`
+
+### Photo Display Fix
+
+**Goal:** Fix profile photos not displaying across the app (check-in, kiosk, teacher dashboard, admin).
+
+#### Root Cause
+Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` — missing the backend API URL. The browser blocked every `<img>` tag from loading images from `ckb-tracker-api-dev.onrender.com`. Upload likely succeeded but photos never displayed, making it look like upload failed.
+
+#### Fixes
+- ✅ `ckb-tracker/next.config.ts` — Added `${apiUrl}` to `img-src` CSP directive
+- ✅ `ckb-tracker/src/components/ui/Avatar.tsx` — Added `'use client'` directive (required for `useState`/`useCallback` hooks)
+- ✅ `ckb-tracker/src/components/ui/Avatar.tsx` — Added `onError` handler for graceful fallback to initials when image fails to load
+
+#### Avatar Size Improvements for Identification
+- ✅ Check-in search results: `lg` (48px) → `xl` (64px)
+- ✅ Kiosk search results: `lg` (48px) → `xl` (64px)
+- ✅ Teacher attendance list: `md` (40px) → `lg` (48px)
+- ✅ Admin user list: `md` (40px) → `lg` (48px)
+
+#### Tests
+- ✅ 128 backend tests pass (pytest)
+- ✅ 177 frontend tests pass (vitest)
+- ✅ Frontend build succeeds (16 routes)
+- ✅ Lint: 0 errors
+
+*Last Updated: July 28, 2026*

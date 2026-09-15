@@ -493,24 +493,31 @@ def logout_all(
 @limiter.limit(READ_LIMIT)
 def get_current_user_info(
     request: Request,
+    response: Response,
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     roles = get_user_roles(db, user.user_uuid)
     csrf_token = generate_csrf_token()
-    response = {
+
+    from app.auth.config import ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_SAMESITE, COOKIE_SECURE, CSRF_TOKEN_COOKIE_NAME
+
+    access_expire = ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    response.set_cookie(
+        key=CSRF_TOKEN_COOKIE_NAME,
+        value=csrf_token,
+        max_age=access_expire,
+        httponly=False,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
+        path="/",
+    )
+
+    return {
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
         "csrf_token": csrf_token,
     }
-
-    class MockResponse:
-        def set_cookie(self, key, value, max_age, httponly, samesite, secure, path):
-            pass
-
-    set_auth_cookies(MockResponse(), "", "", csrf_token)
-
-    return response
 
 
 @router.get("/check-password/{user_uuid}")
@@ -624,33 +631,8 @@ def accept_invite(
     invite.consumed_at = _utcnow()
     db.commit()
 
-    access_token, access_jti = create_access_token(user.user_uuid)
-    refresh_token, refresh_jti = create_refresh_token(user.user_uuid)
-    store_token_record(
-        db,
-        access_jti,
-        user.user_uuid,
-        "access",
-        _utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    store_token_record(
-        db,
-        refresh_jti,
-        user.user_uuid,
-        "refresh",
-        _utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-    )
-
-    roles = get_user_roles(db, user.user_uuid)
-    csrf_token = generate_csrf_token()
-    set_auth_cookies(response, access_token, refresh_token, csrf_token)
-
     return schemas.AcceptInviteResponse(
         message="Account set up successfully",
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user=schemas.KioskUserResponse.model_validate(user),
-        roles=[schemas.RoleResponse.model_validate(r) for r in roles],
     )
 
 

@@ -189,7 +189,7 @@ cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX", r"https://ckb-tracker-.*\.vercel\.app"),
+    allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX", r"https://ckb-tracker.*\.vercel\.app"),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
@@ -271,10 +271,10 @@ app.include_router(admin.router)
 
 # Serve uploaded photos statically
 import os
+from app.auth.config import UPLOADS_DIR
 
-uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
-os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+os.makedirs(os.path.join(UPLOADS_DIR, "photos"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 
 @app.get("/health")

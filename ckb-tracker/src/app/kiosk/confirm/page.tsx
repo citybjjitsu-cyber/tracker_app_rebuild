@@ -43,7 +43,7 @@ export default function KioskConfirmPage() {
     setLoading(true);
     setError('');
     try {
-      await attendanceApi.bulkCheckIn(identifiedUser.user_uuid, selectedClassIds);
+      await attendanceApi.bulkCheckIn(identifiedUser.user_uuid, selectedClassIds.map(id => ({ class_id: id })));
       setSuccess(true);
       successTimerRef.current = setTimeout(() => {
         resetSession();

@@ -230,7 +230,7 @@ function KioskContent() {
                       lastName={u.last_name}
                       offsetX={u.image_offset_x}
                       offsetY={u.image_offset_y}
-                      size="lg"
+                      size="xl"
                     />
                     <div>
                       <p className="font-bold text-[var(--foreground)] font-headline">

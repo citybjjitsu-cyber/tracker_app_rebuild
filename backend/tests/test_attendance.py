@@ -1,7 +1,10 @@
+from datetime import date, timedelta
+
+
 def test_bulk_check_in_success(client, headers):
     response = client.post(
         "/attendance/bulk-check-in",
-        json={"user_uuid": "student-uuid-0000-0000-000000000002", "class_ids": [1]},
+        json={"user_uuid": "student-uuid-0000-0000-000000000002", "classes": [{"class_id": 1}]},
         headers=headers,
     )
     assert response.status_code == 200
@@ -16,7 +19,7 @@ def test_bulk_check_in_success(client, headers):
 def test_bulk_check_in_unauthenticated(client):
     response = client.post(
         "/attendance/bulk-check-in",
-        json={"user_uuid": "student-uuid-0000-0000-000000000002", "class_ids": [1]},
+        json={"user_uuid": "student-uuid-0000-0000-000000000002", "classes": [{"class_id": 1}]},
     )
     assert response.status_code == 401
 
@@ -24,13 +27,13 @@ def test_bulk_check_in_unauthenticated(client):
 def test_bulk_check_in_duplicates(client, headers):
     client.post(
         "/attendance/bulk-check-in",
-        json={"user_uuid": "student-uuid-0000-0000-000000000002", "class_ids": [1]},
+        json={"user_uuid": "student-uuid-0000-0000-000000000002", "classes": [{"class_id": 1}]},
         headers=headers,
     )
 
     response = client.post(
         "/attendance/bulk-check-in",
-        json={"user_uuid": "student-uuid-0000-0000-000000000002", "class_ids": [1]},
+        json={"user_uuid": "student-uuid-0000-0000-000000000002", "classes": [{"class_id": 1}]},
         headers=headers,
     )
     assert response.status_code == 200
@@ -40,12 +43,12 @@ def test_bulk_check_in_duplicates(client, headers):
     assert data["errors"][0]["class_id"] == 1
 
 
-def test_bulk_check_in_multiple_classes(client, headers):
+def test_bulk_check_in_multiple_same_class(client, headers):
     response = client.post(
         "/attendance/bulk-check-in",
         json={
             "user_uuid": "student-uuid-0000-0000-000000000002",
-            "class_ids": [1, 1],
+            "classes": [{"class_id": 1}, {"class_id": 1}],
         },
         headers=headers,
     )
@@ -53,6 +56,86 @@ def test_bulk_check_in_multiple_classes(client, headers):
     data = response.json()
     assert len(data["created"]) == 1
     assert len(data["errors"]) == 1
+
+
+def test_bulk_check_in_with_explicit_date(client, headers):
+    future_date = (date.today() + timedelta(days=7)).isoformat()
+    response = client.post(
+        "/attendance/bulk-check-in",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "classes": [{"class_id": 1, "check_in_date": future_date}],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["created"]) == 1
+    assert data["created"][0]["attendance_date"] == future_date
+    assert len(data["errors"]) == 0
+
+
+def test_bulk_check_in_future_date_no_duplicate_today(client, headers):
+    future_date = (date.today() + timedelta(days=7)).isoformat()
+    today_str = date.today().isoformat()
+
+    client.post(
+        "/attendance/bulk-check-in",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "classes": [{"class_id": 1}],
+        },
+        headers=headers,
+    )
+
+    response = client.post(
+        "/attendance/bulk-check-in",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "classes": [{"class_id": 1, "check_in_date": future_date}],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["created"]) == 1
+    assert data["created"][0]["attendance_date"] == future_date
+    assert len(data["errors"]) == 0
+
+    response = client.get(
+        f"/attendance/class/1?date={today_str}",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+    response = client.get(
+        f"/attendance/class/1?date={future_date}",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+
+def test_bulk_check_in_mixed_dates(client, headers):
+    future_date = (date.today() + timedelta(days=3)).isoformat()
+    response = client.post(
+        "/attendance/bulk-check-in",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "classes": [
+                {"class_id": 1},
+                {"class_id": 1, "check_in_date": future_date},
+            ],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["created"]) == 2
+    dates = {a["attendance_date"] for a in data["created"]}
+    assert date.today().isoformat() in dates
+    assert future_date in dates
 
 
 def test_confirm_attendance(client, headers):
@@ -130,7 +213,7 @@ def test_direct_attendance(client, headers):
 def test_bulk_confirm(client, headers):
     create_resp = client.post(
         "/attendance/bulk-check-in",
-        json={"user_uuid": "student-uuid-0000-0000-000000000002", "class_ids": [1]},
+        json={"user_uuid": "student-uuid-0000-0000-000000000002", "classes": [{"class_id": 1}]},
         headers=headers,
     )
     assert create_resp.status_code == 200
@@ -146,8 +229,6 @@ def test_bulk_confirm(client, headers):
 
 
 def test_get_class_attendance_by_date(client, headers):
-    from datetime import date
-
     client.post(
         "/attendance/",
         json={"user_uuid": "student-uuid-0000-0000-000000000002", "class_id": 1},

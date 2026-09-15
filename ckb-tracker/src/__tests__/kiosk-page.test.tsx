@@ -62,7 +62,7 @@ describe('KioskLocked', () => {
 
   it('renders staff login link', () => {
     render(<Wrapper><KioskLocked /></Wrapper>)
-    expect(screen.getByText('Staff Login')).toBeInTheDocument()
+    expect(screen.getByText('User Login')).toBeInTheDocument()
   })
 
   it('renders find your name heading', () => {

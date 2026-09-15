@@ -533,7 +533,9 @@ async def upload_photo(
         raise HTTPException(status_code=400, detail="File is not a valid image")
 
     # Create uploads directory
-    uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads", "photos")
+    from app.auth.config import UPLOADS_DIR
+
+    uploads_dir = os.path.join(UPLOADS_DIR, "photos")
     os.makedirs(uploads_dir, exist_ok=True)
 
     # Generate unique filename (sanitized extension)
@@ -580,11 +582,9 @@ def delete_photo(
 
     # Delete file if exists
     if user.profile_image_url:
-        uploads_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            "uploads",
-            "photos",
-        )
+        from app.auth.config import UPLOADS_DIR
+
+        uploads_dir = os.path.join(UPLOADS_DIR, "photos")
         filename = os.path.basename(user.profile_image_url)
         file_path = os.path.join(uploads_dir, filename)
         if os.path.exists(file_path):

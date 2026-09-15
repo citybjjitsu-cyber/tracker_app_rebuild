@@ -92,6 +92,18 @@ class UserCreate(UserBase):
             raise ValueError("Password must contain at least one special character")
         return v
 
+    @field_validator("profile_image_url")
+    @classmethod
+    def validate_profile_image_url(cls, v):
+        if v is None:
+            return v
+        from urllib.parse import urlparse
+
+        parsed = urlparse(v)
+        if parsed.scheme and parsed.scheme not in ("http", "https"):
+            raise ValueError("profile_image_url must use http or https scheme")
+        return v
+
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
@@ -333,11 +345,17 @@ class CheckInRequest(BaseModel):
     user_uuid: str = Field(min_length=1, max_length=64)
     class_id: int
     class_instance_id: Optional[int] = None
+    check_in_date: Optional[date] = None
+
+
+class ClassCheckInItem(BaseModel):
+    class_id: int
+    check_in_date: Optional[date] = None
 
 
 class BulkCheckInRequest(BaseModel):
     user_uuid: str = Field(min_length=1, max_length=64)
-    class_ids: List[int] = Field(min_length=1)
+    classes: List[ClassCheckInItem] = Field(min_length=1)
 
 
 class AttendanceCreate(AttendanceBase):
@@ -580,9 +598,9 @@ class KioskUnlockResponse(BaseModel):
 
 
 class InviteSendRequest(BaseModel):
-    email: str = Field(min_length=1)
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    email: EmailStr = Field(min_length=1, max_length=255)
+    first_name: Optional[str] = Field(default=None, max_length=100)
+    last_name: Optional[str] = Field(default=None, max_length=100)
 
 
 class InviteValidateResponse(BaseModel):
@@ -613,10 +631,6 @@ class AcceptInviteRequest(BaseModel):
 
 class AcceptInviteResponse(BaseModel):
     message: str
-    access_token: str
-    refresh_token: str
-    user: KioskUserResponse
-    roles: List[RoleResponse]
 
 
 class ResendInviteRequest(BaseModel):
