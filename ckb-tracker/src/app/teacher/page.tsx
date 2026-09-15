@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 import { LogOut, GraduationCap, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import type { ClassSchedule, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
@@ -89,7 +89,24 @@ export default function TeacherPage() {
       setClasses(classesData);
       setUsers(usersData);
       if (classesData.length > 0) {
-        setSelectedClass(classesData[0].id);
+        const todayDay = WEEK_DAYS[(new Date().getDay() + 6) % 7]; // Monday is 0, Sunday is 6
+        const todayClasses = classesData.filter(
+          c => c.day?.trim().toLowerCase() === todayDay.toLowerCase()
+        );
+        if (todayClasses.length > 0) {
+          setSelectedClass(todayClasses[0].id);
+        } else {
+          const firstClass = classesData[0];
+          setSelectedClass(firstClass.id);
+          const classDayIndex = WEEK_DAYS.findIndex(
+            d => d.toLowerCase() === firstClass.day?.trim().toLowerCase()
+          );
+          if (classDayIndex !== -1) {
+            const currentWeekDates = getWeekDates(0);
+            const dateStr = toDateString(currentWeekDates[classDayIndex]);
+            setSelectedDate(dateStr);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -230,6 +247,19 @@ export default function TeacherPage() {
     }
   };
 
+  const selectDay = (dateStr: string, dayName: string) => {
+    setSelectedDate(dateStr);
+    setSelectedStudents([]);
+    const dayClasses = classes.filter(
+      c => c.day?.trim().toLowerCase() === dayName.toLowerCase()
+    );
+    if (dayClasses.length > 0) {
+      setSelectedClass(dayClasses[0].id);
+    } else {
+      setSelectedClass('');
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -303,29 +333,35 @@ export default function TeacherPage() {
 
   const classesByDay: Record<string, ClassSchedule[]> = {};
   for (const day of WEEK_DAYS) {
-    classesByDay[day] = classes.filter(c => c.day === day);
+    classesByDay[day] = classes.filter(
+      c => c.day?.trim().toLowerCase() === day.toLowerCase()
+    );
   }
+
+  const selectedDateIndex = weekDates.findIndex(d => toDateString(d) === selectedDate);
+  const selectedDayName = selectedDateIndex !== -1 ? WEEK_DAYS[selectedDateIndex] : WEEK_DAYS[0];
+  const selectedDayClasses = classesByDay[selectedDayName] || [];
 
   return (
     <>
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-headline font-bold text-on-surface">Teacher Dashboard</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-on-surface-variant">{user?.email}</span>
-            <Button variant="outline" size="sm" onClick={() => logout()}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <h1 className="text-xl sm:text-2xl font-headline font-bold text-on-surface">Teacher Dashboard</h1>
+          <div className="flex items-center justify-between sm:justify-end gap-3">
+            <span className="text-xs sm:text-sm text-on-surface-variant truncate max-w-[60vw]">{user?.email}</span>
+            <Button variant="outline" size="sm" onClick={() => logout()} className="flex-shrink-0">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
           </div>
         </div>
 
-        <div className="flex gap-6 mb-6 border-b border-outline-variant/20 sm:overflow-x-auto">
+        <div className="flex gap-6 mb-6 border-b border-outline-variant/20 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
           {(['attendance', 'feedback', 'comments', 'students'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); if (tab === 'feedback') loadFeedback(); if (tab === 'comments') loadComments(); }}
-              className={`text-xs font-bold font-label tracking-wider uppercase pb-3 transition-colors ${
+              className={`flex-shrink-0 text-xs font-bold font-label tracking-wider uppercase pb-3 transition-colors ${
                 activeTab === tab
                   ? 'text-primary-container border-b-2 border-primary-container'
                   : 'text-on-surface-variant/70 hover:text-on-surface'
@@ -337,11 +373,11 @@ export default function TeacherPage() {
         </div>
 
         {activeTab === 'attendance' && (
-          <div className="glass-panel rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="glass-panel rounded-xl p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h2 className="text-lg font-headline font-bold text-on-surface">Class Schedule</h2>
-              <div className="flex gap-4 items-center">
-                <label className="flex items-center gap-2 text-sm text-on-surface-variant">
+              <div className="flex gap-4 items-center justify-between sm:justify-end">
+                <label className="flex items-center gap-2 text-sm text-on-surface-variant cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={autoRefresh}
@@ -356,7 +392,7 @@ export default function TeacherPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -364,26 +400,29 @@ export default function TeacherPage() {
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-sm font-medium text-on-surface">
-                {toDateString(weekDates[0])} &mdash; {toDateString(weekDates[6])}
+              <span className="text-xs sm:text-sm font-medium text-on-surface text-center">
+                {formatDate(weekDates[0])} &mdash; {formatDate(weekDates[6])}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setWeekOffset(0); setSelectedDate(new Date().toISOString().split('T')[0]); }}
-              >
-                Today
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWeekOffset(prev => prev + 1)}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setWeekOffset(0); setSelectedDate(new Date().toISOString().split('T')[0]); }}
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWeekOffset(prev => prev + 1)}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+            {/* Desktop View: 7-column calendar grid */}
+            <div className="hidden md:grid grid-cols-7 gap-3 mb-6">
               {WEEK_DAYS.map((day, i) => {
                 const dateStr = toDateString(weekDates[i]);
                 const isToday = dateStr === new Date().toISOString().split('T')[0];
@@ -392,14 +431,14 @@ export default function TeacherPage() {
                 return (
                   <div
                     key={day}
-                    className={`rounded-lg border p-3 cursor-pointer transition-colors ${
+                    className={`rounded-lg border p-3 min-h-[120px] cursor-pointer transition-all duration-200 ${
                       isSelected
-                        ? 'border-primary-container bg-primary-container/10'
+                        ? 'border-primary-container bg-primary-container/10 ring-1 ring-primary-container'
                         : isToday
                           ? 'border-primary-container/50 bg-surface-container-low'
                           : 'border-outline-variant/20 bg-surface-container-low hover:border-outline-variant/40'
                     }`}
-                    onClick={() => setSelectedDate(dateStr)}
+                    onClick={() => selectDay(dateStr, day)}
                   >
                     <p className={`text-xs font-bold font-label uppercase mb-1 ${isToday ? 'text-primary-container' : 'text-on-surface-variant'}`}>
                       {day.slice(0, 3)}
@@ -435,7 +474,101 @@ export default function TeacherPage() {
               })}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {/* Mobile View: Scrollable Day Selector Strip + Selected Day's Class Cards */}
+            <div className="md:hidden space-y-4 mb-6">
+              <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-2 scrollbar-none">
+                {WEEK_DAYS.map((day, i) => {
+                  const dateStr = toDateString(weekDates[i]);
+                  const isToday = dateStr === new Date().toISOString().split('T')[0];
+                  const isSelected = dateStr === selectedDate;
+                  const dayClasses = classesByDay[day] || [];
+                  const hasClasses = dayClasses.length > 0;
+
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => selectDay(dateStr, day)}
+                      className={cn(
+                        "flex-shrink-0 flex flex-col items-center justify-center w-14 py-2.5 rounded-xl border transition-all duration-200",
+                        isSelected
+                          ? "border-primary-container bg-primary-container text-on-primary-container shadow-md"
+                          : isToday
+                            ? "border-primary-container/40 bg-primary-container/5 text-primary-container font-semibold"
+                            : "border-outline-variant/20 bg-surface hover:border-outline-variant/40 text-on-surface-variant"
+                      )}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                        {day.slice(0, 3)}
+                      </span>
+                      <span className="text-base font-black font-headline mt-0.5">
+                        {weekDates[i].getDate()}
+                      </span>
+                      {hasClasses && (
+                        <span className={cn(
+                          "w-1.5 h-1.5 rounded-full mt-1.5",
+                          isSelected ? "bg-on-primary-container" : "bg-primary-container"
+                        )} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Day's Class Cards */}
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">
+                  Classes on {formatDate(selectedDate)}
+                </p>
+                {selectedDayClasses.length > 0 ? (
+                  selectedDayClasses.map((cls) => {
+                    const isSelectedClass = selectedClass === cls.id;
+                    return (
+                      <button
+                        key={cls.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStudents([]);
+                          setSelectedClass(cls.id);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between p-4 rounded-xl border transition-all text-left",
+                          isSelectedClass
+                            ? "border-primary-container bg-primary-container/10 text-on-surface shadow-sm ring-1 ring-primary-container"
+                            : "border-outline-variant/10 bg-surface hover:bg-surface-container text-on-surface"
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className={cn(
+                            "text-xs font-bold uppercase tracking-wider mb-0.5",
+                            isSelectedClass ? "text-primary-container" : "text-on-surface-variant"
+                          )}>
+                            {cls.time || "No Time"}
+                          </p>
+                          <p className="font-headline font-bold text-sm truncate">
+                            {cls.class_name}
+                          </p>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3",
+                          isSelectedClass ? "border-primary-container bg-primary-container" : "border-outline-variant/30"
+                        )}>
+                          {isSelectedClass && (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center bg-surface-container-low rounded-xl border border-dashed border-outline-variant/20">
+                    <p className="text-sm text-on-surface-variant italic">No classes scheduled for this day</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 glass-panel rounded-lg">
                 <p className="text-2xl font-bold font-headline text-on-surface">{attendance.length}</p>
                 <p className="text-on-surface-variant text-sm">Total Students</p>
