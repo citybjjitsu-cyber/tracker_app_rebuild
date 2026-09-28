@@ -35,7 +35,7 @@ export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'attendance' | 'feedback' | 'comments' | 'students'>('attendance');
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(toDateString(new Date()));
   const [selectedClass, setSelectedClass] = useState<number | ''>('');
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -260,6 +260,25 @@ export default function TeacherPage() {
     }
   };
 
+  const changeWeek = (delta: number) => {
+    const nextWeekOffset = weekOffset + delta;
+    const currentWeekDates = getWeekDates(weekOffset);
+    const selectedDayIndex = currentWeekDates.findIndex(
+      date => toDateString(date) === selectedDate
+    );
+    const nextWeekDates = getWeekDates(nextWeekOffset);
+    const nextSelectedDayIndex = selectedDayIndex === -1 ? 0 : selectedDayIndex;
+    const nextDayName = WEEK_DAYS[nextSelectedDayIndex];
+    const nextDayClasses = classes.filter(
+      c => c.day?.trim().toLowerCase() === nextDayName.toLowerCase()
+    );
+
+    setWeekOffset(nextWeekOffset);
+    setSelectedDate(toDateString(nextWeekDates[nextSelectedDayIndex]));
+    setSelectedClass(nextDayClasses[0]?.id || '');
+    setSelectedStudents([]);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -396,7 +415,7 @@ export default function TeacherPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setWeekOffset(prev => prev - 1)}
+                onClick={() => changeWeek(-1)}
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
@@ -407,14 +426,25 @@ export default function TeacherPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { setWeekOffset(0); setSelectedDate(new Date().toISOString().split('T')[0]); }}
+                  onClick={() => {
+                    const today = new Date();
+                    const todayDate = toDateString(today);
+                    const todayDayName = WEEK_DAYS[(today.getDay() + 6) % 7];
+                    const todayClasses = classes.filter(
+                      c => c.day?.trim().toLowerCase() === todayDayName.toLowerCase()
+                    );
+                    setWeekOffset(0);
+                    setSelectedDate(todayDate);
+                    setSelectedClass(todayClasses[0]?.id || '');
+                    setSelectedStudents([]);
+                  }}
                 >
                   Today
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setWeekOffset(prev => prev + 1)}
+                  onClick={() => changeWeek(1)}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -425,7 +455,7 @@ export default function TeacherPage() {
             <div className="hidden md:grid grid-cols-7 gap-3 mb-6">
               {WEEK_DAYS.map((day, i) => {
                 const dateStr = toDateString(weekDates[i]);
-                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                const isToday = dateStr === toDateString(new Date());
                 const isSelected = dateStr === selectedDate;
                 const dayClasses = classesByDay[day] || [];
                 return (
@@ -479,7 +509,7 @@ export default function TeacherPage() {
               <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-2 scrollbar-none">
                 {WEEK_DAYS.map((day, i) => {
                   const dateStr = toDateString(weekDates[i]);
-                  const isToday = dateStr === new Date().toISOString().split('T')[0];
+                  const isToday = dateStr === toDateString(new Date());
                   const isSelected = dateStr === selectedDate;
                   const dayClasses = classesByDay[day] || [];
                   const hasClasses = dayClasses.length > 0;
