@@ -260,6 +260,12 @@ export default function TeacherPage() {
     }
   };
 
+  const selectClass = (dateStr: string, classId: number) => {
+    setSelectedStudents([]);
+    setSelectedDate(dateStr);
+    setSelectedClass(classId);
+  };
+
   const changeWeek = (delta: number) => {
     const nextWeekOffset = weekOffset + delta;
     const currentWeekDates = getWeekDates(weekOffset);
@@ -356,10 +362,6 @@ export default function TeacherPage() {
       c => c.day?.trim().toLowerCase() === day.toLowerCase()
     );
   }
-
-  const selectedDateIndex = weekDates.findIndex(d => toDateString(d) === selectedDate);
-  const selectedDayName = selectedDateIndex !== -1 ? WEEK_DAYS[selectedDateIndex] : WEEK_DAYS[0];
-  const selectedDayClasses = classesByDay[selectedDayName] || [];
 
   return (
     <>
@@ -482,9 +484,7 @@ export default function TeacherPage() {
                           key={cls.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedStudents([]);
-                            setSelectedDate(dateStr);
-                            setSelectedClass(cls.id);
+                            selectClass(dateStr, cls.id);
                           }}
                           className={`w-full text-left text-xs leading-tight p-2 rounded transition-colors ${
                             selectedClass === cls.id && isSelected
@@ -504,8 +504,8 @@ export default function TeacherPage() {
               })}
             </div>
 
-            {/* Mobile View: Scrollable Day Selector Strip + Selected Day's Class Cards */}
-            <div className="md:hidden space-y-4 mb-6">
+            {/* Mobile View: Every day and class remains visible without horizontal scrolling */}
+            <div className="md:hidden space-y-3 mb-6">
               <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-2 scrollbar-none">
                 {WEEK_DAYS.map((day, i) => {
                   const dateStr = toDateString(weekDates[i]);
@@ -545,56 +545,82 @@ export default function TeacherPage() {
                 })}
               </div>
 
-              {/* Selected Day's Class Cards */}
-              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">
-                  Classes on {formatDate(selectedDate)}
-                </p>
-                {selectedDayClasses.length > 0 ? (
-                  selectedDayClasses.map((cls) => {
-                    const isSelectedClass = selectedClass === cls.id;
-                    return (
+              <div className="space-y-3">
+                {WEEK_DAYS.map((day, i) => {
+                  const dateStr = toDateString(weekDates[i]);
+                  const dayClasses = classesByDay[day] || [];
+                  const isSelectedDay = dateStr === selectedDate;
+                  const isToday = dateStr === toDateString(new Date());
+
+                  return (
+                    <section
+                      key={day}
+                      className={cn(
+                        "rounded-xl border p-3",
+                        isSelectedDay
+                          ? "border-primary-container/60 bg-primary-container/5"
+                          : "border-outline-variant/15 bg-surface-container-low"
+                      )}
+                    >
                       <button
-                        key={cls.id}
                         type="button"
-                        onClick={() => {
-                          setSelectedStudents([]);
-                          setSelectedClass(cls.id);
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between p-4 rounded-xl border transition-all text-left",
-                          isSelectedClass
-                            ? "border-primary-container bg-primary-container/10 text-on-surface shadow-sm ring-1 ring-primary-container"
-                            : "border-outline-variant/10 bg-surface hover:bg-surface-container text-on-surface"
-                        )}
+                        onClick={() => selectDay(dateStr, day)}
+                        className="flex w-full items-center justify-between text-left mb-2"
                       >
-                        <div className="min-w-0 flex-1">
-                          <p className={cn(
-                            "text-xs font-bold uppercase tracking-wider mb-0.5",
-                            isSelectedClass ? "text-primary-container" : "text-on-surface-variant"
-                          )}>
-                            {cls.time || "No Time"}
-                          </p>
-                          <p className="font-headline font-bold text-sm truncate">
-                            {cls.class_name}
-                          </p>
-                        </div>
-                        <div className={cn(
-                          "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3",
-                          isSelectedClass ? "border-primary-container bg-primary-container" : "border-outline-variant/30"
+                        <span className={cn(
+                          "text-xs font-bold uppercase tracking-widest",
+                          isToday ? "text-primary-container" : "text-on-surface-variant"
                         )}>
-                          {isSelectedClass && (
-                            <div className="w-2 h-2 rounded-full bg-white" />
-                          )}
-                        </div>
+                          {day}
+                        </span>
+                        <span className="text-xs text-on-surface-variant">
+                          {formatDate(dateStr)}
+                        </span>
                       </button>
-                    );
-                  })
-                ) : (
-                  <div className="p-6 text-center bg-surface-container-low rounded-xl border border-dashed border-outline-variant/20">
-                    <p className="text-sm text-on-surface-variant italic">No classes scheduled for this day</p>
-                  </div>
-                )}
+
+                      {dayClasses.length > 0 ? (
+                        <div className="space-y-2">
+                          {dayClasses.map((cls) => {
+                            const isSelectedClass = selectedClass === cls.id && isSelectedDay;
+                            return (
+                              <button
+                                key={cls.id}
+                                type="button"
+                                onClick={() => selectClass(dateStr, cls.id)}
+                                className={cn(
+                                  "w-full flex items-center justify-between gap-3 p-3 rounded-lg border text-left transition-colors",
+                                  isSelectedClass
+                                    ? "border-primary-container bg-primary-container/10 text-on-surface ring-1 ring-primary-container"
+                                    : "border-outline-variant/10 bg-surface hover:bg-surface-container text-on-surface"
+                                )}
+                              >
+                                <span className="min-w-0 flex-1">
+                                  <span className={cn(
+                                    "block text-xs font-bold uppercase tracking-wider",
+                                    isSelectedClass ? "text-primary-container" : "text-on-surface-variant"
+                                  )}>
+                                    {cls.time || "No Time"}
+                                  </span>
+                                  <span className="block font-headline font-bold text-sm break-words">
+                                    {cls.class_name}
+                                  </span>
+                                </span>
+                                <span className={cn(
+                                  "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                                  isSelectedClass ? "border-primary-container bg-primary-container" : "border-outline-variant/30"
+                                )}>
+                                  {isSelectedClass && <span className="w-2 h-2 rounded-full bg-white" />}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-on-surface-variant/60 italic">No classes</p>
+                      )}
+                    </section>
+                  );
+                })}
               </div>
             </div>
 
