@@ -14,6 +14,20 @@ import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
 
 const WEEK_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_ALIASES: Record<string, string> = {
+  mon: 'Monday', monday: 'Monday',
+  tue: 'Tuesday', tues: 'Tuesday', tuesday: 'Tuesday',
+  wed: 'Wednesday', wednesday: 'Wednesday',
+  thu: 'Thursday', thur: 'Thursday', thurs: 'Thursday', thursday: 'Thursday',
+  fri: 'Friday', friday: 'Friday',
+  sat: 'Saturday', saturday: 'Saturday',
+  sun: 'Sunday', sunday: 'Sunday',
+};
+
+function normalizeDay(day?: string): string | undefined {
+  if (!day) return undefined;
+  return DAY_ALIASES[day.trim().toLowerCase()];
+}
 
 function getWeekDates(offset: number): Date[] {
   const now = new Date();
@@ -91,7 +105,7 @@ export default function TeacherPage() {
       if (classesData.length > 0) {
         const todayDay = WEEK_DAYS[(new Date().getDay() + 6) % 7]; // Monday is 0, Sunday is 6
         const todayClasses = classesData.filter(
-          c => c.day?.trim().toLowerCase() === todayDay.toLowerCase()
+          c => normalizeDay(c.day) === todayDay
         );
         if (todayClasses.length > 0) {
           setSelectedClass(todayClasses[0].id);
@@ -99,7 +113,7 @@ export default function TeacherPage() {
           const firstClass = classesData[0];
           setSelectedClass(firstClass.id);
           const classDayIndex = WEEK_DAYS.findIndex(
-            d => d.toLowerCase() === firstClass.day?.trim().toLowerCase()
+            d => normalizeDay(firstClass.day) === d
           );
           if (classDayIndex !== -1) {
             const currentWeekDates = getWeekDates(0);
@@ -251,7 +265,7 @@ export default function TeacherPage() {
     setSelectedDate(dateStr);
     setSelectedStudents([]);
     const dayClasses = classes.filter(
-      c => c.day?.trim().toLowerCase() === dayName.toLowerCase()
+      c => normalizeDay(c.day) === dayName
     );
     if (dayClasses.length > 0) {
       setSelectedClass(dayClasses[0].id);
@@ -276,7 +290,7 @@ export default function TeacherPage() {
     const nextSelectedDayIndex = selectedDayIndex === -1 ? 0 : selectedDayIndex;
     const nextDayName = WEEK_DAYS[nextSelectedDayIndex];
     const nextDayClasses = classes.filter(
-      c => c.day?.trim().toLowerCase() === nextDayName.toLowerCase()
+      c => normalizeDay(c.day) === nextDayName
     );
 
     setWeekOffset(nextWeekOffset);
@@ -359,9 +373,10 @@ export default function TeacherPage() {
   const classesByDay: Record<string, ClassSchedule[]> = {};
   for (const day of WEEK_DAYS) {
     classesByDay[day] = classes.filter(
-      c => c.day?.trim().toLowerCase() === day.toLowerCase()
+      c => normalizeDay(c.day) === day
     );
   }
+  const unassignedClasses = classes.filter(c => !normalizeDay(c.day));
 
   return (
     <>
@@ -433,7 +448,7 @@ export default function TeacherPage() {
                     const todayDate = toDateString(today);
                     const todayDayName = WEEK_DAYS[(today.getDay() + 6) % 7];
                     const todayClasses = classes.filter(
-                      c => c.day?.trim().toLowerCase() === todayDayName.toLowerCase()
+                      c => normalizeDay(c.day) === todayDayName
                     );
                     setWeekOffset(0);
                     setSelectedDate(todayDate);
@@ -621,6 +636,28 @@ export default function TeacherPage() {
                     </section>
                   );
                 })}
+                {unassignedClasses.length > 0 && (
+                  <section className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3">
+                    <p className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-2">
+                      Other scheduled classes
+                    </p>
+                    <div className="space-y-2">
+                      {unassignedClasses.map((cls) => (
+                        <button
+                          key={cls.id}
+                          type="button"
+                          onClick={() => selectClass(selectedDate, cls.id)}
+                          className="w-full rounded-lg border border-outline-variant/10 bg-surface p-3 text-left text-sm text-on-surface"
+                        >
+                          <span className="block text-xs text-on-surface-variant">
+                            {cls.day || 'Day not set'}{cls.time ? ` - ${cls.time}` : ''}
+                          </span>
+                          <span className="block font-headline font-bold break-words">{cls.class_name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
             </div>
 
