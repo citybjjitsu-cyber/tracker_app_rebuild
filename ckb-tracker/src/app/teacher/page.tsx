@@ -61,6 +61,8 @@ export default function TeacherPage() {
   const [ratingFilter, setRatingFilter] = useState('all');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(true);
+  const [isScheduleLoading, setIsScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
@@ -95,13 +97,30 @@ export default function TeacherPage() {
   }, [autoRefresh, selectedClass, selectedDate]);
 
   async function loadInitialData() {
+    setIsScheduleLoading(true);
+    setScheduleError('');
     try {
-      const [classesData, usersData] = await Promise.all([
+      const [classesResult, usersResult] = await Promise.allSettled([
         classesApi.list(),
         usersApi.list(),
       ]);
+
+      if (classesResult.status === 'rejected') {
+        setClasses([]);
+        setScheduleError('Unable to load the class schedule. Please refresh and try again.');
+        console.error('Error loading classes:', classesResult.reason);
+        return;
+      }
+
+      const classesData = classesResult.value;
       setClasses(classesData);
-      setUsers(usersData);
+      if (usersResult.status === 'fulfilled') {
+        setUsers(usersResult.value);
+      } else {
+        setUsers([]);
+        console.error('Error loading users:', usersResult.reason);
+      }
+
       if (classesData.length > 0) {
         const todayDay = WEEK_DAYS[(new Date().getDay() + 6) % 7]; // Monday is 0, Sunday is 6
         const todayClasses = classesData.filter(
@@ -125,6 +144,7 @@ export default function TeacherPage() {
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
+      setIsScheduleLoading(false);
       setIsLoaded(true);
     }
   }
@@ -468,6 +488,20 @@ export default function TeacherPage() {
               </div>
             </div>
 
+            {isScheduleLoading && (
+              <div className="mb-6 rounded-lg border border-outline-variant/20 bg-surface-container-low p-4 text-center text-sm text-on-surface-variant">
+                Loading class schedule...
+              </div>
+            )}
+            {scheduleError && (
+              <div className="mb-6 rounded-lg border border-error/40 bg-error-container/20 p-4 text-center text-sm text-error">
+                <p>{scheduleError}</p>
+                <Button variant="outline" size="sm" onClick={loadInitialData} className="mt-3">
+                  Retry
+                </Button>
+              </div>
+            )}
+
             {/* Desktop View: 7-column calendar grid */}
             <div className="hidden md:grid grid-cols-7 gap-3 mb-6">
               {WEEK_DAYS.map((day, i) => {
@@ -519,48 +553,9 @@ export default function TeacherPage() {
               })}
             </div>
 
-            {/* Mobile View: Every day and class remains visible without horizontal scrolling */}
-            <div className="md:hidden space-y-3 mb-6">
-              <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-2 scrollbar-none">
-                {WEEK_DAYS.map((day, i) => {
-                  const dateStr = toDateString(weekDates[i]);
-                  const isToday = dateStr === toDateString(new Date());
-                  const isSelected = dateStr === selectedDate;
-                  const dayClasses = classesByDay[day] || [];
-                  const hasClasses = dayClasses.length > 0;
-
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => selectDay(dateStr, day)}
-                      className={cn(
-                        "flex-shrink-0 flex flex-col items-center justify-center w-14 py-2.5 rounded-xl border transition-all duration-200",
-                        isSelected
-                          ? "border-primary-container bg-primary-container text-on-primary-container shadow-md"
-                          : isToday
-                            ? "border-primary-container/40 bg-primary-container/5 text-primary-container font-semibold"
-                            : "border-outline-variant/20 bg-surface hover:border-outline-variant/40 text-on-surface-variant"
-                      )}
-                    >
-                      <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-                        {day.slice(0, 3)}
-                      </span>
-                      <span className="text-base font-black font-headline mt-0.5">
-                        {weekDates[i].getDate()}
-                      </span>
-                      {hasClasses && (
-                        <span className={cn(
-                          "w-1.5 h-1.5 rounded-full mt-1.5",
-                          isSelected ? "bg-on-primary-container" : "bg-primary-container"
-                        )} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-3">
+            {/* Mobile View: Match check-in with a two-column weekly class grid */}
+            <div className="md:hidden grid grid-cols-2 gap-3 mb-6">
+              <>
                 {WEEK_DAYS.map((day, i) => {
                   const dateStr = toDateString(weekDates[i]);
                   const dayClasses = classesByDay[day] || [];
@@ -658,7 +653,7 @@ export default function TeacherPage() {
                     </div>
                   </section>
                 )}
-              </div>
+              </>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
