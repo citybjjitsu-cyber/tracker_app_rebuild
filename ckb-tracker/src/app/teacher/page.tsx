@@ -12,38 +12,7 @@ import { LogOut, GraduationCap, ChevronLeft, ChevronRight, UserPlus } from 'luci
 import type { ClassSchedule, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
-
-const WEEK_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAY_ALIASES: Record<string, string> = {
-  mon: 'Monday', monday: 'Monday',
-  tue: 'Tuesday', tues: 'Tuesday', tuesday: 'Tuesday',
-  wed: 'Wednesday', wednesday: 'Wednesday',
-  thu: 'Thursday', thur: 'Thursday', thurs: 'Thursday', thursday: 'Thursday',
-  fri: 'Friday', friday: 'Friday',
-  sat: 'Saturday', saturday: 'Saturday',
-  sun: 'Sunday', sunday: 'Sunday',
-};
-
-function normalizeDay(day?: string): string | undefined {
-  if (!day) return undefined;
-  return DAY_ALIASES[day.trim().toLowerCase()];
-}
-
-function getWeekDates(offset: number): Date[] {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + offset * 7);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  });
-}
-
-function toDateString(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
+import { WEEK_DAYS, getWeekDates, normalizeDay, toDateString } from '@/lib/teacherSchedule';
 
 export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
