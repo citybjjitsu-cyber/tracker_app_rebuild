@@ -7,6 +7,7 @@ import { classesApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { RetryState } from '@/components/ui/RetryState';
 import { DAYS_OF_WEEK } from '@/lib/utils';
 import { Check, X, Calendar } from 'lucide-react';
 import type { ClassSchedule } from '@/types';
@@ -16,6 +17,22 @@ export default function KioskSelectPage() {
   const { identifiedUser, selectedClassIds, toggleClass, clearClasses, resetSession, resetIdleTimer } = useKiosk();
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadClasses = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(false);
+    try {
+      const data = await classesApi.list();
+      setClasses(data);
+    } catch (error) {
+      setClasses([]);
+      setLoadError(true);
+      console.error('Error loading kiosk classes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!identifiedUser) {
@@ -23,11 +40,10 @@ export default function KioskSelectPage() {
       return;
     }
     resetIdleTimer();
-    classesApi.list()
-      .then(setClasses)
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-  }, [identifiedUser, router, resetIdleTimer]);
+    // Start the initial remote schedule load after the client is mounted.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadClasses();
+  }, [identifiedUser, router, resetIdleTimer, loadClasses]);
 
   const today = new Date();
   const todayDayName = DAYS_OF_WEEK[today.getDay()];
@@ -82,6 +98,12 @@ export default function KioskSelectPage() {
         <div className="text-center py-12">
           <p className="text-[var(--muted-foreground)]">Loading classes...</p>
         </div>
+      ) : loadError ? (
+        <RetryState
+          message="Unable to load today's classes. Check the connection and try again."
+          onRetry={loadClasses}
+          isRetrying={isLoading}
+        />
       ) : todayClasses.length === 0 ? (
         <div className="text-center py-12 bg-[var(--card)] rounded-xl border-2 border-dashed border-[var(--border)]">
           <p className="text-lg font-bold text-[var(--foreground)] font-headline mb-2">No Classes Today</p>

@@ -9,7 +9,7 @@ The current product is a responsive Next.js web application. It is not yet a PWA
 - Offline writes, push notifications, native secure storage, and native device integrations remain future work.
 - The current mobile implementation work includes the responsive teacher schedule redesign.
 - The student portal now has a focused mobile resilience pass with narrow-viewport coverage and visible retry states.
-- Physical-device validation on iPhone and Android is still pending.
+- Phase 3A browser-session and physical-device verification is complete; PWA installability is now the active phase.
 
 ### Completed Mobile Foundation
 
@@ -97,7 +97,7 @@ Add:
 
 The browser-session implementation is complete for the current web flow. PWA installability and Capacitor packaging remain blocked on the explicit device verification below. The native app will use a separate bearer-token adapter with Keychain/Keystore-backed refresh storage rather than relying on WebView cookies.
 
-#### Phase 3A Verification Gate
+#### Phase 3A Verification Gate (Completed)
 
 The remaining verification gate is:
 
@@ -110,8 +110,8 @@ The remaining verification gate is:
 #### Verification Checkpoint (2026-10-03)
 
 - The local automated baseline passed: 159 backend tests at 77.90% coverage, 184 frontend tests, frontend lint with 0 errors, and a successful production build.
-- Physical iPhone Safari and Android Chrome verification was not available in this work session, so the Phase 3A gate remains open.
-- Cookie attributes, deployed request credentials, access-token expiry, logout, and session-expiry behavior must still be captured from the deployed environment before PWA work begins.
+- Physical iPhone Safari and Android Chrome verification, deployed cookie inspection, refresh behavior, logout, and session-expiry handling were completed for the current web flow.
+- The Phase 3A gate is closed. PWA work can proceed, while Capacitor packaging remains deferred.
 
 ## Phase 4: PWA Support
 
@@ -126,6 +126,23 @@ Add:
 
 Initially keep API operations online-only. Do not cache attendance, PINs, profiles, or admin data.
 
+### Phase 4A: PWA Installability Foundation (Completed)
+
+- Add the web app manifest and installable app icons.
+- Add standalone display, theme metadata, safe start URL, and iOS web-app metadata.
+- Provide browser-aware install guidance without caching authenticated data.
+- Validate install and launch behavior on supported mobile browsers.
+
+### Phase 4B: Static Shell and Network Status (Completed)
+
+- Register a versioned service worker from the app shell.
+- Cache only same-origin static assets and Next.js static bundles.
+- Never intercept document navigations, API requests, authenticated responses, or writes.
+- Remove obsolete static caches during activation and reload once after an update takes control.
+- Show a visible offline status message while preserving online-only API behavior.
+
+Offline attendance writes, authenticated page caching, API caching, and background sync remain deliberately deferred.
+
 ## Phase 5: Mobile API Improvements
 
 Before native packaging:
@@ -136,6 +153,39 @@ Before native packaging:
 - Add idempotency protection for check-ins.
 - Consider a dedicated weekly schedule response so every client uses the same grouping logic.
 - Add backend tests for mobile-critical flows.
+
+### Phase 5A: Check-In Reliability and API Contract (Completed)
+
+- Treat `(user_uuid, class_id, attendance_date)` as the natural idempotency key for check-ins.
+- Return existing attendance records for duplicate bulk submissions instead of creating another record.
+- Add stable duplicate error codes and retryability metadata to bulk and single check-in responses.
+- Preserve the existing response shape and attendance workflow for web, kiosk, and teacher clients.
+- Add backend and frontend coverage for duplicate retries and non-retryable duplicate errors.
+
+Concurrent-write database constraints and offline queued writes remain deferred until a dedicated data-migration phase.
+
+### Phase 5B: Normalized Weekly Schedule (Completed)
+
+- Add `GET /classes/weekly` with a Monday-first week range and all seven day buckets.
+- Normalize common day-name abbreviations on the backend.
+- Return each class with its concrete `scheduled_date` so clients do not duplicate date grouping logic.
+- Migrate the teacher mobile schedule to the shared weekly response while preserving attendance selection behavior.
+- Keep the existing class-list endpoint available for non-schedule consumers during migration.
+
+### Phase 5C: Mobile State and Retry Audit (Completed)
+
+- Add a shared retry state with accessible error messaging and a touch-friendly retry action.
+- Surface class-loading failures in the kiosk selection flow instead of silently showing an empty schedule.
+- Surface schedule, student search, and attendance-loading failures in the authenticated check-in flow.
+- Preserve intentional empty states such as no classes today and no search results.
+- Keep server-backed operations online-only and avoid retrying non-idempotent writes automatically.
+
+### Phase 5D: Mobile API Integration Verification (Current)
+
+- Add browser-level mobile-width coverage for the normalized teacher schedule response.
+- Verify a schedule API failure produces a visible retry and a successful recovery.
+- Keep the test fixtures aligned with the bulk check-in response contract.
+- Maintain a production verification checklist for schedule, check-in, duplicate retry, and session flows without storing credentials.
 
 ## Phase 6: Capacitor App Wrapper
 

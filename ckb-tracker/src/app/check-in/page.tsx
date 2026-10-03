@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { RetryState } from '@/components/ui/RetryState';
 import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { usersApi, classesApi, attendanceApi, kioskApi } from '@/lib/api';
@@ -31,9 +32,13 @@ export default function CheckInPage() {
   const { user, isAuthenticated, isLoading: authLoading, roles, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searchError, setSearchError] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
+  const [isClassesLoading, setIsClassesLoading] = useState(true);
+  const [classesError, setClassesError] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
+  const [attendanceError, setAttendanceError] = useState(false);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [error, setError] = useState('');
   const [sessionTimeLeft, setSessionTimeLeft] = useState(120);
@@ -106,17 +111,36 @@ export default function CheckInPage() {
     }
   }, [authLoading, isAuthenticated, isStudent, isTeacher, user]);
 
-  useEffect(() => {
-    classesApi.list().then(setClasses).catch(console.error);
+  const loadClasses = useCallback(async () => {
+    setIsClassesLoading(true);
+    setClassesError(false);
+    try {
+      setClasses(await classesApi.list());
+    } catch (error) {
+      setClasses([]);
+      setClassesError(true);
+      console.error('Error loading classes:', error);
+    } finally {
+      setIsClassesLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    // Start the initial remote schedule load after the client is mounted.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadClasses();
+  }, [loadClasses]);
 
   useEffect(() => {
     if (selectedUser) {
       const fetchAttendance = async () => {
+        setAttendanceError(false);
         try {
           const attendance = await attendanceApi.getByUser(selectedUser.user_uuid);
           setAttendanceRecords(attendance);
+          setAttendanceError(false);
         } catch (error) {
+          setAttendanceError(true);
           console.error('Error fetching attendance:', error);
         }
       };
@@ -156,8 +180,10 @@ export default function CheckInPage() {
     () => debounce(async (query: string) => {
       if (query.length < 2) {
         setSearchResults([]);
+        setSearchError(false);
         return;
       }
+      setSearchError(false);
       try {
         let results = await usersApi.search(query);
         if (!isTablet && !isAdmin && user) {
@@ -171,6 +197,8 @@ export default function CheckInPage() {
         }
         setSearchResults(results);
       } catch (error) {
+        setSearchResults([]);
+        setSearchError(true);
         console.error('Search error:', error);
       }
     }, 300),
@@ -540,6 +568,13 @@ export default function CheckInPage() {
       </div>
     )}
 
+    {attendanceError && selectedUser && (
+      <RetryState
+        message="Unable to load this student's attendance. Check the connection and try again."
+        onRetry={() => setSelectedUser({ ...selectedUser })}
+      />
+    )}
+
     {showCompleteConfirm && (
         <div className="rounded-xl border border-primary-container/30 bg-primary-container/10 p-8 text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-surface-container-high rounded-full flex items-center justify-center ring-4 ring-primary-container/20">
@@ -637,7 +672,14 @@ export default function CheckInPage() {
               </div>
             )}
 
-            {canSearch && searchQuery.length >= 2 && searchResults.length === 0 && (
+            {searchError && (
+              <RetryState
+                message="Search failed. Check the connection and try again."
+                onRetry={() => handleSearch(searchQuery)}
+              />
+            )}
+
+            {canSearch && !searchError && searchQuery.length >= 2 && searchResults.length === 0 && (
               <div className="mt-4 text-center py-8">
                 <div className="w-12 h-12 mx-auto mb-3 bg-surface-container-high rounded-full flex items-center justify-center">
                   <AlertCircle className="w-6 h-6 text-on-surface-variant" />
@@ -871,7 +913,7 @@ export default function CheckInPage() {
             </div>
           )}
 
-          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
+            <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
             <div className="flex justify-between items-end border-b border-outline-variant/20 pb-4 mb-6">
               <div>
                 <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface">Weekly Registration</h2>
@@ -880,6 +922,17 @@ export default function CheckInPage() {
                 <p className="text-xs text-primary-container font-black uppercase tracking-[0.2em]">{attendanceRecords.length} CLASSES CHECKED</p>
               </div>
             </div>
+            {isClassesLoading && (
+              <p className="mb-4 text-center text-sm text-on-surface-variant">Loading class schedule...</p>
+            )}
+            {classesError && (
+              <RetryState
+                message="Unable to load the class schedule. Check the connection and try again."
+                onRetry={loadClasses}
+                isRetrying={isClassesLoading}
+                className="mb-4"
+              />
+            )}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {DAYS_OF_WEEK.map((day, dayIndex) => {
                   const dayDateStr = weekDates[dayIndex];

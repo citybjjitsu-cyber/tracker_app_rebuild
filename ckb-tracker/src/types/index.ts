@@ -96,6 +96,22 @@ export interface ClassSchedule {
   class_type?: ClassType;
 }
 
+export interface WeeklyScheduleClass extends ClassSchedule {
+  scheduled_date: string;
+}
+
+export interface WeeklyScheduleDay {
+  day: string;
+  date: string;
+  classes: WeeklyScheduleClass[];
+}
+
+export interface WeeklySchedule {
+  week_start: string;
+  week_end: string;
+  days: WeeklyScheduleDay[];
+}
+
 export interface ClassInstance {
   id: number;
   class_id: number;

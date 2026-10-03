@@ -79,7 +79,7 @@ describe('attendanceApi', () => {
     const apiModule = await import('@/lib/api')
 
     vi.mocked(axios.default.post).mockResolvedValue({
-      data: { created: [{ id: 1, class_id: 1, status: 'pending' }], errors: [] },
+      data: { created: [{ id: 1, class_id: 1, status: 'pending' }], already_present: [], errors: [] },
     })
 
     const result = await apiModule.attendanceApi.bulkCheckIn('user-uuid', [{ class_id: 1 }, { class_id: 2 }])
@@ -89,6 +89,32 @@ describe('attendanceApi', () => {
       { user_uuid: 'user-uuid', classes: [{ class_id: 1 }, { class_id: 2 }] },
     )
     expect(result.created).toHaveLength(1)
+    expect(result.already_present).toHaveLength(0)
+  })
+
+  it('exposes already-present check-ins as non-retryable results', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+
+    vi.mocked(axios.default.post).mockResolvedValue({
+      data: {
+        created: [],
+        already_present: [{ id: 7, class_id: 1, status: 'pending' }],
+        errors: [{
+          class_id: 1,
+          attendance_date: '2026-10-03',
+          detail: 'Already checked in for this date',
+          code: 'already_checked_in',
+          retryable: false,
+        }],
+      },
+    })
+
+    const result = await apiModule.attendanceApi.bulkCheckIn('user-uuid', [{ class_id: 1 }])
+
+    expect(result.already_present[0].id).toBe(7)
+    expect(result.errors[0].code).toBe('already_checked_in')
+    expect(result.errors[0].retryable).toBe(false)
   })
 
   it('confirm posts to correct endpoint', async () => {
@@ -1063,6 +1089,24 @@ describe('axios interceptor', () => {
 
     await expect(responseHandler({ response: { status: 401 }, config: { url: '/users/1', headers: {} } }))
       .rejects.toMatchObject({ response: { status: 401 } })
+  })
+})
+
+describe('classesApi', () => {
+  it('weekly requests a normalized week start', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+
+    vi.mocked(axios.default.get).mockResolvedValue({
+      data: { week_start: '2026-10-05', week_end: '2026-10-11', days: [] },
+    })
+
+    const result = await apiModule.classesApi.weekly('2026-10-05')
+
+    expect(axios.default.get).toHaveBeenCalledWith('/classes/weekly', {
+      params: { week_start: '2026-10-05' },
+    })
+    expect(result.week_end).toBe('2026-10-11')
   })
 })
 

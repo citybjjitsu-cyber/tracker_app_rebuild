@@ -39,8 +39,28 @@ def test_bulk_check_in_duplicates(client, headers):
     assert response.status_code == 200
     data = response.json()
     assert len(data["created"]) == 0
+    assert len(data["already_present"]) == 1
     assert len(data["errors"]) == 1
     assert data["errors"][0]["class_id"] == 1
+    assert data["errors"][0]["code"] == "already_checked_in"
+    assert data["errors"][0]["retryable"] is False
+
+
+def test_bulk_check_in_retry_is_idempotent(client, headers):
+    payload = {
+        "user_uuid": "student-uuid-0000-0000-000000000002",
+        "classes": [{"class_id": 1}],
+    }
+
+    first = client.post("/attendance/bulk-check-in", json=payload, headers=headers)
+    retry = client.post("/attendance/bulk-check-in", json=payload, headers=headers)
+
+    assert first.status_code == 200
+    assert retry.status_code == 200
+    assert len(first.json()["created"]) == 1
+    assert len(retry.json()["created"]) == 0
+    assert len(retry.json()["already_present"]) == 1
+    assert retry.json()["already_present"][0]["id"] == first.json()["created"][0]["id"]
 
 
 def test_bulk_check_in_multiple_same_class(client, headers):
@@ -192,6 +212,8 @@ def test_create_attendance_already_checked_in(client, headers):
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Already checked in for this class today"
+    assert response.headers["X-Error-Code"] == "already_checked_in"
+    assert response.headers["X-Retryable"] == "false"
 
 
 def test_direct_attendance(client, headers):

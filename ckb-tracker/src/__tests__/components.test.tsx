@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Select'
 import { GlassPanel } from '@/components/ui/GlassPanel'
+import { RetryState } from '@/components/ui/RetryState'
 
 describe('Avatar', () => {
   it('renders initials when no image URL', () => {
@@ -28,6 +29,19 @@ describe('Avatar', () => {
   it('renders with custom size class', () => {
     const { container } = render(<Avatar firstName="A" lastName="B" size="xl" />)
     expect(container.querySelector('.h-16.w-16')).toBeTruthy()
+  })
+})
+
+describe('RetryState', () => {
+  it('shows the error and retries when requested', async () => {
+    const onRetry = vi.fn()
+    const user = userEvent.setup()
+
+    render(<RetryState message="Unable to load classes" onRetry={onRetry} />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Unable to load classes')
+    await user.click(screen.getByRole('button', { name: /retry/i }))
+    expect(onRetry).toHaveBeenCalledOnce()
   })
 })
 

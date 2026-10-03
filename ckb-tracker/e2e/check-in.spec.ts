@@ -40,7 +40,7 @@ test.describe('Teacher Bypass Check-In Flow', () => {
 
   test('bulk check-in creates pending attendance', async ({ request }) => {
     const res = await request.post(`${E2E_API_BASE}/attendance/bulk-check-in`, {
-      data: { user_uuid: studentUuid, class_ids: [1] },
+      data: { user_uuid: studentUuid, classes: [{ class_id: 1 }] },
       headers: { Authorization: `Bearer ${staffToken}` },
     })
     expect(res.status()).toBe(200)
@@ -48,6 +48,20 @@ test.describe('Teacher Bypass Check-In Flow', () => {
     expect(body.created).toHaveLength(1)
     expect(body.created[0].status).toBe('pending')
     attendanceId = body.created[0].id
+  })
+
+  test('repeating the check-in returns the existing attendance record', async ({ request }) => {
+    const res = await request.post(`${E2E_API_BASE}/attendance/bulk-check-in`, {
+      data: { user_uuid: studentUuid, classes: [{ class_id: 1 }] },
+      headers: { Authorization: `Bearer ${staffToken}` },
+    })
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    expect(body.created).toHaveLength(0)
+    expect(body.already_present).toHaveLength(1)
+    expect(body.already_present[0].id).toBe(attendanceId)
+    expect(body.errors[0].code).toBe('already_checked_in')
+    expect(body.errors[0].retryable).toBe(false)
   })
 
   test('confirm pending attendance', async ({ request }) => {

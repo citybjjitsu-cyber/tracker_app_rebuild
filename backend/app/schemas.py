@@ -235,6 +235,22 @@ class ClassScheduleResponse(ClassScheduleBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class WeeklyScheduleClassResponse(ClassScheduleResponse):
+    scheduled_date: date
+
+
+class WeeklyScheduleDayResponse(BaseModel):
+    day: str
+    date: date
+    classes: List[WeeklyScheduleClassResponse] = Field(default_factory=list)
+
+
+class WeeklyScheduleResponse(BaseModel):
+    week_start: date
+    week_end: date
+    days: List[WeeklyScheduleDayResponse]
+
+
 class TermBase(BaseModel):
     term_name: str = Field(min_length=1, max_length=200)
     start_date: date
@@ -356,6 +372,20 @@ class ClassCheckInItem(BaseModel):
 class BulkCheckInRequest(BaseModel):
     user_uuid: str = Field(min_length=1, max_length=64)
     classes: List[ClassCheckInItem] = Field(min_length=1)
+
+
+class BulkCheckInError(BaseModel):
+    class_id: int
+    attendance_date: date
+    detail: str
+    code: str = "already_checked_in"
+    retryable: bool = False
+
+
+class BulkCheckInResponse(BaseModel):
+    created: List["AttendanceResponse"]
+    already_present: List["AttendanceResponse"] = Field(default_factory=list)
+    errors: List[BulkCheckInError] = Field(default_factory=list)
 
 
 class AttendanceCreate(AttendanceBase):

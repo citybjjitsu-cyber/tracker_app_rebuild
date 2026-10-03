@@ -41,7 +41,11 @@ def create_attendance(
     )
 
     if existing:
-        raise HTTPException(status_code=400, detail="Already checked in for this class today")
+        raise HTTPException(
+            status_code=400,
+            detail="Already checked in for this class today",
+            headers={"X-Error-Code": "already_checked_in", "X-Retryable": "false"},
+        )
 
     db_attendance = models.Attendance(**attendance.model_dump(), attendance_date=today, status="pending")
     db.add(db_attendance)
@@ -124,7 +128,11 @@ def check_in(
     )
 
     if existing:
-        raise HTTPException(status_code=400, detail="Already checked in for this class on this date")
+        raise HTTPException(
+            status_code=400,
+            detail="Already checked in for this class on this date",
+            headers={"X-Error-Code": "already_checked_in", "X-Retryable": "false"},
+        )
 
     db_attendance = models.Attendance(
         user_uuid=user_uuid,
@@ -153,7 +161,7 @@ def check_in(
     return db_attendance
 
 
-@router.post("/bulk-check-in")
+@router.post("/bulk-check-in", response_model=schemas.BulkCheckInResponse)
 @limiter.limit(WRITE_LIMIT)
 def bulk_check_in(
     request: Request,
@@ -162,6 +170,7 @@ def bulk_check_in(
     user: models.User = Depends(get_current_user),
 ):
     created = []
+    already_present = []
     errors = []
 
     for item in data.classes:
@@ -177,7 +186,16 @@ def bulk_check_in(
         )
 
         if existing:
-            errors.append({"class_id": item.class_id, "detail": "Already checked in for this date"})
+            already_present.append(existing)
+            errors.append(
+                {
+                    "class_id": item.class_id,
+                    "attendance_date": target_date,
+                    "detail": "Already checked in for this date",
+                    "code": "already_checked_in",
+                    "retryable": False,
+                }
+            )
             continue
 
         db_attendance = models.Attendance(
@@ -196,6 +214,7 @@ def bulk_check_in(
 
     return {
         "created": [schemas.AttendanceResponse.model_validate(a) for a in created],
+        "already_present": [schemas.AttendanceResponse.model_validate(a) for a in already_present],
         "errors": errors,
     }
 
