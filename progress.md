@@ -687,7 +687,8 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 ### Mobile Authentication Investigation
 
 - ✅ Confirmed the deployed API responds with credentialed CORS headers for `https://ckb-tracker.vercel.app`.
-- ✅ Added normal-web 401 refresh/retry handling with single-flight refresh protection and session-expiration notification.
+- ✅ Added normal-web 401 refresh/retry handling with single-flight refresh protection without forcing a global logout from an unrelated API failure.
+- ✅ Guarded auth initialization against a stale request clearing state immediately after a successful login.
 - ✅ Added frontend interceptor coverage and backend auth-cookie coverage.
 - ✅ Made the production cookie default compatible with the current cross-site Vercel/Render deployment (`SameSite=None` with `Secure=True`); an explicit Render override still takes precedence.
 - ⏳ Production cookie attributes, mobile cookie persistence, and refresh requests still require verification on an affected phone.

@@ -63,15 +63,10 @@ api.interceptors.request.use((config) => {
 // Kiosk token auto-refresh on 401
 let onKioskLockCallback: (() => void) | null = null;
 let kioskRefreshInProgress = false;
-let onSessionExpiredCallback: (() => void) | null = null;
 let webRefreshInProgress: Promise<boolean> | null = null;
 
 export function setOnKioskLock(callback: (() => void) | null) {
   onKioskLockCallback = callback;
-}
-
-export function setOnSessionExpired(callback: (() => void) | null) {
-  onSessionExpiredCallback = callback;
 }
 
 async function refreshWebSession(): Promise<boolean> {
@@ -138,7 +133,6 @@ api.interceptors.response.use(
       const refreshed = await refreshWebSession();
 
       if (refreshed) return api(originalRequest);
-      onSessionExpiredCallback?.();
     }
 
     return Promise.reject(error);
