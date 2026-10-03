@@ -25,7 +25,9 @@ The configuration is in `backend/render.yaml`:
 - Kiosk idle timeout: `KIOSK_IDLE_MINUTES=240`
 - Upload directory: `/opt/render/project/src/backend/uploads`
 
-Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration.
+Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration. For the current Vercel-to-Render cross-site browser deployment, production must use `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None`; CSRF protection remains enabled for cookie-authenticated state-changing requests. A same-site custom API hostname is preferred when a project domain is available.
+
+After an authentication deployment, verify the Render environment values before mobile testing. Confirm the login response `Set-Cookie` headers, then use browser remote debugging to confirm that `/auth/me`, `/auth/refresh`, and the first protected request after expiry include credentials. Do not mark mobile session validation complete based on desktop testing alone.
 
 ## Vercel Configuration
 

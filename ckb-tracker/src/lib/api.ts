@@ -63,9 +63,34 @@ api.interceptors.request.use((config) => {
 // Kiosk token auto-refresh on 401
 let onKioskLockCallback: (() => void) | null = null;
 let kioskRefreshInProgress = false;
+let onSessionExpiredCallback: (() => void) | null = null;
+let webRefreshInProgress: Promise<boolean> | null = null;
 
 export function setOnKioskLock(callback: (() => void) | null) {
   onKioskLockCallback = callback;
+}
+
+export function setOnSessionExpired(callback: (() => void) | null) {
+  onSessionExpiredCallback = callback;
+}
+
+async function refreshWebSession(): Promise<boolean> {
+  if (webRefreshInProgress) return webRefreshInProgress;
+
+  webRefreshInProgress = axios
+    .post<{ csrf_token?: string }>(`${API_BASE_URL}/auth/refresh`, null, { withCredentials: true })
+    .then((response) => {
+      if (typeof window !== 'undefined' && response.data.csrf_token) {
+        sessionStorage.setItem('csrf_token', response.data.csrf_token);
+      }
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      webRefreshInProgress = null;
+    });
+
+  return webRefreshInProgress;
 }
 
 api.interceptors.response.use(
@@ -100,6 +125,20 @@ api.interceptors.response.use(
       } finally {
         kioskRefreshInProgress = false;
       }
+    }
+
+    const isAuthRequest = originalRequest?.url?.includes('/auth/');
+    if (
+      error.response?.status === 401 &&
+      !getKioskStaffToken() &&
+      !isAuthRequest &&
+      !originalRequest?._webRetried
+    ) {
+      originalRequest._webRetried = true;
+      const refreshed = await refreshWebSession();
+
+      if (refreshed) return api(originalRequest);
+      onSessionExpiredCallback?.();
     }
 
     return Promise.reject(error);

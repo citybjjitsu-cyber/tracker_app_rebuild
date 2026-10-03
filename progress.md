@@ -683,3 +683,13 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - ✅ Hardened comment content wrapping and responsive chart sizing to avoid narrow-screen overflow.
 - ✅ Added Playwright coverage for mobile overflow, tab navigation, and portal data retry behavior.
 - ⏳ Real-device Safari/Chrome validation, PWA installability, offline behavior, and native Capacitor packaging remain outstanding.
+
+### Mobile Authentication Investigation
+
+- ✅ Confirmed the deployed API responds with credentialed CORS headers for `https://ckb-tracker.vercel.app`.
+- ✅ Added normal-web 401 refresh/retry handling with single-flight refresh protection and session-expiration notification.
+- ✅ Added frontend interceptor coverage and backend auth-cookie coverage.
+- ✅ Made the production cookie default compatible with the current cross-site Vercel/Render deployment (`SameSite=None` with `Secure=True`); an explicit Render override still takes precedence.
+- ⏳ Production cookie attributes, mobile cookie persistence, and refresh requests still require verification on an affected phone.
+- ⏳ The authentication changes are prepared locally but still require deployment before the mobile verification gate can be run.
+- ⏳ Native iOS/Android authentication remains planned around bearer tokens with secure platform storage, not WebView cookie assumptions.

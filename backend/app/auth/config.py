@@ -7,7 +7,8 @@ MAX_SESSION_HOURS = int(os.getenv("MAX_SESSION_HOURS", "24"))
 KIOSK_IDLE_MINUTES = int(os.getenv("KIOSK_IDLE_MINUTES", "240"))
 
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "True").lower() == "true"
-COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "Lax")
+_default_cookie_samesite = "None" if os.getenv("ENVIRONMENT", "development") == "production" else "Lax"
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", _default_cookie_samesite)
 COOKIE_HTTPONLY = True
 COOKIE_PATH = "/"
 

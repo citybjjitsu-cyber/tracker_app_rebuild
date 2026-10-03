@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 
 from tests.conftest import STAFF_UUID, PINLESS_UUID, STAFF_PASSWORD
 from app import models
+from app.auth.config import COOKIE_SECURE
 from app.auth.jwt_utils import hash_token
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -21,6 +22,27 @@ def test_login_valid_staff(client):
     assert "roles" in data
     assert "csrf_token" in data
     assert data["user"]["email"] == "staff@test.com"
+
+
+def test_login_sets_scoped_secure_auth_cookies(client):
+    response = client.post(
+        "/auth/login",
+        json={"email": "staff@test.com", "password": STAFF_PASSWORD},
+    )
+
+    assert response.status_code == 200
+    cookies = response.headers["set-cookie"]
+    assert "access_token=" in cookies
+    assert "refresh_token=" in cookies
+    assert "csrf_token=" in cookies
+    assert "access_token=" in cookies and "Path=/" in cookies
+    assert "refresh_token=" in cookies and "Path=/auth/refresh" in cookies
+    assert "HttpOnly" in cookies
+    assert "SameSite=Lax" in cookies
+    if COOKIE_SECURE:
+        assert "Secure" in cookies
+    else:
+        assert "Secure" not in cookies
 
 
 def test_login_invalid_password(client):

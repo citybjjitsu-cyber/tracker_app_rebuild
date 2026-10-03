@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 import { useRouter } from 'next/navigation';
 import type { User, Role } from '@/types';
+import { setOnSessionExpired } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -153,6 +154,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSession();
+  }, []);
+
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      setUser(null);
+      setRoles([]);
+      setCsrfToken(null);
+      sessionStorage.removeItem('csrf_token');
+    });
+
+    return () => setOnSessionExpired(null);
   }, []);
 
   return (

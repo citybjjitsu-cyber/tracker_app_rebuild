@@ -1,18 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('axios', () => {
-  const mockAxios = {
-    create: vi.fn(() => mockAxios),
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    interceptors: {
-      request: { use: vi.fn() },
-      response: { use: vi.fn() },
-    },
-    defaults: {},
+  const mockAxios = vi.fn()
+  mockAxios.create = vi.fn(() => mockAxios)
+  mockAxios.get = vi.fn()
+  mockAxios.post = vi.fn()
+  mockAxios.put = vi.fn()
+  mockAxios.delete = vi.fn()
+  mockAxios.interceptors = {
+    request: { use: vi.fn() },
+    response: { use: vi.fn() },
   }
+  mockAxios.defaults = {}
   return { default: mockAxios }
 })
 
@@ -1015,6 +1014,58 @@ describe('axios interceptor', () => {
     const config = { method: 'get', headers: {}, url: '/test' }
     const result = handler(config)
     expect(result.headers['Authorization']).toBeUndefined()
+  })
+
+  it('refreshes a normal web request once after a 401', async () => {
+    const axios = await import('axios')
+    await import('@/lib/api')
+    const responseHandler = axios.default.interceptors.response.use.mock.calls[0][1]
+    const request = { url: '/dashboard/stats/user-1', headers: {} }
+
+    vi.mocked(axios.default.post).mockResolvedValue({ data: { csrf_token: 'csrf-refreshed' } })
+    vi.mocked(axios.default).mockResolvedValue({ data: { ok: true } })
+
+    const result = await responseHandler({ response: { status: 401 }, config: request })
+
+    expect(axios.default.post).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/refresh'),
+      null,
+      { withCredentials: true },
+    )
+    expect(axios.default).toHaveBeenCalledWith(request)
+    expect(sessionStorage.getItem('csrf_token')).toBe('csrf-refreshed')
+    expect(result.data.ok).toBe(true)
+  })
+
+  it('shares one refresh request across concurrent 401 responses', async () => {
+    const axios = await import('axios')
+    await import('@/lib/api')
+    const responseHandler = axios.default.interceptors.response.use.mock.calls[0][1]
+    const refresh = new Promise<{ data: { csrf_token: string } }>((resolve) => {
+      setTimeout(() => resolve({ data: { csrf_token: 'csrf-concurrent' } }), 10)
+    })
+    vi.mocked(axios.default.post).mockReturnValue(refresh)
+    vi.mocked(axios.default).mockResolvedValue({ data: { ok: true } })
+
+    await Promise.all([
+      responseHandler({ response: { status: 401 }, config: { url: '/users/1', headers: {} } }),
+      responseHandler({ response: { status: 401 }, config: { url: '/users/2', headers: {} } }),
+    ])
+
+    expect(axios.default.post).toHaveBeenCalledTimes(1)
+  })
+
+  it('notifies auth state when normal web refresh fails', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+    const responseHandler = axios.default.interceptors.response.use.mock.calls[0][1]
+    const onExpired = vi.fn()
+    apiModule.setOnSessionExpired(onExpired)
+    vi.mocked(axios.default.post).mockRejectedValue(new Error('refresh failed'))
+
+    await expect(responseHandler({ response: { status: 401 }, config: { url: '/users/1', headers: {} } }))
+      .rejects.toMatchObject({ response: { status: 401 } })
+    expect(onExpired).toHaveBeenCalledTimes(1)
   })
 })
 
