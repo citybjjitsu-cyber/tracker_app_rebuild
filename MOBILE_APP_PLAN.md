@@ -1,5 +1,28 @@
 # CKB Tracker Mobile App Plan
 
+## Current Project Status
+
+The current product is a responsive Next.js web application. It is not yet a PWA or a native Android/iOS application:
+
+- No `manifest.webmanifest` or service worker has been added.
+- Capacitor, iOS, and Android projects have not been added.
+- Offline writes, push notifications, native secure storage, and native device integrations remain future work.
+- The current mobile implementation work includes the responsive teacher schedule redesign.
+- Physical-device validation on iPhone and Android is still pending.
+
+### Completed Mobile Foundation
+
+The teacher schedule now has a shared, testable schedule layer in `ckb-tracker/src/lib/teacherSchedule.ts` and uses it from `ckb-tracker/src/app/teacher/page.tsx`:
+
+- Monday-first weekly date calculation.
+- Normalization of full day names and common abbreviations.
+- Previous/next week navigation and date serialization.
+- Two-column mobile schedule layout and seven-column desktop layout.
+- Touch-friendly class selection while preserving the existing attendance flow.
+- Focused Vitest coverage in `ckb-tracker/src/__tests__/teacher-schedule.test.ts`.
+
+This work is behavior-preserving preparation. It does not add installability, offline behavior, native packaging, or changes to authentication/API contracts.
+
 ## Recommended Direction
 
 Build the existing Next.js app as a mobile-first Progressive Web App (PWA) first, then package it with Capacitor for the Apple App Store and Google Play if store distribution is required.

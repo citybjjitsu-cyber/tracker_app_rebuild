@@ -8,7 +8,7 @@ CKB Tracker is a full-stack web application for tracking martial arts class atte
 
 - **Frontend**: Next.js 16 with TypeScript, Tailwind CSS v4 (`ckb-tracker/`)
 - **Backend**: FastAPI with Python 3.12+, SQLAlchemy, Pydantic v2 (`backend/`)
-- **Database**: SQLite (development), configurable for production
+- **Database**: SQLite (local development/tests), Render PostgreSQL for the current deployed environment
 
 ## Build & Development Commands
 
@@ -189,7 +189,7 @@ npx vitest run src/__tests__/api.test.ts -- -t "test name"
 - Server-side rendering by default
 - Client-side interactivity with `'use client'`
 - API calls through `src/lib/api.ts`
-- Supabase for authentication
+- FastAPI/JWT authentication with HTTP-only cookies and CSRF protection; Supabase client dependencies exist but are not the production auth provider
 
 **Backend:**
 - Routers in `app/routers/` for endpoint organization
@@ -197,6 +197,7 @@ npx vitest run src/__tests__/api.test.ts -- -t "test name"
 - JWT authentication with refresh tokens
 - CSRF protection for cookie-based auth
 - Static file serving for uploads
+- Alembic migrations run before the deployed Uvicorn process starts
 
 ## Security Notes
 
@@ -205,6 +206,8 @@ npx vitest run src/__tests__/api.test.ts -- -t "test name"
 - Rate limiting enabled on auth endpoints
 - Password hashing with bcrypt (passlib)
 - CORS configured for specific origins in production
+- Normal staff sessions use HTTP-only cookies; the CSRF token is stored in `sessionStorage`
+- Access tokens expire after 10 minutes by default, refresh tokens after 7 days, and sessions after 24 hours
 
 ## Kiosk Security Model
 
@@ -216,17 +219,20 @@ The kiosk at `/` is the app landing page with two states:
 Key rules:
 - All kiosk API endpoints require `Authorization: Bearer <staff_token>` header
 - Staff token is stored in JavaScript memory only (a module variable), never in localStorage or cookies
-- Idle timer (60s) locks the kiosk and discards the token
+- Configurable idle timer locks the kiosk and discards the token; the current Render value is 240 minutes
 - Staff unlock uses `/kiosk/unlock` (email/password, rate-limited)
 - Lock uses `/kiosk/lock` (revokes JWT JTI server-side)
+- Kiosk access tokens are refreshed when possible; refresh failure locks the kiosk
 - The `/login` route is for full staff access (admin/teacher dashboards) — separate from kiosk unlock
 
 ## CI/CD
 
-GitHub Actions workflow at `.github/workflows/test.yml` runs on push/PR to `main`:
-- **Backend**: Installs Python deps via uv, runs `pytest --cov=app --cov-fail-under=75`
-- **Frontend**: Installs Node deps via npm ci, runs `vitest run --coverage` (fails if thresholds not met)
-- Coverage HTML reports are uploaded as build artifacts
+GitHub Actions workflow at `.github/workflows/test.yml` runs on every push and pull request:
+- **Backend**: Installs Python deps via uv, checks Ruff/Alembic, runs migrations, and runs pytest
+- **Frontend**: Installs Node deps via npm, runs ESLint, Vitest with coverage, and a non-blocking Playwright job
+- Coverage and test reports are uploaded as build artifacts
+
+`.github/workflows/deploy.yml` is started manually with `workflow_dispatch`, accepts `dev` or `production`, reruns the required lint/tests, then deploys to the selected Render hook and Vercel.
 
 ## Git Workflow
 

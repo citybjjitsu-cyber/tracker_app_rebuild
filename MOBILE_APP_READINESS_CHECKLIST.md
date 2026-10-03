@@ -7,9 +7,14 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Document the mobile app phases and production-only testing approach.
 - [x] Keep kiosk behavior separate from personal mobile workflows.
 - [x] Extract teacher schedule date and day normalization helpers for focused testing.
+- [x] Implement responsive teacher schedule layout and week navigation.
+- [x] Add automated tests for teacher schedule normalization and week calculations.
 - [ ] Audit student portal layouts at iPhone and Android widths.
 - [ ] Audit check-in and recovery flows on physical devices.
 - [ ] Validate teacher schedule, attendance, feedback, and comments on physical devices.
+- [ ] Add PWA manifest and install instructions.
+- [ ] Add a service worker with static-assets-only caching.
+- [ ] Add Capacitor projects after the web/PWA version is stable.
 
 ## Production Test Controls
 

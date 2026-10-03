@@ -4,6 +4,12 @@ Martial arts school attendance tracking, student progress monitoring, and gym ma
 
 **Live:** Frontend → [ckb-tracker.vercel.app](https://ckb-tracker.vercel.app) | Backend → [ckb-tracker-api-dev.onrender.com](https://ckb-tracker-api-dev.onrender.com)
 
+## Current Status
+
+CKB Tracker is currently a responsive web application. Mobile work is in the foundation stage: the teacher schedule has responsive mobile and desktop layouts, shared date/day helpers, and focused automated tests. PWA installability, offline behavior, push notifications, Capacitor, and native iOS/Android projects have not been added yet. See `MOBILE_APP_PLAN.md` and `MOBILE_APP_READINESS_CHECKLIST.md` for the mobile roadmap.
+
+The repository currently has one Render-backed application environment represented by `ckb-tracker-api-dev.onrender.com`; a separate production Render service/database is not defined in `backend/render.yaml`. Because there is no separate staging environment, deployments must be treated as production changes even though the application currently has no active users.
+
 ---
 
 ## Tech Stack
@@ -15,7 +21,7 @@ Martial arts school attendance tracking, student progress monitoring, and gym ma
 | Database | SQLite (dev) / PostgreSQL (production, Render managed) |
 | Auth | JWT (access + refresh tokens), CSRF double-submit cookie, bcrypt |
 | Testing | pytest + pytest-cov (backend), Vitest (frontend unit), Playwright (E2E) |
-| CI/CD | GitHub Actions → test → deploy to Vercel + Render |
+| CI/CD | GitHub Actions → test on push/PR; manual deploy workflow to Vercel + Render |
 | Infrastructure | Vercel (frontend), Render (backend + PostgreSQL + persistent disk for photos) |
 
 ---
@@ -39,8 +45,9 @@ graph TB
     end
 
     subgraph "CI/CD (GitHub Actions)"
-        GH["Push / PR"] --> Test["pytest + vitest<br/>+ coverage checks"]
-        Test --> Deploy["Deploy to Vercel + Render"]
+        GH["Push / PR"] --> Test["pytest + vitest<br/>+ lint / migration checks"]
+        Dispatch["Manual workflow_dispatch"] --> Deploy["Deploy selected environment"]
+        Test --> Deploy
     end
 ```
 
@@ -269,6 +276,8 @@ erDiagram
 
 ### Table Relationships Summary
 
+The ORM currently defines 23 model classes. In addition to the core attendance entities shown below, the current schema includes `rank_tiers`, `points_adjustments`, `invite_tokens`, and `reset_tokens`; these support belt-degree display, audited point changes, and email onboarding/recovery.
+
 ```
 users ──┬── user_roles ── roles          (many-to-many via user_roles)
         ├── attendance                    (student check-ins)
@@ -323,6 +332,8 @@ terms ── term_targets                    (points needed per rank per term)
 | POST | `/kiosk/verify-pin` | JWT | 10/min | Legacy kiosk PIN verification |
 | PUT | `/kiosk/update-pin` | JWT | 10/min | Update kiosk PIN |
 | POST | `/kiosk/setup` | JWT | 3/min | Initialize/change kiosk PIN |
+
+Kiosk staff access uses a bearer access token held in JavaScript memory. The current configured idle timeout is 240 minutes through `KIOSK_IDLE_MINUTES`; access tokens are refreshed automatically where possible, and refresh failure locks the kiosk.
 
 ### Users (`/users`)
 
@@ -391,6 +402,9 @@ terms ── term_targets                    (points needed per rank per term)
 | `/themes` | Admin | Website theme management |
 | `/database` | Admin | DB stats endpoint |
 | `/audit` | Admin | Paginated audit log viewer |
+| `/rank-tiers` | Admin | Rank and degree configuration |
+| `/points-adjustments` | Admin | Attendance points adjustments |
+| `/admin/*` | Admin/Lite-Admin | Invites, resets, activation, and administrative operations |
 
 ---
 
@@ -422,9 +436,11 @@ The kiosk at `/` has two states:
 
 Key rules:
 - Staff JWT stored in JavaScript memory (module variable), never localStorage/cookies
-- 60-second idle timer → auto-lock + discard token
+- Configurable idle timer; current Render value is 240 minutes → auto-lock + discard token
 - PIN endpoints protected by `Authorization: Bearer <staff_token>`
 - PIN lockout: 3 failed attempts → 5-minute cooldown (429 + Retry-After)
+
+Normal staff authentication uses HTTP-only cookies with CSRF protection. The CSRF token is held in `sessionStorage`; bearer access tokens are used only for the kiosk flow and are held in memory. The primary authentication implementation is FastAPI/JWT; Supabase dependencies remain in the frontend but Supabase is not the production authentication provider.
 
 ---
 
@@ -444,7 +460,7 @@ uv run uvicorn app.main:app --reload
 # → http://localhost:8000
 ```
 
-The server auto-seeds demo data on first startup (14 users, 8 classes, 60 days of attendance history, curricula, lessons, feedback, comments, and news).
+Startup applies migrations through the Render start command and safely initializes rank tiers/backfills rank-tier links. It does not automatically seed the full demo dataset. Use the explicit bootstrap tooling when setting up a local or test database.
 
 ### Frontend Setup
 
@@ -494,7 +510,7 @@ npx playwright test
 │   │   │   ├── audit.py         # Structured audit logging
 │   │   │   └── email.py         # SMTP invite & password/PIN reset emails
 │   │   └── __init__.py
-│   ├── tests/                   # pytest suite (128+ tests, 85% cov)
+│   ├── tests/                   # pytest suite (run with pytest/coverage commands)
 │   ├── scripts/
 │   │   └── generate_secrets.py  # Secure key generation
 │   ├── seed_complete_data.py    # Full demo data seeder
@@ -531,11 +547,10 @@ npx playwright test
 │
 ├── .github/workflows/
 │   ├── test.yml                 # CI (every push/PR)
-│   └── deploy.yml               # CD (push to main)
+│   └── deploy.yml               # Manual environment-selected deployment
 │
-├── deployment_phases.md         # Deployment planning
+├── deployment_phases.md         # Current deployment reference
 ├── progress.md                  # Full project changelog
-├── deploy_steps.md              # Deployment guide
 └── AGENTS.md                    # AI agent guidelines
 ```
 
@@ -578,51 +593,28 @@ Forgot password/PIN flows follow the same tokenized email pattern (1-hour expiry
 - **Request size limits**: 1 MB JSON, 10 MB multipart
 - **Global exception handler**: No stack trace leakage in production
 - **Server-side session management**: JTI blacklisting, 24-hour absolute session cap
-- **Kiosk token**: In-memory only (no localStorage), auto-cleared on 60s idle
+- **Kiosk token**: In-memory only (no localStorage), auto-cleared after the configured idle timeout (currently 240 minutes)
 
 ---
 
 ## Deployment
 
-Deployment is automated via GitHub Actions:
+Deployment uses GitHub Actions:
 
-1. Push/PR to any branch → runs `test.yml` (pytest + vitest + coverage)
-2. Push to `main` → runs `deploy.yml` (tests → Render deploy hook → Vercel deploy)
+1. Push/PR to any branch → runs `test.yml` (lint, tests, migrations, coverage artifacts, and non-blocking E2E).
+2. A maintainer manually starts `deploy.yml` with `workflow_dispatch` and selects `dev` or `production`.
+3. Deployment runs the required checks, then triggers the corresponding Render deploy hook and Vercel production deployment.
 
 | Environment | Frontend | Backend | Database |
 |-------------|----------|---------|----------|
 | Development | `localhost:3000` | `localhost:8000` | SQLite |
-| Staging/Prod | `ckb-tracker.vercel.app` | `ckb-tracker-api-dev.onrender.com` | Render PostgreSQL |
+| Current live environment | `ckb-tracker.vercel.app` | `ckb-tracker-api-dev.onrender.com` | Render PostgreSQL |
 
 ---
 
-## Live Testing — Seed Data
+## Database Bootstrap and Test Data
 
-During the live testing phase, the database on Render can be populated with demo data for testing.
-
-### Auto-Seed on First Deploy
-
-When the app starts on an empty database (first deploy), it automatically seeds:
-
-- **14 users** (admin, teachers, students, kiosk, tablet)
-- **8 class schedules** across 2 gym locations
-- **Academic terms** with targets
-- **60 days of attendance history**
-- **Curricula and lessons**
-- **Feedback, comments, and news items**
-
-Data persists across subsequent deploys — only the first deploy (empty DB) triggers a seed.
-
-### Admin Seed Endpoint
-
-Trigger a full reseed on demand:
-
-```bash
-curl -X POST https://ckb-tracker-api-dev.onrender.com/admin/seed \
-  -H "Authorization: Bearer <admin_token>"
-```
-
-Rate-limited to 1 request per minute. Requires admin authentication.
+The Render start command runs `alembic upgrade head`. A fresh database requires the explicit CLI bootstrap command below to create roles and the initial admin/kiosk accounts. The current CLI does not automatically create the full demo dataset on application startup.
 
 ### CSV User Import
 

@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CKB Tracker Frontend
 
-## Getting Started
+The CKB Tracker frontend is a Next.js 16 App Router application for kiosk check-in, student, teacher, admin, and public news workflows.
 
-First, run the development server:
+## Requirements
+
+- Node.js 20 or newer
+- A running CKB Tracker FastAPI backend
+
+## Local Development
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Set `NEXT_PUBLIC_API_URL` in `.env.local` to the backend URL. For local development, use `http://localhost:8000`; otherwise the client defaults to the configured deployed API URL.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Commands
 
-## Learn More
+```bash
+npm run dev                 # Start the Next.js development server
+npm run build               # Create a production build
+npm run start               # Serve the production build
+npm run lint                # Run ESLint
+npm run test                # Run Vitest unit/component tests
+npm run test -- --coverage  # Run tests with coverage thresholds
+npm run test:e2e            # Run Playwright tests
+```
 
-To learn more about Next.js, take a look at the following resources:
+The frontend test thresholds are configured in `vitest.config.ts`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Statements: 65%
+- Branches: 50%
+- Functions: 50%
+- Lines: 65%
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Application Routes
 
-## Deploy on Vercel
+- `/` — locked/unlocked staff-authenticated kiosk landing page
+- `/check-in` — tablet check-in flow
+- `/portal` — student portal
+- `/teacher` — teacher attendance, schedule, feedback, comments, and student management
+- `/admin` — administrative dashboard
+- `/news` — public published news
+- `/login`, invite, password recovery, and PIN recovery routes — public authentication workflows
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Mobile Status
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The application is currently responsive web software, not yet a PWA or native mobile app. The teacher schedule has mobile and desktop layouts, Monday-first week navigation, normalized day labels, and focused automated tests. Physical-device testing is still pending.
+
+The following are intentionally not implemented yet:
+
+- `manifest.webmanifest` and install prompts
+- Service-worker caching or offline writes
+- Push notifications
+- Capacitor, iOS, or Android projects
+- Native secure storage, biometric unlock, camera, or deep links
+
+See the repository-level `MOBILE_APP_PLAN.md` and `MOBILE_APP_READINESS_CHECKLIST.md`.
+
+## Deployment
+
+The frontend is deployed to Vercel. The current configured API is the Render service at `https://ckb-tracker-api-dev.onrender.com`.
+
+GitHub Actions runs tests on pushes and pull requests. Deployment is started manually through the `workflow_dispatch` inputs in `.github/workflows/deploy.yml`; it is not an automatic deployment on every push to `main`.
