@@ -692,5 +692,16 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - ✅ Added frontend interceptor coverage and backend auth-cookie coverage.
 - ✅ Made the production cookie default compatible with the current cross-site Vercel/Render deployment (`SameSite=None` with `Secure=True`); an explicit Render override still takes precedence.
 - ⏳ Production cookie attributes, mobile cookie persistence, and refresh requests still require verification on an affected phone.
-- ⏳ The authentication changes are prepared locally but still require deployment before the mobile verification gate can be run.
+- ✅ Deployed and rechecked the reported phone and desktop flows; navigation no longer causes an immediate logout.
+- ⏳ Access-token expiry, direct cookie attributes, and the complete iPhone Safari/Android Chrome matrix remain outstanding.
 - ⏳ Native iOS/Android authentication remains planned around bearer tokens with secure platform storage, not WebView cookie assumptions.
+
+## RECENT UPDATES (October 3, 2026) - Mobile Verification Checkpoint
+
+### Phase 3A: Automated Baseline
+
+- Passed 159 backend tests with 77.90% coverage, exceeding the 75% threshold.
+- Passed 184 frontend tests.
+- Frontend lint completed with 0 errors; existing warnings remain.
+- Frontend production build completed successfully.
+- Physical iPhone Safari and Android Chrome verification was not available in this session; deployed cookie inspection, token-expiry checks, and the full mobile workflow matrix remain open.

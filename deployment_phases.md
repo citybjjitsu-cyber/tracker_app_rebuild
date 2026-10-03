@@ -27,7 +27,9 @@ The configuration is in `backend/render.yaml`:
 
 Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration. For the current Vercel-to-Render cross-site browser deployment, production must use `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None`; CSRF protection remains enabled for cookie-authenticated state-changing requests. A same-site custom API hostname is preferred when a project domain is available.
 
-After an authentication deployment, verify the Render environment values before mobile testing. Confirm the login response `Set-Cookie` headers, then use browser remote debugging to confirm that `/auth/me`, `/auth/refresh`, and the first protected request after expiry include credentials. Do not mark mobile session validation complete based on desktop testing alone.
+After an authentication deployment, verify the Render environment values before mobile testing. The current web flow has been rechecked on the reported phone and desktop and no longer logs out during navigation. The remaining gate is to confirm the login response `Set-Cookie` headers, then use browser remote debugging to verify `/auth/me`, `/auth/refresh`, and the first protected request after expiry include credentials. Do not mark the complete mobile session validation finished based on desktop and one phone alone.
+
+The 2026-10-03 mobile verification checkpoint passed the local automated baseline: 159 backend tests with 77.90% coverage, 184 frontend tests, frontend lint with zero errors, and a successful frontend production build. It did not include physical-device or deployed cookie inspection, so the Phase 3A mobile session gate remains open.
 
 ## Vercel Configuration
 

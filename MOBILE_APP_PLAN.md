@@ -84,27 +84,34 @@ Add:
 - No sensitive data in `localStorage`
 - A documented strategy for native secure storage if Capacitor is introduced
 
-### Phase 3A: Browser Session Stabilization (In Progress)
+### Phase 3A: Browser Session Stabilization (Web Flow Complete)
 
 - The deployed API currently returns credentialed CORS headers for the Vercel frontend.
 - Normal web API requests now share a single refresh request when access-token expiry causes concurrent 401 responses.
 - A failed web refresh now rejects the affected request without globally clearing auth state from an unrelated API failure; explicit session-expiry handling remains a verification item.
 - Auth initialization is guarded against a stale in-flight request overwriting a successful login during route transitions.
-- Cookie attributes and refresh behavior still require verification on physical iPhone Safari and Android Chrome.
+- The reported phone and desktop navigation flows were rechecked after deployment and are working without immediate logout.
+- Cookie attributes, access-token expiry, and the full physical-device matrix still require explicit verification on iPhone Safari and Android Chrome.
 - Cross-site production cookies now default to `SameSite=None` when `ENVIRONMENT=production`; the Render override must be checked so it does not force `Lax` for the current Vercel/Render deployment.
 - A same-site custom API hostname remains the preferred long-term browser/PWA solution if a project domain is available.
 
-This phase must be completed before PWA installability or Capacitor packaging. The native app will use a separate bearer-token adapter with Keychain/Keystore-backed refresh storage rather than relying on WebView cookies.
+The browser-session implementation is complete for the current web flow. PWA installability and Capacitor packaging remain blocked on the explicit device verification below. The native app will use a separate bearer-token adapter with Keychain/Keystore-backed refresh storage rather than relying on WebView cookies.
 
 #### Phase 3A Verification Gate
 
-After deployment, verify the following on the affected phone before marking this phase complete:
+The remaining verification gate is:
 
 - The login response stores `access_token`, `refresh_token`, and `csrf_token` with the expected secure attributes.
 - `/auth/me` and `/auth/refresh` send credentialed requests from the deployed frontend.
 - A protected request after access-token expiry refreshes once and succeeds without showing the login screen.
 - A failed refresh shows a clear session-expired state and does not loop.
 - iPhone Safari and Android Chrome both retain the session through navigation, backgrounding, and reopening.
+
+#### Verification Checkpoint (2026-10-03)
+
+- The local automated baseline passed: 159 backend tests at 77.90% coverage, 184 frontend tests, frontend lint with 0 errors, and a successful production build.
+- Physical iPhone Safari and Android Chrome verification was not available in this work session, so the Phase 3A gate remains open.
+- Cookie attributes, deployed request credentials, access-token expiry, logout, and session-expiry behavior must still be captured from the deployed environment before PWA work begins.
 
 ## Phase 4: PWA Support
 
