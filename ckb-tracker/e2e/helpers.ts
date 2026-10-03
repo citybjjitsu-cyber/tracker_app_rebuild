@@ -203,8 +203,26 @@ export async function mockBulkCheckIn(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ message: 'Check-in successful', count: 1 }),
+      body: JSON.stringify({
+        created: [{ id: 1, class_id: 1, status: 'pending' }],
+        already_present: [],
+        errors: [],
+      }),
     })
+  })
+}
+
+export async function mockUsersList(page: Page, users: MockUser[] = [STUDENT_USER]) {
+  await page.route('**/users/', async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(users),
+      })
+      return
+    }
+    await route.continue()
   })
 }
 
@@ -237,6 +255,43 @@ export async function mockCreateAttendanceDirect(page: Page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ message: 'Check-in recorded' }),
+    })
+  })
+}
+
+export async function mockWeeklySchedule(page: Page) {
+  await page.route('**/classes/weekly*', async route => {
+    const weekStart = new Date()
+    const day = (weekStart.getDay() + 6) % 7
+    weekStart.setDate(weekStart.getDate() - day)
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((name, index) => {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + index)
+      return {
+        day: name,
+        date: date.toISOString().slice(0, 10),
+        classes: index === 0 ? [{
+          id: 1,
+          class_uuid: 'class-uuid-1',
+          class_name: 'Test Class',
+          day: name,
+          time: '10:00',
+          points: 1,
+          is_current: true,
+          effective_date: date.toISOString(),
+          created_date: date.toISOString(),
+          scheduled_date: date.toISOString().slice(0, 10),
+        }] : [],
+      }
+    })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        week_start: days[0].date,
+        week_end: days[6].date,
+        days,
+      }),
     })
   })
 }
@@ -416,6 +471,8 @@ export async function setupTeacherTest(page: Page) {
   await mockAttendanceConfirm(page)
   await mockAttendanceCancel(page)
   await mockCreateAttendanceDirect(page)
+  await mockWeeklySchedule(page)
+  await mockUsersList(page)
   await mockFeedbackSubmit(page)
   await mockCommentCreate(page)
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CKB Tracker">
+  <rect width="512" height="512" rx="106" fill="#0f172a"/>
+  <rect x="53" y="53" width="406" height="406" rx="85" fill="#2563eb"/>
+  <path d="M328 152c-21-21-51-32-83-32-75 0-133 58-133 136s58 136 133 136c32 0 62-11 83-32l-37-43c-13 13-27 19-46 19-43 0-75-32-75-80s32-80 75-80c19 0 33 6 46 19z" fill="#fff"/>
+  <path d="M352 125h61v262h-61z" fill="#bfdbfe"/>
+</svg>

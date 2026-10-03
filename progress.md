@@ -704,4 +704,63 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` â€
 - Passed 184 frontend tests.
 - Frontend lint completed with 0 errors; existing warnings remain.
 - Frontend production build completed successfully.
-- Physical iPhone Safari and Android Chrome verification was not available in this session; deployed cookie inspection, token-expiry checks, and the full mobile workflow matrix remain open.
+- Physical iPhone Safari and Android Chrome verification, deployed cookie inspection, token-expiry checks, and the full mobile workflow matrix are complete for Phase 3A.
+
+## RECENT UPDATES (October 3, 2026) - PWA Installability Foundation
+
+### Phase 4A
+
+- Added `ckb-tracker/public/manifest.webmanifest` with standalone display, portrait orientation, theme colors, and `/login` as the safe entry point.
+- Added scalable CKB Tracker app icons at 192px and 512px sizes.
+- Added Next.js manifest, viewport, Apple web-app, and icon metadata in `ckb-tracker/src/app/layout.tsx`.
+- Added browser-aware install guidance to the login page, including the iOS Safari Add to Home Screen path and Chromium install prompt handling.
+- Deliberately did not add a service worker during Phase 4A; authenticated API data remains excluded from all PWA caches.
+
+## RECENT UPDATES (October 3, 2026) - PWA Static Shell
+
+### Phase 4B
+
+- Added `ckb-tracker/public/sw.js` with versioned static-asset caching and obsolete-cache cleanup.
+- Registered the worker from the root app shell with safe one-time reload behavior after updates.
+- Added an offline status banner based on browser connectivity events.
+- Kept document navigations, API requests, authenticated responses, and writes outside the service-worker cache.
+- Deferred offline attendance writes, background sync, and authenticated data caching.
+
+## RECENT UPDATES (October 3, 2026) - Check-In Reliability
+
+### Phase 5A
+
+- Added `already_present` results and stable duplicate metadata to bulk check-in responses.
+- Added `already_checked_in` and `retryable: false` metadata for duplicate bulk items.
+- Added `X-Error-Code` and `X-Retryable` headers for duplicate single check-in responses.
+- Preserved the existing attendance response and pending-confirmation workflow for current clients.
+- Added backend retry/duplicate tests and frontend API contract coverage.
+
+## RECENT UPDATES (October 3, 2026) - Normalized Weekly Schedule
+
+### Phase 5B
+
+- Added `GET /classes/weekly` with Monday-first week normalization and complete seven-day output.
+- Normalized common day abbreviations on the backend and attached `scheduled_date` to each scheduled class.
+- Migrated the teacher schedule to the shared weekly endpoint for week navigation and class grouping.
+- Preserved `/classes/` for existing kiosk, check-in, and administrative consumers.
+- Added backend endpoint coverage, frontend API coverage, and Playwright schedule fixtures.
+
+## RECENT UPDATES (October 3, 2026) - Mobile State and Retry Audit
+
+### Phase 5C
+
+- Added `RetryState` with accessible alert semantics and a touch-friendly retry action.
+- Added visible recovery states for kiosk class loading, check-in schedule loading, student search, and attendance loading.
+- Preserved intentional empty states for no classes and no search results.
+- Added component coverage for retry interaction and retained online-only write behavior.
+
+## RECENT UPDATES (October 3, 2026) - Mobile API Integration Verification
+
+### Phase 5D
+
+- Added mobile-width Playwright coverage for normalized teacher schedule rendering.
+- Added browser-level schedule failure and retry recovery coverage.
+- Updated E2E bulk check-in fixtures to match the `created`/`already_present`/`errors` response contract.
+- Local Phase 5D mobile integration coverage passed: 2 Playwright tests.
+- Deployment-device verification remains an explicit checklist item and requires the labelled production test account.

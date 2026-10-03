@@ -22,9 +22,24 @@ import type {
   PointsAdjustment,
   UserProgress,
   InviteRecord,
+  WeeklySchedule,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+export interface BulkCheckInError {
+  class_id: number;
+  attendance_date: string;
+  detail: string;
+  code: 'already_checked_in' | string;
+  retryable: boolean;
+}
+
+export interface BulkCheckInResponse {
+  created: Attendance[];
+  already_present: Attendance[];
+  errors: BulkCheckInError[];
+}
 
 // Staff kiosk token — stored in memory only
 let kioskStaffToken: string | null = null;
@@ -239,6 +254,12 @@ export const classesApi = {
     const response = await api.get<ClassSchedule[]>('/classes/');
     return response.data;
   },
+  weekly: async (weekStart?: string) => {
+    const response = await api.get<WeeklySchedule>('/classes/weekly', {
+      params: weekStart ? { week_start: weekStart } : undefined,
+    });
+    return response.data;
+  },
   get: async (id: number) => {
     const response = await api.get<ClassSchedule>(`/classes/${id}`);
     return response.data;
@@ -311,7 +332,7 @@ export const attendanceApi = {
     return response.data;
   },
   bulkCheckIn: async (userUuid: string, classes: { class_id: number; check_in_date?: string }[]) => {
-    const response = await api.post('/attendance/bulk-check-in', { user_uuid: userUuid, classes });
+    const response = await api.post<BulkCheckInResponse>('/attendance/bulk-check-in', { user_uuid: userUuid, classes });
     return response.data;
   },
   bulkConfirm: async (ids: number[]) => {

@@ -1,21 +1,38 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { KioskProvider } from "@/app/kiosk/KioskContext";
 import { AppLayout } from "@/components/AppLayout";
+import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 export const metadata: Metadata = {
   title: "CKB Tracker",
   description: "Martial Arts Attendance Tracking System",
+  manifest: "/manifest.webmanifest",
+  applicationName: "CKB Tracker",
+  appleWebApp: {
+    capable: true,
+    title: "CKB Tracker",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: [
       {
-        url: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232563eb' rx='20' width='100' height='100'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>C</text></svg>",
+        url: "/icon-192.svg",
         type: "image/svg+xml",
       },
     ],
+    apple: "/icon-192.svg",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -29,9 +46,9 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <KioskProvider>
-              <AppLayout>
-                {children}
-              </AppLayout>
+              <ServiceWorkerRegistration />
+              <NetworkStatusBanner />
+              <AppLayout>{children}</AppLayout>
             </KioskProvider>
           </AuthProvider>
         </ThemeProvider>

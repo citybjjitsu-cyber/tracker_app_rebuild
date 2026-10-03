@@ -15,8 +15,10 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Run the local backend/frontend test, lint, coverage, and production-build baseline.
 - [ ] Audit check-in and recovery flows on physical devices.
 - [ ] Validate teacher schedule, attendance, feedback, and comments on physical devices.
-- [ ] Add PWA manifest and install instructions.
-- [ ] Add a service worker with static-assets-only caching.
+- [x] Add PWA manifest and install instructions.
+- [x] Add installable app icons and mobile web-app metadata.
+- [x] Add a service worker with static-assets-only caching.
+- [x] Add visible offline status messaging and safe service-worker update handling.
 - [ ] Add Capacitor projects after the web/PWA version is stable.
 
 ## Production Test Controls
@@ -45,11 +47,52 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 ## Verification Checkpoint (2026-10-03)
 
 - Local baseline passed: 159 backend tests with 77.90% coverage, 184 frontend tests, frontend lint with 0 errors, and a successful production build.
-- Physical-device authentication and workflow checks remain open because iPhone Safari and Android Chrome evidence was not captured.
+- Phase 3A physical-device authentication and workflow checks are complete. Phase 5 mobile API reliability work is the active follow-up phase.
+
+## Phase 4A Checkpoint (2026-10-03)
+
+- Added `manifest.webmanifest`, 192px/512px app icons, standalone metadata, and browser-aware install guidance.
+- Authenticated API data remains online-only; no service worker or API caching was added.
+- Service-worker behavior and offline messaging are complete for the static shell.
+
+## Phase 4B Checkpoint (2026-10-03)
+
+- `sw.js` precaches only the manifest, app icons, and favicon, then caches same-origin static assets and Next.js static bundles.
+- Document navigations, API requests, authenticated responses, and non-GET requests bypass the worker.
+- Obsolete static caches are removed during activation; an updated worker takes control and triggers one page reload.
+- Offline status is visible in the app shell, but server-backed operations remain online-only.
+
+## Phase 5A Checkpoint (2026-10-03)
+
+- Bulk check-in retries return the existing attendance record in `already_present` and never create a second record.
+- Duplicate responses include the stable `already_checked_in` code and `retryable: false` metadata.
+- Single check-in duplicate failures expose `X-Error-Code` and `X-Retryable` headers.
+- Backend attendance and frontend API tests cover retry and duplicate behavior.
+
+## Phase 5B Checkpoint (2026-10-03)
+
+- Added the normalized `GET /classes/weekly` response with Monday-first dates and seven day buckets.
+- Moved the teacher schedule consumer to the weekly response and concrete `scheduled_date` values.
+- Preserved the existing `/classes/` endpoint for kiosk, check-in, admin, and other consumers.
+
+## Phase 5C Checkpoint (2026-10-03)
+
+- Added a shared accessible retry state for mobile data failures.
+- Kiosk class loading now exposes a retry action instead of silently rendering an empty result.
+- Check-in schedule, student search, and attendance loading failures now show visible recovery states.
+- Intentional empty states remain distinct from network failures.
+
+## Phase 5D Verification Scope
+
+- [ ] Run the mobile integration suite against the deployed frontend/API with the labelled test account.
+- [ ] Verify normalized weekly schedule loading and week navigation on iPhone Safari and Android Chrome.
+- [ ] Verify check-in success, duplicate retry behavior, and visible failure recovery on both devices.
+- [ ] Verify session refresh, logout, and session-expiry recovery after mobile navigation/backgrounding.
 
 ## Deliberately Deferred
 
 - Service-worker caching of authenticated pages or API responses.
+- Offline attendance writes and background sync.
 - Offline attendance writes.
 - Authentication storage changes.
 - Database migrations for mobile-only features.

@@ -29,7 +29,7 @@ Secret values are supplied through the Render dashboard. Required categories inc
 
 After an authentication deployment, verify the Render environment values before mobile testing. The current web flow has been rechecked on the reported phone and desktop and no longer logs out during navigation. The remaining gate is to confirm the login response `Set-Cookie` headers, then use browser remote debugging to verify `/auth/me`, `/auth/refresh`, and the first protected request after expiry include credentials. Do not mark the complete mobile session validation finished based on desktop and one phone alone.
 
-The 2026-10-03 mobile verification checkpoint passed the local automated baseline: 159 backend tests with 77.90% coverage, 184 frontend tests, frontend lint with zero errors, and a successful frontend production build. It did not include physical-device or deployed cookie inspection, so the Phase 3A mobile session gate remains open.
+The 2026-10-03 mobile verification checkpoint passed the local automated baseline: 159 backend tests with 77.90% coverage, 184 frontend tests, frontend lint with zero errors, and a successful frontend production build. Phase 3A deployed-session and physical-device verification is complete.
 
 ## Vercel Configuration
 
@@ -81,6 +81,18 @@ The command creates the application roles, the initial admin, and the kiosk serv
 6. Verify `/health`, login/logout, kiosk unlock/lock, student check-in, teacher attendance, and admin access.
 7. Record the commit and deployment versions.
 
+For the PWA installability phase, verify that `/manifest.webmanifest`, `/icon-192.svg`, and `/icon-512.svg` are served by the deployed frontend and that install guidance appears only in supported browser contexts. No authenticated API responses may be added to a cache.
+
+For PWA Phase 4B, verify `/sw.js` is served with the frontend scope, static assets are available after a reload, API and document requests bypass the worker, and an updated worker removes obsolete `ckb-static-*` caches without leaving stale application data. Test offline messaging separately from server-backed operations.
+
+For Mobile API Phase 5A, verify that repeated check-in submissions return the existing attendance record, preserve the `already_checked_in` code, and never create duplicate attendance rows. Treat the duplicate response as non-retryable while keeping new-network and server errors distinguishable.
+
+For Mobile API Phase 5B, verify `GET /classes/weekly` returns the requested Monday-first week, all seven day buckets, normalized day names, concrete `scheduled_date` values, and stable ordering by time and class name. Confirm the teacher schedule uses this endpoint without changing attendance actions.
+
+For Mobile API Phase 5C, verify kiosk class failures, check-in schedule failures, student search failures, and attendance failures display a visible retry action. Confirm intentional empty results remain distinguishable and that write operations are not automatically repeated.
+
+For Mobile API Phase 5D, run `npm run test:e2e` with the local baseline and then repeat the documented schedule, check-in, duplicate, refresh, logout, and expiry flows against the deployed frontend/API. Record only timestamps, deployment versions, route outcomes, and pass/fail evidence; never record credentials, tokens, PINs, or personal student data.
+
 Because there is no separate staging environment, use a dedicated test account and test data when validating the current live service. Back up the database before authentication, schema, or attendance changes.
 
 ## Rollback
@@ -90,3 +102,4 @@ Because there is no separate staging environment, use a dedicated test account a
 - Roll back application code through the hosting provider rather than destructive Git operations.
 - Do not destructively roll back an applied database migration; create a corrective migration.
 - If a service worker is introduced later, document cache invalidation before release.
+- PWA Phase 4A and Phase 4B are limited to installability, static assets, update handling, and network status. Authenticated data caching and offline writes remain prohibited.

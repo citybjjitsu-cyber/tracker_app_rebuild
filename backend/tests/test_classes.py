@@ -22,6 +22,41 @@ def test_list_classes(client):
     assert data[0]["class_name"] == "Test Class"
 
 
+def test_weekly_schedule_normalizes_days_and_dates(client, db_session):
+    from app import models
+
+    db_session.add(
+        models.ClassSchedule(
+            class_uuid="class-uuid-0000-0000-000000000002",
+            class_name="Tuesday Class",
+            day="tue",
+            time="09:00",
+            is_current=True,
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/classes/weekly?week_start=2026-10-07")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["week_start"] == "2026-10-05"
+    assert data["week_end"] == "2026-10-11"
+    assert [day["day"] for day in data["days"]] == [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+    assert data["days"][0]["date"] == "2026-10-05"
+    assert data["days"][0]["classes"][0]["scheduled_date"] == "2026-10-05"
+    assert data["days"][1]["classes"][0]["class_name"] == "Tuesday Class"
+    assert data["days"][1]["classes"][0]["scheduled_date"] == "2026-10-06"
+
+
 def test_get_class_by_id(client):
     resp = client.get("/classes/1")
     assert resp.status_code == 200
@@ -35,9 +70,7 @@ def test_get_class_not_found(client):
 
 
 def test_create_class(client):
-    resp = client.post(
-        "/classes/", json={"class_name": "New Class", "day": "Tuesday", "time": "14:00"}
-    )
+    resp = client.post("/classes/", json={"class_name": "New Class", "day": "Tuesday", "time": "14:00"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["class_name"] == "New Class"

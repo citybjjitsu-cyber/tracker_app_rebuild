@@ -9,15 +9,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
 import { formatDate, cn } from '@/lib/utils';
 import { LogOut, GraduationCap, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
-import type { ClassSchedule, Attendance, User, ClassFeedback, Comment } from '@/types';
+import type { WeeklyScheduleClass, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
-import { WEEK_DAYS, getWeekDates, normalizeDay, toDateString } from '@/lib/teacherSchedule';
+import { RetryState } from '@/components/ui/RetryState';
+import { WEEK_DAYS, getWeekDates, toDateString } from '@/lib/teacherSchedule';
 
 export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'attendance' | 'feedback' | 'comments' | 'students'>('attendance');
-  const [classes, setClasses] = useState<ClassSchedule[]>([]);
+  const [classes, setClasses] = useState<WeeklyScheduleClass[]>([]);
   const [selectedDate, setSelectedDate] = useState(toDateString(new Date()));
   const [selectedClass, setSelectedClass] = useState<number | ''>('');
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -53,6 +54,14 @@ export default function TeacherPage() {
   }, [isTeacher, isAdmin]);
 
   useEffect(() => {
+    if (weekOffset !== 0 && (isTeacher || isAdmin)) {
+      loadSchedule(weekOffset);
+    }
+    // loadSchedule is a local loader whose inputs are represented by this effect's dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekOffset, isTeacher, isAdmin]);
+
+  useEffect(() => {
     if (selectedClass && selectedDate) {
       loadAttendance();
     }
@@ -69,19 +78,19 @@ export default function TeacherPage() {
     setIsScheduleLoading(true);
     setScheduleError('');
     try {
-      const [classesResult, usersResult] = await Promise.allSettled([
-        classesApi.list(),
+      const [scheduleResult, usersResult] = await Promise.allSettled([
+        classesApi.weekly(toDateString(getWeekDates(0)[0])),
         usersApi.list(),
       ]);
 
-      if (classesResult.status === 'rejected') {
+      if (scheduleResult.status === 'rejected') {
         setClasses([]);
         setScheduleError('Unable to load the class schedule. Please refresh and try again.');
-        console.error('Error loading classes:', classesResult.reason);
+        console.error('Error loading schedule:', scheduleResult.reason);
         return;
       }
 
-      const classesData = classesResult.value;
+      const classesData = scheduleResult.value.days.flatMap(day => day.classes);
       setClasses(classesData);
       if (usersResult.status === 'fulfilled') {
         setUsers(usersResult.value);
@@ -91,23 +100,14 @@ export default function TeacherPage() {
       }
 
       if (classesData.length > 0) {
-        const todayDay = WEEK_DAYS[(new Date().getDay() + 6) % 7]; // Monday is 0, Sunday is 6
-        const todayClasses = classesData.filter(
-          c => normalizeDay(c.day) === todayDay
-        );
+        const todayDate = toDateString(new Date());
+        const todayClasses = classesData.filter(c => c.scheduled_date === todayDate);
         if (todayClasses.length > 0) {
           setSelectedClass(todayClasses[0].id);
         } else {
           const firstClass = classesData[0];
           setSelectedClass(firstClass.id);
-          const classDayIndex = WEEK_DAYS.findIndex(
-            d => normalizeDay(firstClass.day) === d
-          );
-          if (classDayIndex !== -1) {
-            const currentWeekDates = getWeekDates(0);
-            const dateStr = toDateString(currentWeekDates[classDayIndex]);
-            setSelectedDate(dateStr);
-          }
+          setSelectedDate(firstClass.scheduled_date);
         }
       }
     } catch (error) {
@@ -115,6 +115,25 @@ export default function TeacherPage() {
     } finally {
       setIsScheduleLoading(false);
       setIsLoaded(true);
+    }
+  }
+
+  async function loadSchedule(offset: number, targetDate = selectedDate) {
+    setIsScheduleLoading(true);
+    setScheduleError('');
+    try {
+      const schedule = await classesApi.weekly(toDateString(getWeekDates(offset)[0]));
+      const classesData = schedule.days.flatMap(day => day.classes);
+      setClasses(classesData);
+      const selectedDayClasses = classesData.filter(c => c.scheduled_date === targetDate);
+      setSelectedClass(selectedDayClasses[0]?.id || classesData[0]?.id || '');
+    } catch (error) {
+      setClasses([]);
+      setSelectedClass('');
+      setScheduleError('Unable to load the class schedule. Please refresh and try again.');
+      console.error('Error loading schedule:', error);
+    } finally {
+      setIsScheduleLoading(false);
     }
   }
 
@@ -250,12 +269,10 @@ export default function TeacherPage() {
     }
   };
 
-  const selectDay = (dateStr: string, dayName: string) => {
+  const selectDay = (dateStr: string) => {
     setSelectedDate(dateStr);
     setSelectedStudents([]);
-    const dayClasses = classes.filter(
-      c => normalizeDay(c.day) === dayName
-    );
+    const dayClasses = classes.filter(c => c.scheduled_date === dateStr);
     if (dayClasses.length > 0) {
       setSelectedClass(dayClasses[0].id);
     } else {
@@ -277,14 +294,9 @@ export default function TeacherPage() {
     );
     const nextWeekDates = getWeekDates(nextWeekOffset);
     const nextSelectedDayIndex = selectedDayIndex === -1 ? 0 : selectedDayIndex;
-    const nextDayName = WEEK_DAYS[nextSelectedDayIndex];
-    const nextDayClasses = classes.filter(
-      c => normalizeDay(c.day) === nextDayName
-    );
-
     setWeekOffset(nextWeekOffset);
     setSelectedDate(toDateString(nextWeekDates[nextSelectedDayIndex]));
-    setSelectedClass(nextDayClasses[0]?.id || '');
+    setSelectedClass('');
     setSelectedStudents([]);
   };
 
@@ -359,13 +371,13 @@ export default function TeacherPage() {
     );
   }
 
-  const classesByDay: Record<string, ClassSchedule[]> = {};
-  for (const day of WEEK_DAYS) {
+  const classesByDay: Record<string, WeeklyScheduleClass[]> = {};
+  for (const [index, day] of WEEK_DAYS.entries()) {
     classesByDay[day] = classes.filter(
-      c => normalizeDay(c.day) === day
+      c => c.scheduled_date === toDateString(weekDates[index])
     );
   }
-  const unassignedClasses = classes.filter(c => !normalizeDay(c.day));
+  const unassignedClasses: WeeklyScheduleClass[] = [];
 
   return (
     <>
@@ -435,13 +447,9 @@ export default function TeacherPage() {
                   onClick={() => {
                     const today = new Date();
                     const todayDate = toDateString(today);
-                    const todayDayName = WEEK_DAYS[(today.getDay() + 6) % 7];
-                    const todayClasses = classes.filter(
-                      c => normalizeDay(c.day) === todayDayName
-                    );
                     setWeekOffset(0);
                     setSelectedDate(todayDate);
-                    setSelectedClass(todayClasses[0]?.id || '');
+                    loadSchedule(0, todayDate);
                     setSelectedStudents([]);
                   }}
                 >
@@ -463,12 +471,12 @@ export default function TeacherPage() {
               </div>
             )}
             {scheduleError && (
-              <div className="mb-6 rounded-lg border border-error/40 bg-error-container/20 p-4 text-center text-sm text-error">
-                <p>{scheduleError}</p>
-                <Button variant="outline" size="sm" onClick={loadInitialData} className="mt-3">
-                  Retry
-                </Button>
-              </div>
+              <RetryState
+                message={scheduleError}
+                onRetry={() => loadSchedule(weekOffset)}
+                isRetrying={isScheduleLoading}
+                className="mb-6"
+              />
             )}
 
             {/* Desktop View: 7-column calendar grid */}
@@ -488,7 +496,7 @@ export default function TeacherPage() {
                           ? 'border-primary-container/50 bg-surface-container-low'
                           : 'border-outline-variant/20 bg-surface-container-low hover:border-outline-variant/40'
                     }`}
-                    onClick={() => selectDay(dateStr, day)}
+                    onClick={() => selectDay(dateStr)}
                   >
                     <p className={`text-xs font-bold font-label uppercase mb-1 ${isToday ? 'text-primary-container' : 'text-on-surface-variant'}`}>
                       {day.slice(0, 3)}
@@ -543,7 +551,7 @@ export default function TeacherPage() {
                     >
                       <button
                         type="button"
-                        onClick={() => selectDay(dateStr, day)}
+                        onClick={() => selectDay(dateStr)}
                         className="flex w-full items-center justify-between text-left mb-2"
                       >
                         <span className={cn(

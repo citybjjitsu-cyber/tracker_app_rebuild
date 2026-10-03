@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import { InstallAppHint } from '@/components/InstallAppHint';
 import { Shield, Lock, Mail, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
@@ -106,6 +107,7 @@ export default function LoginPage() {
             </Link>
           </div>
         </form>
+        <InstallAppHint />
       </div>
     </div>
   );
