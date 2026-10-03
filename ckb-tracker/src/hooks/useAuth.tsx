@@ -1,11 +1,10 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 import { useRouter } from 'next/navigation';
 import type { User, Role } from '@/types';
-import { setOnSessionExpired } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const authRequestId = useRef(0);
 
   const isTeacher = roles.some(r => r.name === 'Teacher');
   const isAdmin = roles.some(r => r.name === 'Admin');
@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshSession = async () => {
+    const requestId = ++authRequestId.current;
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -88,11 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
-        setRoles(data.roles || []);
-        setCsrfToken(data.csrf_token || null);
-        if (data.csrf_token) {
-          sessionStorage.setItem('csrf_token', data.csrf_token);
+        if (requestId === authRequestId.current) {
+          setUser(data.user);
+          setRoles(data.roles || []);
+          setCsrfToken(data.csrf_token || null);
+          if (data.csrf_token) {
+            sessionStorage.setItem('csrf_token', data.csrf_token);
+          }
         }
       } else {
         const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
@@ -102,13 +105,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (refreshResponse.ok) {
           const refreshData = await refreshResponse.json();
-          setUser(refreshData.user);
-          setRoles(refreshData.roles || []);
-          setCsrfToken(refreshData.csrf_token || null);
-          if (refreshData.csrf_token) {
-            sessionStorage.setItem('csrf_token', refreshData.csrf_token);
+          if (requestId === authRequestId.current) {
+            setUser(refreshData.user);
+            setRoles(refreshData.roles || []);
+            setCsrfToken(refreshData.csrf_token || null);
+            if (refreshData.csrf_token) {
+              sessionStorage.setItem('csrf_token', refreshData.csrf_token);
+            }
           }
-        } else {
+        } else if (requestId === authRequestId.current) {
           setUser(null);
           setRoles([]);
           setCsrfToken(null);
@@ -117,15 +122,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Session refresh error:', error);
-      setUser(null);
-      setRoles([]);
-      setCsrfToken(null);
+      if (requestId === authRequestId.current) {
+        setUser(null);
+        setRoles([]);
+        setCsrfToken(null);
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === authRequestId.current) setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string, isTeacherLogin = false) => {
+    const requestId = ++authRequestId.current;
     const endpoint = isTeacherLogin ? '/auth/teacher-login' : '/auth/login';
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -143,28 +151,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await response.json();
-    setUser(data.user);
-    setRoles(data.roles || []);
-    setCsrfToken(data.csrf_token || null);
-    if (data.csrf_token) {
-      sessionStorage.setItem('csrf_token', data.csrf_token);
+    if (requestId === authRequestId.current) {
+      setUser(data.user);
+      setRoles(data.roles || []);
+      setCsrfToken(data.csrf_token || null);
+      if (data.csrf_token) {
+        sessionStorage.setItem('csrf_token', data.csrf_token);
+      }
     }
   };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSession();
-  }, []);
-
-  useEffect(() => {
-    setOnSessionExpired(() => {
-      setUser(null);
-      setRoles([]);
-      setCsrfToken(null);
-      sessionStorage.removeItem('csrf_token');
-    });
-
-    return () => setOnSessionExpired(null);
   }, []);
 
   return (

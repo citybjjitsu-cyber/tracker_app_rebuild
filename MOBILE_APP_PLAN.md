@@ -88,7 +88,8 @@ Add:
 
 - The deployed API currently returns credentialed CORS headers for the Vercel frontend.
 - Normal web API requests now share a single refresh request when access-token expiry causes concurrent 401 responses.
-- A failed web refresh now clears the in-memory auth state instead of leaving the app in a misleading partially authenticated state.
+- A failed web refresh now rejects the affected request without globally clearing auth state from an unrelated API failure; explicit session-expiry handling remains a verification item.
+- Auth initialization is guarded against a stale in-flight request overwriting a successful login during route transitions.
 - Cookie attributes and refresh behavior still require verification on physical iPhone Safari and Android Chrome.
 - Cross-site production cookies now default to `SameSite=None` when `ENVIRONMENT=production`; the Render override must be checked so it does not force `Lax` for the current Vercel/Render deployment.
 - A same-site custom API hostname remains the preferred long-term browser/PWA solution if a project domain is available.

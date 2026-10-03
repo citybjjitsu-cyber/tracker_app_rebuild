@@ -1055,17 +1055,14 @@ describe('axios interceptor', () => {
     expect(axios.default.post).toHaveBeenCalledTimes(1)
   })
 
-  it('notifies auth state when normal web refresh fails', async () => {
+  it('does not clear auth state when a normal web refresh fails', async () => {
     const axios = await import('axios')
-    const apiModule = await import('@/lib/api')
+    await import('@/lib/api')
     const responseHandler = axios.default.interceptors.response.use.mock.calls[0][1]
-    const onExpired = vi.fn()
-    apiModule.setOnSessionExpired(onExpired)
     vi.mocked(axios.default.post).mockRejectedValue(new Error('refresh failed'))
 
     await expect(responseHandler({ response: { status: 401 }, config: { url: '/users/1', headers: {} } }))
       .rejects.toMatchObject({ response: { status: 401 } })
-    expect(onExpired).toHaveBeenCalledTimes(1)
   })
 })
 
