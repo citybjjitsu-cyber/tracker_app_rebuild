@@ -13,7 +13,7 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Add normal-web access-token refresh/retry handling with concurrent-request protection.
 - [x] Verify the reported phone and desktop retain login while navigating between web-app pages.
 - [x] Run the local backend/frontend test, lint, coverage, and production-build baseline.
-- [ ] Audit check-in and recovery flows on physical devices.
+- [ ] Complete Phase 5E deployed data integration recovery on physical devices.
 - [ ] Validate teacher schedule, attendance, feedback, and comments on physical devices.
 - [x] Add PWA manifest and install instructions.
 - [x] Add installable app icons and mobile web-app metadata.
@@ -82,12 +82,14 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Check-in schedule, student search, and attendance loading failures now show visible recovery states.
 - Intentional empty states remain distinct from network failures.
 
-## Phase 5D Verification Scope
+## Phase 5E Verification Scope
 
-- [ ] Run the mobile integration suite against the deployed frontend/API with the labelled test account.
-- [ ] Verify normalized weekly schedule loading and week navigation on iPhone Safari and Android Chrome.
-- [ ] Verify check-in success, duplicate retry behavior, and visible failure recovery on both devices.
-- [ ] Verify session refresh, logout, and session-expiry recovery after mobile navigation/backgrounding.
+- [ ] Capture a clean deployed iPhone baseline and record sanitized request outcomes.
+- [ ] Identify and classify the first failing shared data request.
+- [ ] Verify deployed API origin, CORS, cookies, CSRF, refresh, and service-worker freshness.
+- [ ] Verify portal, weekly schedule, attendance, search, feedback, and comments with labelled data.
+- [ ] Verify check-in Retry recovery and duplicate check-in behavior.
+- [ ] Repeat the complete data-flow matrix after deployment and update the evidence record.
 
 ## Deliberately Deferred
 

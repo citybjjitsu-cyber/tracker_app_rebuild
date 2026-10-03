@@ -56,6 +56,7 @@ export default function CheckInPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const attendanceRequestId = useRef(0);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [newMember, setNewMember] = useState({
     first_name: '',
@@ -115,7 +116,8 @@ export default function CheckInPage() {
     setIsClassesLoading(true);
     setClassesError(false);
     try {
-      setClasses(await classesApi.list());
+      const schedule = await classesApi.weekly();
+      setClasses(schedule.days.flatMap(day => day.classes));
     } catch (error) {
       setClasses([]);
       setClassesError(true);
@@ -131,22 +133,27 @@ export default function CheckInPage() {
     loadClasses();
   }, [loadClasses]);
 
-  useEffect(() => {
-    if (selectedUser) {
-      const fetchAttendance = async () => {
-        setAttendanceError(false);
-        try {
-          const attendance = await attendanceApi.getByUser(selectedUser.user_uuid);
-          setAttendanceRecords(attendance);
-          setAttendanceError(false);
-        } catch (error) {
-          setAttendanceError(true);
-          console.error('Error fetching attendance:', error);
-        }
-      };
-      fetchAttendance();
+  const loadAttendance = useCallback(async (userUuid: string) => {
+    const requestId = ++attendanceRequestId.current;
+    setAttendanceError(false);
+    try {
+      const attendance = await attendanceApi.getByUser(userUuid);
+      if (requestId === attendanceRequestId.current) {
+        setAttendanceRecords(attendance);
+      }
+    } catch (error) {
+      if (requestId === attendanceRequestId.current) {
+        setAttendanceRecords([]);
+        setAttendanceError(true);
+      }
+      console.error('Error fetching attendance:', error);
     }
-  }, [selectedUser]);
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (selectedUser) loadAttendance(selectedUser.user_uuid);
+  }, [loadAttendance, selectedUser]);
 
   useEffect(() => {
     if (selectedUser && sessionTimeLeft > 0) {
@@ -237,8 +244,7 @@ export default function CheckInPage() {
         pendingCheckIns.map(p => ({ class_id: p.classId, check_in_date: p.checkInDate }))
       );
       setPendingCheckIns([]);
-      const attendance = await attendanceApi.getByUser(selectedUser.user_uuid);
-      setAttendanceRecords(attendance);
+      await loadAttendance(selectedUser.user_uuid);
       setVerifySuccess(true);
       setTimeout(() => setVerifySuccess(false), 3000);
     } catch (error: unknown) {
@@ -289,8 +295,7 @@ export default function CheckInPage() {
     setIsFormLoading(true);
     try {
       await attendanceApi.cancel(attendanceId);
-      const attendance = await attendanceApi.getByUser(selectedUser!.user_uuid);
-      setAttendanceRecords(attendance);
+      await loadAttendance(selectedUser!.user_uuid);
     } catch (error) {
       console.error('Cancel error:', error);
     } finally {
@@ -571,7 +576,7 @@ export default function CheckInPage() {
     {attendanceError && selectedUser && (
       <RetryState
         message="Unable to load this student's attendance. Check the connection and try again."
-        onRetry={() => setSelectedUser({ ...selectedUser })}
+        onRetry={() => loadAttendance(selectedUser.user_uuid)}
       />
     )}
 

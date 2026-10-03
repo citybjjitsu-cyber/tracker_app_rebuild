@@ -180,12 +180,187 @@ Concurrent-write database constraints and offline queued writes remain deferred 
 - Preserve intentional empty states such as no classes today and no search results.
 - Keep server-backed operations online-only and avoid retrying non-idempotent writes automatically.
 
-### Phase 5D: Mobile API Integration Verification (Current)
+### Phase 5D: Mobile API Integration Verification (Local Coverage Complete; Deployed Gate Open)
 
 - Add browser-level mobile-width coverage for the normalized teacher schedule response.
 - Verify a schedule API failure produces a visible retry and a successful recovery.
 - Keep the test fixtures aligned with the bulk check-in response contract.
 - Maintain a production verification checklist for schedule, check-in, duplicate retry, and session flows without storing credentials.
+
+Local Playwright coverage is complete. The deployed-device gate remains open until the live HTTPS application is tested on a physical phone.
+
+### Phase 5E: Deployed Data Integration Recovery (Next)
+
+The physical-device review identified a release blocker: the application shell, authentication, PWA installation, logout, and offline warning work, but live portal, schedule, attendance, and other data requests do not consistently load. Resolve this before further native packaging or broad UI refinement.
+
+Observed findings that this phase must address:
+
+- The student portal structure renders, but dashboard, attendance, and related data do not load.
+- Portal and other pages show reload/connection error states even though authentication succeeds.
+- Classes are missing from their expected days in schedule views.
+- Feedback and comments render structurally, but cannot yet be validated with real data.
+- Check-in shows an attendance-loading error, and its Retry action does not recover.
+- General data loading is unreliable across more than one page, indicating a shared integration problem is likely.
+
+#### 5E.0 Execution order and scope control
+
+Perform this phase in the following order. Do not begin the layout phase, Capacitor work, or broad component refactoring while the shared data failure is unresolved.
+
+1. Capture evidence from one clean deployed iPhone session.
+2. Identify the first failing shared request and classify the failure.
+3. Verify deployment configuration and authentication transport.
+4. Verify endpoint availability, response contracts, and test data.
+5. Fix the smallest shared cause before making endpoint-specific changes.
+6. Repair endpoint-specific data or retry behavior only where evidence requires it.
+7. Deploy once, clear stale PWA state, and repeat the complete data-flow matrix.
+8. Update the plan, readiness checklist, progress log, and deployment record with the outcome.
+
+Keep each fix independently testable. If the investigation reveals separate backend, cookie, and UI defects, split them into separate implementation commits or follow-up phases rather than combining unrelated changes.
+
+#### 5E.1 Establish a clean deployed test session
+
+- Use the deployed HTTPS URL on the iPhone, not localhost.
+- Record the frontend deployment identifier, backend deployment identifier, iPhone model, iOS version, and Safari version.
+- Close existing tabs, clear the deployed site data, and unregister the installed service worker once before taking baseline measurements.
+- Log in with the labelled test account and confirm that `/auth/me` succeeds before testing page-specific data.
+- Capture pass/fail outcomes and status categories for `/auth/me`, dashboard statistics, attendance, `/classes/`, `/classes/weekly`, student search, feedback, and comments.
+- Record only route names, status categories, timestamps, deployment versions, and sanitized error text; never record credentials, tokens, PINs, or student data.
+
+The first clean run is diagnostic, not a pass/fail release sign-off. Preserve enough evidence to compare the result after each fix.
+
+#### 5E.2 Classify the first failing request
+
+Use the browser network evidence and backend logs to classify the first failure before changing code:
+
+- **No request appears:** inspect the frontend API base URL, route gating, client-side effect conditions, and stale service-worker bundle.
+- **`401` or `403`:** inspect cookie presence, `withCredentials`, secure/SameSite attributes, refresh behavior, CSRF requirements, token expiry, and role authorization.
+- **CORS or preflight failure:** inspect the exact deployed frontend origin, allowed origins, allowed headers, credential support, and HTTPS scheme.
+- **`404`:** compare the deployed frontend route with the deployed backend route, including trailing slashes and the new weekly schedule path.
+- **`422`:** compare query parameters, request bodies, and date formats with the current Pydantic/API contract.
+- **`5xx`:** inspect backend logs, database connectivity, missing seed data, migrations, and the specific request correlation ID.
+- **`200` with empty or malformed data:** inspect response shape, active/current filters, day-name normalization, date/time zones, and client mapping.
+- **Correct response but broken screen:** inspect client state transitions, rendering conditions, stale state, and error handling separately from the API.
+
+Do not infer a backend problem from a generic UI warning alone; confirm the request and response first.
+
+#### 5E.3 Verify deployment configuration and authentication transport
+
+- Confirm the deployed frontend API base URL points to the intended backend.
+- Confirm the production frontend origin is allowed by backend CORS configuration.
+- Confirm credentialed requests, secure cookies, SameSite settings, CSRF handling, and refresh behavior work across the deployed origins.
+- Confirm the deployed frontend and backend versions are compatible with the current schedule and attendance response contracts.
+- Confirm the backend is serving the expected version and that the frontend bundle references the expected API base URL.
+- Confirm a refresh after access-token expiry either succeeds through the refresh flow or produces one clear session-expired state without repeated requests.
+- Confirm the service worker is serving the current static bundle after deployment; clear the installed PWA site data again if the bundle version is stale.
+
+If all data endpoints fail in the same way, fix this section's shared configuration/authentication cause first. Do not add individual Retry buttons as a substitute for fixing a broken session or API origin.
+
+#### 5E.4 Verify endpoint contracts and labelled data
+
+After shared transport succeeds, validate each endpoint in dependency order:
+
+1. **Identity:** `/auth/me` returns the expected test user and roles.
+2. **Portal core:** dashboard statistics, attendance history, and attendance trend return valid data.
+3. **Schedule:** `/classes/weekly` returns seven day buckets, correct dates, expected classes, and stable `scheduled_date` values.
+4. **Check-in attendance:** the selected user's attendance request returns a valid list, including an empty list when no records exist.
+5. **Student search:** search returns the expected labelled test user and distinguishes no results from a failed request.
+6. **Feedback:** pending/history data loads or shows a truthful empty state when no test records exist.
+7. **Comments:** feed data loads or shows a truthful empty state when no test comments exist.
+
+For the missing-classes issue, compare the database record's active flag, day value, time value, effective date, and timezone with the normalized weekly response. Confirm that the backend, rather than each client, owns day/date grouping.
+
+#### 5E.5 Restore data flows and repair retry behavior
+
+- Fix the smallest root cause identified by the network and deployment evidence.
+- Verify student portal statistics, attendance history, feedback, and comments load with labelled test data.
+- Verify the weekly schedule populates the correct classes under each day.
+- Verify check-in attendance loads, Retry makes a new request for the same user, clears the prior error state, and displays the recovered result.
+- Verify Retry does not use stale user/class state, trigger an infinite loop, or submit a write operation.
+- Verify successful check-in works, and a repeated check-in returns the existing record without duplication.
+- Verify temporary network failure, expired session, empty data, and server failure produce distinct user-facing states.
+- Add or update automated coverage for any discovered regression before closing the phase.
+
+#### 5E.6 Deployment and recheck sequence
+
+After implementation:
+
+1. Run backend tests, frontend tests, lint, build, and mobile Playwright coverage.
+2. Deploy the smallest complete fix set.
+3. Confirm the deployed frontend and backend versions.
+4. Clear the iPhone's installed PWA/site data only if needed to remove an old service-worker bundle.
+5. Repeat identity, portal, schedule, attendance, search, feedback, and comments checks.
+6. Repeat the failed-attendance Retry scenario.
+7. Repeat the duplicate check-in scenario with the labelled test record.
+8. Record evidence and close only the checklist items directly observed.
+
+#### 5E.7 Exit criteria
+
+- All required deployed data requests return expected status codes and response shapes.
+- The iPhone can load portal, schedule, attendance, feedback, and comments data.
+- Check-in Retry recovers from a temporary failure.
+- Duplicate check-ins remain non-retryable and do not create duplicate records.
+- The deployed-device verification checklist is updated with evidence and the remaining risk is zero or explicitly accepted.
+
+### Phase 5F: Mobile Navigation and Safe-Area Layout
+
+Begin only after Phase 5E data flows are healthy. This phase addresses the physical-device layout findings without changing the API contract.
+
+Observed layout issues to resolve:
+
+- The check-in page has no hamburger/sidebar control for reaching other permitted pages.
+- The top navigation/tab control collides with the date and is effectively unselectable.
+- The offline warning is partly hidden beneath the phone's top/status area.
+- The header and top controls do not reserve enough vertical space on a narrow iPhone viewport.
+
+#### 5F.1 Audit current route and role behavior
+
+- List the pages each role is allowed to reach from check-in: student, teacher, admin, and tablet/kiosk.
+- Decide whether check-in should use the existing full Sidebar, a smaller mobile navigation drawer, or a dedicated role-aware mobile menu.
+- Keep kiosk routes isolated from staff/student navigation and do not expose dashboard links in the kiosk flow.
+- Confirm the navigation behavior for authenticated and unauthenticated check-in states before editing shared layout code.
+
+#### 5F.2 Establish one mobile header contract
+
+- Create one mobile header region with a predictable height and stacking order.
+- Reserve separate slots for menu/back control, page title, date/context, and optional actions.
+- Give every interactive control a minimum touch target of approximately 44px.
+- Prevent date text and tabs from sharing the same horizontal space at 375px.
+- Avoid absolute positioning for controls whose text can grow or wrap.
+
+#### 5F.3 Apply safe-area and banner spacing
+
+- Add top padding based on `env(safe-area-inset-top)` for installed iOS PWA mode and Safari.
+- Ensure the header's normal flow height includes the safe-area inset rather than overlaying content.
+- Anchor offline, Retry, and error banners below the header's layout boundary.
+- Verify banners remain readable when the iPhone status bar, notch, or Dynamic Island is present.
+- Confirm banners do not cover primary actions or prevent scrolling.
+
+#### 5F.4 Implement check-in navigation
+
+- Add the role-aware mobile menu or drawer to check-in.
+- Provide a visible close action, backdrop dismissal, Escape-key support where applicable, and accessible labels.
+- Preserve the existing back action where it is useful, but do not require users to discover it to reach other pages.
+- Close the menu after navigation and preserve the current session state.
+- Confirm that menu visibility does not alter kiosk security or expose kiosk staff tokens.
+
+#### 5F.5 Validate the layout in sequence
+
+1. Test the raw responsive browser view at 320px, 375px, 390px, and 430px widths.
+2. Test Safari in portrait with the browser chrome visible.
+3. Test the installed PWA in standalone mode.
+4. Test with the offline banner visible.
+5. Test with a long error message and a long class/date label.
+6. Test keyboard focus, screen-reader labels, and touch target reachability.
+7. Test portal, teacher, and check-in navigation for each permitted role.
+8. Repeat the same flows after rotating the phone and after reopening the PWA.
+
+#### 5F Exit criteria
+
+- The check-in navigation control is visible, reachable, and does not collide with the date or header.
+- Offline and error messages are fully visible below the safe-area inset.
+- No horizontal overflow occurs at the smallest supported phone width.
+- Portal, teacher, and check-in navigation remains role-appropriate.
+- The same physical-device smoke flows pass after the layout changes.
 
 ## Phase 6: Capacitor App Wrapper
 

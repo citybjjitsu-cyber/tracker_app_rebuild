@@ -8,7 +8,7 @@ This file is a historical implementation log. The current operational facts are:
 - GitHub Actions tests run on pushes and pull requests. Deployment is manually dispatched with a selected environment; it is not triggered automatically by every push to `main`.
 - Render startup runs Alembic migrations. Application startup initializes rank tiers and backfills rank-tier links, but does not seed the complete demo dataset automatically.
 - Kiosk staff tokens are memory-only. The kiosk idle timeout is configurable through `KIOSK_IDLE_MINUTES` and is currently 240 minutes in Render; access-token refresh is supported.
-- The current mobile work is responsive web preparation, not yet a PWA or native app. The teacher schedule foundation and focused tests are complete; physical-device validation remains pending.
+- The current mobile work is an installable Next.js PWA with a static shell and online-only authenticated data. Phase 5E deployed data integration recovery is active; Capacitor packaging remains deferred.
 
 See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_phases.md` for current plans and operating procedures.
 
@@ -764,3 +764,10 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` â€
 - Updated E2E bulk check-in fixtures to match the `created`/`already_present`/`errors` response contract.
 - Local Phase 5D mobile integration coverage passed: 2 Playwright tests.
 - Deployment-device verification remains an explicit checklist item and requires the labelled production test account.
+
+## RECENT UPDATES (October 4, 2026) - Phase 5E Data Integration Recovery
+
+- Updated check-in to consume the normalized `/classes/weekly` response instead of reimplementing schedule grouping from `/classes/`.
+- Made check-in attendance loading an explicit, race-safe retryable operation so a retry starts a new request without relying on selected-user state replacement.
+- Made student portal data requests settle independently so one failed dashboard, trend, attendance, or feedback request does not erase successful results from the others.
+- Deployed-device evidence collection and production root-cause verification remain outstanding; no live pass is claimed by these local changes.
