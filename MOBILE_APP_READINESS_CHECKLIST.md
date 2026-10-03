@@ -10,6 +10,7 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Implement responsive teacher schedule layout and week navigation.
 - [x] Add automated tests for teacher schedule normalization and week calculations.
 - [x] Audit student portal layouts at representative iPhone and Android browser widths.
+- [x] Add normal-web access-token refresh/retry handling with concurrent-request protection.
 - [ ] Audit check-in and recovery flows on physical devices.
 - [ ] Validate teacher schedule, attendance, feedback, and comments on physical devices.
 - [ ] Add PWA manifest and install instructions.
@@ -23,6 +24,7 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [ ] Back up the production database before API, authentication, or schema changes.
 - [ ] Record the Vercel and Render deployment versions before each release.
 - [ ] Confirm the previous deployment can be restored.
+- [ ] Verify production `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None` for the cross-site Vercel/Render deployment.
 
 ## Required Smoke Tests
 
