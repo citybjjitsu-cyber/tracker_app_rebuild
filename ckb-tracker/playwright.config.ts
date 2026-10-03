@@ -19,8 +19,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'ALLOWED_HOSTS=* uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000',
+      command: 'uv run --no-sync uvicorn app.main:app --host 127.0.0.1 --port 8000',
       cwd: '../backend',
+      env: { ALLOWED_HOSTS: '*' },
       url: BACKEND_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120000,

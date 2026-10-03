@@ -8,6 +8,7 @@ The current product is a responsive Next.js web application. It is not yet a PWA
 - Capacitor, iOS, and Android projects have not been added.
 - Offline writes, push notifications, native secure storage, and native device integrations remain future work.
 - The current mobile implementation work includes the responsive teacher schedule redesign.
+- The student portal now has a focused mobile resilience pass with narrow-viewport coverage and visible retry states.
 - Physical-device validation on iPhone and Android is still pending.
 
 ### Completed Mobile Foundation
@@ -52,6 +53,18 @@ Keep the kiosk as a separate shared-device experience rather than mixing it into
 - Add reliable loading, empty, retry, and offline states.
 - Ensure mobile pages never silently hide API failures.
 - Add physical-device testing for Safari and Chrome.
+
+### Phase 2A: Student Portal Audit (Completed)
+
+The first route-level mobile slice is complete:
+
+- Student portal layout was validated at a narrow mobile viewport and a desktop regression viewport.
+- Portal tabs, charts, attendance history, feedback, and comments retain usable narrow-screen layouts.
+- Long comment content is allowed to wrap without creating page-level overflow.
+- Portal data, comments, and feedback failures now expose visible user-facing states and retry or recovery actions.
+- Playwright coverage was added for mobile overflow, tab navigation, and portal data retry behavior.
+
+This phase used browser viewport validation only. Real iPhone and Android device testing remains a separate phase.
 
 ## Phase 3: Authentication Hardening
 

@@ -675,3 +675,11 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - ✅ Added focused tests in `ckb-tracker/src/__tests__/teacher-schedule.test.ts`.
 - ✅ Documented the current mobile roadmap and readiness checklist.
 - ⏳ Physical iPhone/Android testing, PWA installability, offline behavior, and native Capacitor packaging remain outstanding.
+
+### Student Portal Mobile Audit
+
+- ✅ Completed a focused responsive pass for the student portal at a narrow mobile viewport with desktop regression coverage.
+- ✅ Added visible loading, data failure, comments failure, feedback failure, and retry/recovery states.
+- ✅ Hardened comment content wrapping and responsive chart sizing to avoid narrow-screen overflow.
+- ✅ Added Playwright coverage for mobile overflow, tab navigation, and portal data retry behavior.
+- ⏳ Real-device Safari/Chrome validation, PWA installability, offline behavior, and native Capacitor packaging remain outstanding.

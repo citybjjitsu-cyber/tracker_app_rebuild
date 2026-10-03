@@ -9,7 +9,7 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Extract teacher schedule date and day normalization helpers for focused testing.
 - [x] Implement responsive teacher schedule layout and week navigation.
 - [x] Add automated tests for teacher schedule normalization and week calculations.
-- [ ] Audit student portal layouts at iPhone and Android widths.
+- [x] Audit student portal layouts at representative iPhone and Android browser widths.
 - [ ] Audit check-in and recovery flows on physical devices.
 - [ ] Validate teacher schedule, attendance, feedback, and comments on physical devices.
 - [ ] Add PWA manifest and install instructions.

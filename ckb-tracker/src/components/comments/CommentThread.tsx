@@ -38,7 +38,7 @@ export function CommentThread({ replies, currentUser, onReply, isReplyingTo, dep
               size="sm"
             />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <span className="font-medium text-sm text-slate-900 dark:text-white">
                   {reply.author
                     ? `${reply.author.first_name} ${reply.author.last_name}`
@@ -48,7 +48,7 @@ export function CommentThread({ replies, currentUser, onReply, isReplyingTo, dep
                   {formatDistanceToNow(new Date(reply.created_at))} ago
                 </span>
               </div>
-              <p className="mt-1 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{reply.content}</p>
+              <p className="mt-1 break-words text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{reply.content}</p>
               <div className="mt-1">
                 {depth < maxDepth - 1 && (
                   <Button

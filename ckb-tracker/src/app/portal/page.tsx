@@ -1,20 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Badge, RankBadge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { StatsCard } from '@/components/ui/StatsCard';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { useChartColors } from '@/hooks/useChartColors';
-import { dashboardApi, feedbackApi, attendanceApi, usersApi, commentsApi } from '@/lib/api';
-import { formatDate, getDaysAgo, formatRankDisplay } from '@/lib/utils';
-import type { DashboardStats, AttendanceTrend, ClassFeedback, Attendance, User, Comment } from '@/types';
+import { dashboardApi, feedbackApi, attendanceApi, commentsApi } from '@/lib/api';
+import { formatDate } from '@/lib/utils';
+import type { DashboardStats, AttendanceTrend, ClassFeedback, Attendance, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { LogOut, Shield, Lock, Mail, AlertCircle } from 'lucide-react';
@@ -33,7 +29,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 export default function PortalPage() {
   const { user, logout, login, isLoading: authLoading } = useAuth();
-  const router = useRouter();
   const { colors, chartBaseOptions, isDark } = useChartColors();
   const [activeTab, setActiveTab] = useState<'analytics' | 'feedback' | 'comments'>('analytics');
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -43,46 +38,45 @@ export default function PortalPage() {
   const [pendingFeedback, setPendingFeedback] = useState<{ attendance: Attendance; className: string }[]>([]);
   const [feedbackForm, setFeedbackForm] = useState<{ rating: string; comment: string }>({ rating: '', comment: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [teachers, setTeachers] = useState<Record<string, string>>({});
-  const [isLoaded, setIsLoaded] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [dataError, setDataError] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentsError, setCommentsError] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'comments') loadComments();
   }, [activeTab]);
 
   useEffect(() => {
-    if (user) { loadData(); loadTeachers(); }
+    if (user) loadData();
   }, [user]);
 
-  useEffect(() => { loadData(); loadTeachers(); }, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleLogout = () => { if (confirm('Are you sure you want to log out?')) logout(); };
-
-  async function loadTeachers() {
-    try {
-      const allUsers = await usersApi.list();
-      const teacherMap: Record<string, string> = {};
-      allUsers.forEach(u => { if (u.user_uuid && u.first_name) teacherMap[u.user_uuid] = `${u.first_name} ${u.last_name || ''}`.trim(); });
-      setTeachers(teacherMap);
-    } catch (error) { console.error('Error loading teachers:', error); }
-  }
 
   async function loadComments() {
     if (!user) return;
     setIsLoadingComments(true);
+    setCommentsError(false);
     try {
       const data = await commentsApi.getFeed(user.user_uuid, 'student');
       setComments(data);
-    } catch (error) { console.error('Error loading comments:', error); }
+    } catch (error) {
+      setCommentsError(true);
+      console.error('Error loading comments:', error);
+    }
     finally { setIsLoadingComments(false); }
   }
 
   async function loadData() {
     if (!user) return;
+    setIsDataLoading(true);
+    setDataError(false);
     try {
       const [statsData, trendData, attendanceData, feedbackData] = await Promise.all([
         dashboardApi.getStats(user.user_uuid),
@@ -105,18 +99,25 @@ export default function PortalPage() {
         })
         .map(a => ({ attendance: a, className: a.class_schedule?.class_name || 'Class' }));
       setPendingFeedback(pending);
-    } catch (error) { console.error('Error loading data:', error); }
-    finally { setIsLoaded(true); }
+    } catch (error) {
+      setDataError(true);
+      console.error('Error loading data:', error);
+    }
+    finally { setIsDataLoading(false); }
   };
 
   const handleSubmitFeedback = async (attendanceId: number) => {
     if (!feedbackForm.rating) return;
     setIsSubmitting(true);
+    setFeedbackError(false);
     try {
       await feedbackApi.submit(attendanceId, feedbackForm.rating, feedbackForm.comment);
       setFeedbackForm({ rating: '', comment: '' });
       loadData();
-    } catch (error) { console.error('Error submitting feedback:', error); }
+    } catch (error) {
+      setFeedbackError(true);
+      console.error('Error submitting feedback:', error);
+    }
     finally { setIsSubmitting(false); }
   };
 
@@ -124,7 +125,7 @@ export default function PortalPage() {
     e.preventDefault();
     setLoginError('');
     try { await login(loginForm.email, loginForm.password); }
-    catch (error) { setLoginError('Invalid email or password'); }
+    catch { setLoginError('Invalid email or password'); }
   };
 
   if (authLoading) return <div className="p-8 text-center text-on-surface-variant">Loading...</div>;
@@ -201,6 +202,7 @@ export default function PortalPage() {
 
   const chartOptions = {
     ...chartBaseOptions,
+    maintainAspectRatio: false,
     plugins: { ...chartBaseOptions.plugins, legend: { display: false } },
     scales: {
       x: { ...chartBaseOptions.scales.x, ticks: { color: colors.textMuted }, grid: { display: false } },
@@ -209,7 +211,7 @@ export default function PortalPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-0">
+    <div className="max-w-6xl min-w-0 mx-auto px-4 sm:px-0">
       <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6 mb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/10 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -259,6 +261,21 @@ export default function PortalPage() {
         ))}
       </div>
 
+      {isDataLoading && (
+        <div className="mb-6 rounded-lg border border-outline-variant/20 bg-surface-container-low p-4 text-sm text-on-surface-variant" role="status">
+          Loading your portal data...
+        </div>
+      )}
+
+      {dataError && (
+        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-error/30 bg-error-container/20 p-4 text-sm text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+          <span>Unable to load your portal data. Check your connection and try again.</span>
+          <Button variant="outline" size="sm" onClick={loadData} disabled={isDataLoading}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       {activeTab === 'analytics' && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
@@ -306,8 +323,8 @@ export default function PortalPage() {
 
           <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6 mb-6">
             <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-4">Attendance Trend (Last 14 Days)</h2>
-            <div className="relative w-full h-56 sm:h-72">
-              <Bar data={chartData} options={chartOptions} />
+             <div className="relative w-full min-w-0 h-56 sm:h-72">
+               <Bar data={chartData} options={chartOptions} />
             </div>
           </div>
 
@@ -346,6 +363,12 @@ export default function PortalPage() {
           <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6">
             <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-1">Submit Feedback</h2>
             <p className="text-sm text-on-surface-variant mb-4">Feedback must be submitted within 7 days of attending</p>
+            {feedbackError && (
+              <div className="mb-4 flex flex-col gap-3 rounded-lg border border-error/30 bg-error-container/20 p-3 text-sm text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+                <span>Feedback could not be submitted. Please try again.</span>
+                <Button variant="outline" size="sm" onClick={() => setFeedbackError(false)}>Dismiss</Button>
+              </div>
+            )}
             {pendingFeedback.length === 0 ? (
               <p className="text-on-surface-variant text-center py-4">No classes awaiting feedback</p>
             ) : (
@@ -410,6 +433,12 @@ export default function PortalPage() {
           <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6">
             <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-1">Comments</h2>
             <p className="text-sm text-on-surface-variant mb-4">Feedback and conversations from teachers and admins</p>
+            {commentsError && (
+              <div className="mb-4 flex flex-col gap-3 rounded-lg border border-error/30 bg-error-container/20 p-3 text-sm text-on-error-container sm:flex-row sm:items-center sm:justify-between" role="alert">
+                <span>Comments could not be loaded. Please try again.</span>
+                <Button variant="outline" size="sm" onClick={loadComments} disabled={isLoadingComments}>Retry</Button>
+              </div>
+            )}
             <CommentFeed
               comments={comments}
               currentUser={user}
