@@ -78,16 +78,35 @@ export default function PortalPage() {
     setIsDataLoading(true);
     setDataError(false);
     try {
-      const [statsData, trendData, attendanceData, feedbackData] = await Promise.all([
+      const results = await Promise.allSettled([
         dashboardApi.getStats(user.user_uuid),
         dashboardApi.getAttendanceTrend(user.user_uuid, 90),
         attendanceApi.getByUser(user.user_uuid),
         feedbackApi.getByUser(user.user_uuid),
       ]);
-      setStats(statsData);
-      setAttendanceTrend(trendData);
-      setRecentAttendance(attendanceData.slice(0, 20));
-      setFeedbackHistory(feedbackData);
+
+      const [statsResult, trendResult, attendanceResult, feedbackResult] = results;
+      const hasFailure = results.some(result => result.status === 'rejected');
+      setDataError(hasFailure);
+
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+      if (trendResult.status === 'fulfilled') setAttendanceTrend(trendResult.value);
+      if (attendanceResult.status === 'fulfilled') {
+        setRecentAttendance(attendanceResult.value.slice(0, 20));
+      }
+      if (feedbackResult.status === 'fulfilled') setFeedbackHistory(feedbackResult.value);
+
+      results.forEach(result => {
+        if (result.status === 'rejected') console.error('Error loading portal data:', result.reason);
+      });
+
+      if (attendanceResult.status !== 'fulfilled' || feedbackResult.status !== 'fulfilled') {
+        setPendingFeedback([]);
+        return;
+      }
+
+      const attendanceData = attendanceResult.value;
+      const feedbackData = feedbackResult.value;
 
       const pending = attendanceData
         .filter(a => {
@@ -99,9 +118,6 @@ export default function PortalPage() {
         })
         .map(a => ({ attendance: a, className: a.class_schedule?.class_name || 'Class' }));
       setPendingFeedback(pending);
-    } catch (error) {
-      setDataError(true);
-      console.error('Error loading data:', error);
     }
     finally { setIsDataLoading(false); }
   };
