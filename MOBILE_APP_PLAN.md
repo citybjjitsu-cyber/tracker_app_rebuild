@@ -1,5 +1,29 @@
 # CKB Tracker Mobile App Plan
 
+## Current Project Status
+
+The current product is a responsive Next.js web application. It is not yet a PWA or a native Android/iOS application:
+
+- No `manifest.webmanifest` or service worker has been added.
+- Capacitor, iOS, and Android projects have not been added.
+- Offline writes, push notifications, native secure storage, and native device integrations remain future work.
+- The current mobile implementation work includes the responsive teacher schedule redesign.
+- The student portal now has a focused mobile resilience pass with narrow-viewport coverage and visible retry states.
+- Physical-device validation on iPhone and Android is still pending.
+
+### Completed Mobile Foundation
+
+The teacher schedule now has a shared, testable schedule layer in `ckb-tracker/src/lib/teacherSchedule.ts` and uses it from `ckb-tracker/src/app/teacher/page.tsx`:
+
+- Monday-first weekly date calculation.
+- Normalization of full day names and common abbreviations.
+- Previous/next week navigation and date serialization.
+- Two-column mobile schedule layout and seven-column desktop layout.
+- Touch-friendly class selection while preserving the existing attendance flow.
+- Focused Vitest coverage in `ckb-tracker/src/__tests__/teacher-schedule.test.ts`.
+
+This work is behavior-preserving preparation. It does not add installability, offline behavior, native packaging, or changes to authentication/API contracts.
+
 ## Recommended Direction
 
 Build the existing Next.js app as a mobile-first Progressive Web App (PWA) first, then package it with Capacitor for the Apple App Store and Google Play if store distribution is required.
@@ -29,6 +53,18 @@ Keep the kiosk as a separate shared-device experience rather than mixing it into
 - Add reliable loading, empty, retry, and offline states.
 - Ensure mobile pages never silently hide API failures.
 - Add physical-device testing for Safari and Chrome.
+
+### Phase 2A: Student Portal Audit (Completed)
+
+The first route-level mobile slice is complete:
+
+- Student portal layout was validated at a narrow mobile viewport and a desktop regression viewport.
+- Portal tabs, charts, attendance history, feedback, and comments retain usable narrow-screen layouts.
+- Long comment content is allowed to wrap without creating page-level overflow.
+- Portal data, comments, and feedback failures now expose visible user-facing states and retry or recovery actions.
+- Playwright coverage was added for mobile overflow, tab navigation, and portal data retry behavior.
+
+This phase used browser viewport validation only. Real iPhone and Android device testing remains a separate phase.
 
 ## Phase 3: Authentication Hardening
 

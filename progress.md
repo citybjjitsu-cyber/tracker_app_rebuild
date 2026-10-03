@@ -1,5 +1,17 @@
 # CKB Tracker Progress Report
 
+## Current State
+
+This file is a historical implementation log. The current operational facts are:
+
+- The live application uses Vercel for the Next.js frontend and the Render service `ckb-tracker-api-dev` with Render PostgreSQL for the backend.
+- GitHub Actions tests run on pushes and pull requests. Deployment is manually dispatched with a selected environment; it is not triggered automatically by every push to `main`.
+- Render startup runs Alembic migrations. Application startup initializes rank tiers and backfills rank-tier links, but does not seed the complete demo dataset automatically.
+- Kiosk staff tokens are memory-only. The kiosk idle timeout is configurable through `KIOSK_IDLE_MINUTES` and is currently 240 minutes in Render; access-token refresh is supported.
+- The current mobile work is responsive web preparation, not yet a PWA or native app. The teacher schedule foundation and focused tests are complete; physical-device validation remains pending.
+
+See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_phases.md` for current plans and operating procedures.
+
 ## Project Overview
 Martial Arts Attendance Tracking System - A full-stack application for managing student attendance, class scheduling, curriculum/lesson management, teacher assignments, and providing analytics dashboards for students, teachers, and administrators.
 
@@ -140,7 +152,7 @@ Martial Arts Attendance Tracking System - A full-stack application for managing 
 ### Security Model
 
 - Staff JWT stored in memory (not localStorage) — lost on page close
-- 60s idle timer → auto-lock, clears staff token
+- Configurable idle timer → auto-lock, clears staff token; current Render value is 240 minutes
 - All kiosk API calls require `Authorization: Bearer <staff_token>`
 - Staff login rate-limited (existing `slowapi` on `/auth/login`)
 - Future: news blog on locked screen via `newsApi.list(true)`
@@ -337,7 +349,7 @@ Placeholder for additional features discovered during testing and deployment.
 - ✅ `backend/app/routers/kiosk.py` — Added `POST /kiosk/unlock` (staff email/password, rate-limited) and `POST /kiosk/lock` (revokes tokens)
 - ✅ `backend/app/schemas.py` — Added `KioskUnlockResponse` schema
 - ✅ `backend/app/routers/kiosk.py` — Protected `verify-pin-for-user`, `verify-user-pin` with `Depends(get_current_user)`
-- ✅ `ckb-tracker/src/app/kiosk/KioskContext.tsx` — Added `isUnlocked`, `unlockedBy`, `unlockKiosk`, `lockKiosk` state; 60s idle timer locks kiosk
+- ✅ `ckb-tracker/src/app/kiosk/KioskContext.tsx` — Added `isUnlocked`, `unlockedBy`, `unlockKiosk`, `lockKiosk` state; the original hardcoded idle timer was later replaced with the configurable Render value (currently 240 minutes)
 - ✅ `ckb-tracker/src/app/kiosk/KioskStaffLogin.tsx` — New: inline email/password form for staff unlock
 - ✅ `ckb-tracker/src/app/kiosk/KioskLocked.tsx` — New: locked state with CKB branding + "Staff Sign In" + news section
 - ✅ `ckb-tracker/src/app/page.tsx` — Replaced with kiosk landing page (locked state → KioskLocked, unlocked → welcome/search/PIN flow with lock button)
@@ -437,15 +449,15 @@ Placeholder for additional features discovered during testing and deployment.
 - ✅ Render Blueprint (`backend/render.yaml`) with web service + PostgreSQL database
 - ✅ Post-deployment: triggered deploy hook to verify CI pipeline
 - ✅ Render Blueprint branch updated from `feature/repo-cleanup` to `main`
-- ✅ Deploy hook URL captured: `https://api.render.com/deploy/srv-d8ueescm0tmc73a4qr10?key=QOENIgDPEYQ`
+- ✅ Render deploy hook configured and stored only as the GitHub Actions secret `RENDER_DEPLOY_HOOK_DEV`
 
 ### CI/CD — GitHub Actions ✅ Configured
 - ✅ `.github/workflows/test.yml` — broadened to run on all branches (not just `main`)
-- ✅ `.github/workflows/deploy.yml` — new: tests + deploy on push to `main` (Vercel + Render)
+- ✅ `.github/workflows/deploy.yml` — tests + manually dispatched environment-selected deploy (Vercel + Render)
 - ✅ 4 GitHub secrets set: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RENDER_DEPLOY_HOOK_DEV`
 
 ### Documentation
-- ✅ `deploy_steps.md` — step-by-step deployment guide for developers (local dev → feature branch → CI → PR → merge → deploy)
+- ✅ Deployment procedure documented in `deployment_phases.md` (local dev → feature branch → CI → PR → manual deploy)
 
 ### Database
 - Render PostgreSQL connected and tables created via SQLAlchemy `create_all`
@@ -653,3 +665,21 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - ✅ Lint: 0 errors
 
 *Last Updated: July 28, 2026*
+
+## RECENT UPDATES — Mobile Foundation
+
+### Teacher Schedule Mobile Preparation
+
+- ✅ Extracted day normalization, Monday-first week calculation, and date serialization into `ckb-tracker/src/lib/teacherSchedule.ts`.
+- ✅ Updated `ckb-tracker/src/app/teacher/page.tsx` to use the shared schedule helpers without changing the existing attendance behavior.
+- ✅ Added focused tests in `ckb-tracker/src/__tests__/teacher-schedule.test.ts`.
+- ✅ Documented the current mobile roadmap and readiness checklist.
+- ⏳ Physical iPhone/Android testing, PWA installability, offline behavior, and native Capacitor packaging remain outstanding.
+
+### Student Portal Mobile Audit
+
+- ✅ Completed a focused responsive pass for the student portal at a narrow mobile viewport with desktop regression coverage.
+- ✅ Added visible loading, data failure, comments failure, feedback failure, and retry/recovery states.
+- ✅ Hardened comment content wrapping and responsive chart sizing to avoid narrow-screen overflow.
+- ✅ Added Playwright coverage for mobile overflow, tab navigation, and portal data retry behavior.
+- ⏳ Real-device Safari/Chrome validation, PWA installability, offline behavior, and native Capacitor packaging remain outstanding.

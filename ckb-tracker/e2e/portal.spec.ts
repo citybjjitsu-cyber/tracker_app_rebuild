@@ -50,4 +50,39 @@ test.describe('Student Portal', () => {
       await expect(page.getByText(/comments/i).first()).toBeVisible({ timeout: 3000 })
     }
   })
+
+  test('portal remains usable at a narrow mobile width', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.reload()
+    await waitForPageReady(page)
+
+    const dimensions = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+    }))
+    expect(dimensions.documentWidth).toBeLessThanOrEqual(dimensions.viewportWidth)
+    await expect(page.getByRole('button', { name: /my analytics/i })).toBeVisible()
+
+    await page.getByRole('button', { name: /comments/i }).click()
+    await expect(page.getByRole('heading', { name: 'Comments' })).toBeVisible()
+  })
+})
+
+test('portal exposes a retry action when data loading fails', async ({ page }) => {
+  await setupStudentPortalTest(page)
+  let statsRequests = 0
+  await page.route('**/dashboard/stats/*', async route => {
+    statsRequests += 1
+    if (statsRequests === 1) {
+      await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'Unavailable' }) })
+      return
+    }
+    await route.continue()
+  })
+
+  await page.goto('/portal')
+  const dataAlert = page.locator('[role="alert"]').filter({ hasText: /unable to load your portal data/i })
+  await expect(dataAlert).toBeVisible()
+  await dataAlert.getByRole('button', { name: 'Retry' }).click()
+  await expect.poll(() => statsRequests).toBeGreaterThan(1)
 })

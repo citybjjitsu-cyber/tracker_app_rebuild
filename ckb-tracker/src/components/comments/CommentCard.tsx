@@ -28,7 +28,7 @@ export function CommentCard({ comment, currentUser, onReply, isReplying, canRepl
           size="md"
         />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span className="font-semibold text-slate-900 dark:text-white">{authorName}</span>
             {comment.target_user && (
               <span className="text-slate-500 dark:text-slate-400 text-sm">
@@ -44,7 +44,7 @@ export function CommentCard({ comment, currentUser, onReply, isReplying, canRepl
               {comment.rating === 'thumbs_up' ? '👍' : '👎'}
             </span>
           )}
-          <p className="mt-2 text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{comment.content}</p>
+          <p className="mt-2 break-words text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{comment.content}</p>
           <div className="mt-2 flex items-center gap-4">
             {canReply && !isReplying && (
               <Button

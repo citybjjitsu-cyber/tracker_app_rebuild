@@ -1,8 +1,10 @@
 # CKB Tracker — Pre-Launch Rollout Plan
 
-**Goal:** Resolve all identified issues before limited user testing.
-**Deployment:** Vercel (frontend) + Render (backend). Each phase merged to `main` auto-deploys.
-**Process per phase:** Feature branch → implement → test locally → commit → push → PR → merge to main → verify on Vercel.
+**Goal:** Resolve identified issues before limited user testing.
+**Deployment:** Vercel (frontend) + Render (backend). Tests run on pushes and pull requests; deployment is manually started through the GitHub Actions `workflow_dispatch` workflow.
+**Process per phase:** Feature branch → implement → test locally or in the controlled live environment → commit → push → PR → merge → manually deploy → verify.
+
+**Current environment note:** The repository has one Render-backed environment represented by `ckb-tracker-api-dev.onrender.com`, no separate staging environment, and no active users. Use a dedicated test account and test data. Treat authentication, API, database, attendance, and service-worker changes as production-risk changes.
 
 ---
 
@@ -33,7 +35,7 @@
 | 2c | Fix error handling — `handleResetPassword` and `handleCreateNewUser` now show actual backend error details | `admin/page.tsx` | ✅ |
 | 2d | Add self-service `POST /auth/change-password` endpoint (old password + new password, complexity enforced) | `auth.py`, `schemas.py`, `api.ts` | ✅ |
 
-**Tests:** 128 backend ✅, 177 frontend ✅ (1 new test for `changePassword`)
+**Tests:** Run the repository commands rather than relying on historical test counts; current frontend tests include the teacher schedule helper tests.
 
 ---
 
@@ -47,7 +49,7 @@
 | 3b | Replace text link with styled "Staff Login" button | `KioskLocked.tsx` | ✅ |
 | 3c | Style both buttons with clear visual distinction (primary vs secondary) | `KioskLocked.tsx` | ✅ |
 
-**Tests:** 177 frontend ✅
+**Tests:** Run `npm run test` and the production build for verification.
 
 ---
 
@@ -60,7 +62,7 @@
 | 4b | Make home page news items clickable + "View All News" link | `KioskLocked.tsx` | ✅ |
 | 4c | Add `/news` to public routes in AppLayout | `AppLayout.tsx` | ✅ |
 
-**Tests:** 177 frontend ✅, frontend build ✅ (16 routes)
+**Tests:** Run frontend tests and build for verification; `/news` is now included in the route set.
 
 ---
 
@@ -76,7 +78,7 @@
 | 5e | Update rank dropdowns to show full display names with degrees | `admin/page.tsx` (edit + new user forms) | ✅ |
 | 5f | Update teacher attendance table rank display with degree | `teacher/page.tsx` | ✅ |
 
-**Tests:** 128 backend ✅, 177 frontend ✅, frontend build ✅
+**Tests:** Run backend tests, frontend tests, and the frontend build for verification.
 
 ---
 
@@ -105,11 +107,11 @@
 | 7d | Add "Show Inactive" filter toggle in admin User Admin tab | `admin/page.tsx` | ✅ |
 | 7e | Add `include_inactive` param to `list_users` endpoint | `users.py` | ✅ |
 
-**Tests:** 128 backend ✅, 177 frontend ✅, frontend build ✅
+**Tests:** Run backend tests, frontend tests, and the frontend build for verification.
 
 ---
 
-## Phase 8: Kiosk Session Persistence
+## Phase 8: Kiosk Session Persistence (Completed)
 **Branch:** `feature/kiosk-session`
 
 **Goal:** Fix kiosk so it stays authenticated and live on the "Find your name" screen for the full duration of a class block, without silent failures or unwanted idle locks.
@@ -117,8 +119,8 @@
 ### Why
 
 - Kiosk staff unlocks once to allow mat-side student check-ins for a class
-- Current idle timeout (60s) is too aggressive — a class is 30–60+ minutes
-- Current access token expires in 10 minutes with no auto-refresh — kiosk breaks silently after 10 min
+- The idle timeout is configurable and the current Render value is 240 minutes.
+- Access tokens expire in 10 minutes, with refresh handling available for the kiosk session.
 - The "Find your name" screen must stay visible and responsive the entire time
 - Kiosk is a shared public terminal, not a personal session — different auth model
 
@@ -132,11 +134,11 @@
 | # | Task | Files |
 |---|------|-------|
 | 8a | Make kiosk idle timeout configurable — add `KIOSK_IDLE_MINUTES` env var (default `240` = 4 hours) | `app/auth/config.py`, `app/routers/kiosk.py` |
-| 8b | Update `KioskContext.tsx` idle timer to use backend-configured value instead of hardcoded 60s | `KioskContext.tsx`, `app/kiosk/page.tsx` (fetch config on unlock) |
+| 8b | Configure the kiosk idle timer from the backend value instead of the former hardcoded 60s | `KioskContext.tsx`, `app/kiosk/page.tsx` |
 | 8c | Add auto-refresh interceptor for kiosk tokens — on 401, attempt silent refresh using httpOnly refresh cookie, retry the failed request | `lib/api.ts` |
 | 8d | On refresh failure (expired session), lock kiosk and redirect to home (same as explicit lock) | `KioskContext.tsx`, `lib/api.ts` |
 
-**Tests:** 128 backend ✅, 177 frontend ✅, frontend build ✅
+**Tests:** Run backend tests, frontend tests, build, and kiosk smoke tests after changes.
 
 **Commit:** `fix: kiosk session persistence with configurable idle timeout and token auto-refresh`
 
@@ -310,8 +312,9 @@
 | 6 | Phase 7 | `feature/user-deactivation` | ✅ Merged |
 | 7 | Phase 6 | `feature/teacher-view-redesign` | ✅ Merged |
 | 8 | Phase 8 | `feature/kiosk-session` | ✅ Merged |
-| 9 | Phase 9 | `feature/db-migrations` | ⏳ Pending |
-| 10 | Phase 10 | `feature/security-hardening` | ✅ In Progress |
+| 9 | Phase 9 | `feature/db-migrations` | ✅ Implemented |
+| 10 | Phase 10 | `feature/security-hardening` | ✅ Implemented |
+| 11 | Mobile foundation | `feature/mobile-app-foundation` | ✅ Teacher schedule foundation and tests |
 
 ---
 
@@ -325,3 +328,5 @@ After each phase is merged to `main`:
 - [ ] Changed features verified manually on Vercel preview
 - [ ] Backend tests pass (pytest, coverage ≥ 75%)
 - [ ] Frontend tests pass (vitest, thresholds met)
+
+For current mobile readiness and remaining PWA/native work, use `MOBILE_APP_PLAN.md` and `MOBILE_APP_READINESS_CHECKLIST.md`.
