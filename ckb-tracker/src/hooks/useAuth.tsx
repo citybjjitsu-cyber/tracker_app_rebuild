@@ -1,10 +1,9 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 import { useRouter } from 'next/navigation';
 import type { User, Role } from '@/types';
+import { apiUrl } from '@/lib/apiBase';
 
 interface AuthContextType {
   user: User | null;
@@ -41,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     const csrfToken = sessionStorage.getItem('csrf_token');
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
+      await fetch(apiUrl('/auth/logout'), {
         method: 'POST',
         headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
         credentials: 'include',
@@ -61,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutAll = async () => {
     const csrfToken = sessionStorage.getItem('csrf_token');
     try {
-      await fetch(`${API_BASE_URL}/auth/logout-all`, {
+      await fetch(apiUrl('/auth/logout-all'), {
         method: 'POST',
         headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
         credentials: 'include',
@@ -82,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestId = ++authRequestId.current;
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await fetch(apiUrl('/auth/me'), {
         method: 'GET',
         credentials: 'include',
       });
@@ -98,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        const refreshResponse = await fetch(apiUrl('/auth/refresh'), {
           method: 'POST',
           credentials: 'include',
         });
@@ -136,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestId = ++authRequestId.current;
     const endpoint = isTeacherLogin ? '/auth/teacher-login' : '/auth/login';
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(apiUrl(endpoint), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ThemeConfig } from '@/types';
+import { apiUrl } from '@/lib/apiBase';
 
 type Theme = 'light' | 'dark';
 
@@ -62,9 +63,18 @@ function applyThemeVars(config: ThemeConfig, isDark: boolean) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  // Keep server and first client render identical; browser preferences apply after hydration.
+  const [theme, setTheme] = useState<Theme>('dark');
   const [activeTheme, setActiveTheme] = useState<ThemeConfig | null>(null);
   const [activeThemeName, setActiveThemeName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initialTheme = getInitialTheme();
+    if (initialTheme !== 'dark') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTheme(initialTheme);
+    }
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -82,7 +92,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme, activeTheme]);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/themes/active`)
+    fetch(apiUrl('/themes/active'))
       .then(res => {
         if (!res.ok) throw new Error('No active theme');
         return res.json();

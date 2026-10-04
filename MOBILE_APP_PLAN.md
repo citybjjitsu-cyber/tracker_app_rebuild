@@ -255,6 +255,21 @@ Do not infer a backend problem from a generic UI warning alone; confirm the requ
 
 If all data endpoints fail in the same way, fix this section's shared configuration/authentication cause first. Do not add individual Retry buttons as a substitute for fixing a broken session or API origin.
 
+#### 5E.3.1 Same-origin browser transport remediation
+
+The deployed Vercel-to-Render browser flow currently returns `401` for `/auth/me`, `/auth/refresh`, and protected data requests while public dashboard responses succeed. This indicates that cross-site cookie transport is not reliable enough for the mobile app. Remediate it with a same-origin Vercel proxy before treating authentication as production-ready:
+
+- Keep `NEXT_PUBLIC_API_URL` as the Render backend target for the Vercel rewrite destination.
+- Add rewrites for every browser API route, including auth, attendance, classes, dashboard, users, roles, feedback, comments, themes, database, kiosk, uploads, and related resources.
+- Set `NEXT_PUBLIC_API_PROXY=true` in Vercel so the browser API client uses relative paths while Vercel forwards requests to Render.
+- Keep `withCredentials`/`credentials: 'include'` enabled for all cookie-authenticated requests.
+- Preserve `/auth/refresh` as the browser-visible path so the refresh cookie path remains valid.
+- Update the frontend CSP to allow same-origin API requests and the chosen font source.
+- After the proxy is deployed, change Render `COOKIE_SAMESITE` from `None` to `Lax`; keep `COOKIE_SECURE=True` and the existing JWT secret.
+- Do not cache authenticated API responses or service-worker data.
+
+Verify the remediation in a fresh browser session: login returns cookies, `/auth/me` succeeds after reload, refresh succeeds, attendance/admin requests are authenticated, logout clears the session, and the same flow works in the installed iPhone PWA.
+
 #### 5E.4 Verify endpoint contracts and labelled data
 
 After shared transport succeeds, validate each endpoint in dependency order:
@@ -299,6 +314,7 @@ After implementation:
 - The iPhone can load portal, schedule, attendance, feedback, and comments data.
 - Check-in Retry recovers from a temporary failure.
 - Duplicate check-ins remain non-retryable and do not create duplicate records.
+- Authenticated browser requests remain first-party through the production proxy and no longer depend on cross-site cookie delivery.
 - The deployed-device verification checklist is updated with evidence and the remaining risk is zero or explicitly accepted.
 
 ### Phase 5F: Mobile Navigation and Safe-Area Layout

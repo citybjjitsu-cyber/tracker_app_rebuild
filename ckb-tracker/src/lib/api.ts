@@ -24,8 +24,8 @@ import type {
   InviteRecord,
   WeeklySchedule,
 } from '@/types';
+import { API_BASE_URL, apiUrl } from '@/lib/apiBase';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
 export interface BulkCheckInError {
   class_id: number;
@@ -88,7 +88,7 @@ async function refreshWebSession(): Promise<boolean> {
   if (webRefreshInProgress) return webRefreshInProgress;
 
   webRefreshInProgress = axios
-    .post<{ csrf_token?: string }>(`${API_BASE_URL}/auth/refresh`, null, { withCredentials: true })
+    .post<{ csrf_token?: string }>(apiUrl('/auth/refresh'), null, { withCredentials: true })
     .then((response) => {
       if (typeof window !== 'undefined' && response.data.csrf_token) {
         sessionStorage.setItem('csrf_token', response.data.csrf_token);
@@ -119,7 +119,7 @@ api.interceptors.response.use(
 
       try {
         const refreshResponse = await axios.post<{ access_token: string }>(
-          `${API_BASE_URL}/auth/refresh`,
+          apiUrl('/auth/refresh'),
           null,
           { withCredentials: true },
         );

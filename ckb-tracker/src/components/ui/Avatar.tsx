@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { cn, getInitials } from '@/lib/utils';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+import { apiUrl } from '@/lib/apiBase';
 
 interface AvatarProps {
   src?: string | null;
@@ -35,7 +34,7 @@ export function Avatar({ src, firstName = '', lastName = '', size = 'md', offset
     if (!url) return null;
     if (url.startsWith('http')) return url;
     if (url.startsWith('/uploads')) {
-      return `${API_BASE_URL}${url}`;
+      return apiUrl(url);
     }
     return url;
   };
