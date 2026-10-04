@@ -19,7 +19,7 @@ const cspHeader = `
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    if (!useApiProxy) return [];
+    if (!useApiProxy) return { beforeFiles: [] };
 
     const apiRoutes = [
       'auth',
@@ -44,10 +44,18 @@ const nextConfig: NextConfig = {
       'uploads',
     ];
 
-    return apiRoutes.map((route) => ({
-      source: `/${route}/:path*`,
-      destination: `${apiUrl}/${route}/:path*`,
-    }));
+    const rewrites = apiRoutes.flatMap((route) => [
+      {
+        source: `/${route}`,
+        destination: `${apiUrl}/${route}`,
+      },
+      {
+        source: `/${route}/:path*`,
+        destination: `${apiUrl}/${route}/:path*`,
+      },
+    ]);
+
+    return { beforeFiles: rewrites };
   },
   async headers() {
     return [

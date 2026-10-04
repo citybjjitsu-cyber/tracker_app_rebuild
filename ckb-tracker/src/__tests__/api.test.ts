@@ -625,6 +625,15 @@ describe('newsApi', () => {
     expect(result).toHaveLength(1)
   })
 
+  it('returns an empty list when the news response is not an array', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+
+    vi.mocked(axios.default.get).mockResolvedValue({ data: '<!DOCTYPE html>' })
+
+    await expect(apiModule.newsApi.list(true)).resolves.toEqual([])
+  })
+
   it('get calls GET /news/{id}', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')

@@ -557,7 +557,7 @@ export const kioskApi = {
 export const newsApi = {
   list: async (publishedOnly: boolean = true) => {
     const response = await api.get<News[]>('/news/', { params: { published_only: publishedOnly } });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
   get: async (id: number) => {
     const response = await api.get<News>(`/news/${id}`);
