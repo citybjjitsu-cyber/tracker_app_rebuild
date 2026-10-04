@@ -8,9 +8,19 @@ This file is a historical implementation log. The current operational facts are:
 - GitHub Actions tests run on pushes and pull requests. Deployment is manually dispatched with a selected environment; it is not triggered automatically by every push to `main`.
 - Render startup runs Alembic migrations. Application startup initializes rank tiers and backfills rank-tier links, but does not seed the complete demo dataset automatically.
 - Kiosk staff tokens are memory-only. The kiosk idle timeout is configurable through `KIOSK_IDLE_MINUTES` and is currently 240 minutes in Render; access-token refresh is supported.
-- The current mobile work is an installable Next.js PWA with a static shell and online-only authenticated data. Phase 5E deployed data integration recovery is active; Capacitor packaging remains deferred.
+- The current mobile work is an installable Next.js PWA with a static shell and online-only authenticated data. Phase 5E deployed data integration recovery is complete; Capacitor packaging remains deferred.
 
 See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_phases.md` for current plans and operating procedures.
+
+## RECENT UPDATES (October 4, 2026) - Phase 5E Complete
+
+- Replaced unreliable direct cross-site browser API calls with same-origin Vercel rewrites to the Render backend.
+- Kept `NEXT_PUBLIC_API_URL` as the proxy target and enabled `NEXT_PUBLIC_API_PROXY=true` in Vercel.
+- Changed Render production cookies to `COOKIE_SECURE=True` and `COOKIE_SAMESITE=Lax` after proxy verification.
+- Fixed a `/news/` proxy/page-route collision that caused the home page to crash when the API response was HTML instead of JSON.
+- Fixed the theme hydration mismatch and allowed the configured Google font through the frontend CSP.
+- Revalidated login, portal analytics, attendance, teacher schedule, check-in, admin access, and recovery flows on desktop and iPhone.
+- Frontend deployment fix commit: `8e29baa`; Capacitor packaging remains deferred until the next mobile phase.
 
 ## Project Overview
 Martial Arts Attendance Tracking System - A full-stack application for managing student attendance, class scheduling, curriculum/lesson management, teacher assignments, and providing analytics dashboards for students, teachers, and administrators.

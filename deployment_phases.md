@@ -27,7 +27,7 @@ The configuration is in `backend/render.yaml`:
 
 Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration. During the temporary direct Vercel-to-Render browser deployment, production uses `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None`; CSRF protection remains enabled for cookie-authenticated state-changing requests. The target mobile architecture uses a same-origin Vercel proxy, after which `COOKIE_SAMESITE=Lax` is preferred.
 
-After an authentication deployment, verify the Render environment values before mobile testing. The current web flow has been rechecked on the reported phone and desktop and no longer logs out during navigation. The remaining gate is to confirm the login response `Set-Cookie` headers, then use browser remote debugging to verify `/auth/me`, `/auth/refresh`, and the first protected request after expiry include credentials. Do not mark the complete mobile session validation finished based on desktop and one phone alone.
+After the same-origin proxy deployment, verify the Render environment values before mobile testing. The current web flow has been rechecked on desktop and iPhone: login, `/auth/me`, refresh, protected attendance, teacher, check-in, and admin requests succeed. Keep the deployment record and sanitized route outcomes with the readiness checklist.
 
 The 2026-10-03 mobile verification checkpoint passed the local automated baseline: 159 backend tests with 77.90% coverage, 184 frontend tests, frontend lint with zero errors, and a successful frontend production build. Phase 3A deployed-session and physical-device verification is complete.
 
@@ -93,7 +93,7 @@ For Mobile API Phase 5B, verify `GET /classes/weekly` returns the requested Mond
 
 For Mobile API Phase 5C, verify kiosk class failures, check-in schedule failures, student search failures, and attendance failures display a visible retry action. Confirm intentional empty results remain distinguishable and that write operations are not automatically repeated.
 
-For Mobile API Phase 5D, run `npm run test:e2e` with the local baseline and then repeat the documented schedule, check-in, duplicate, refresh, logout, and expiry flows against the deployed frontend/API. Record only timestamps, deployment versions, route outcomes, and pass/fail evidence; never record credentials, tokens, PINs, or personal student data.
+For Mobile API Phase 5D, run `npm run test:e2e` with the local baseline and then repeat the documented schedule, check-in, duplicate, refresh, logout, and expiry flows against the deployed frontend/API. Record only timestamps, deployment versions, route outcomes, and pass/fail evidence; never record credentials, tokens, PINs, or personal student data. The Phase 5E deployed data and session gate passed on 2026-10-04 for desktop and iPhone.
 
 Because there is no separate staging environment, use a dedicated test account and test data when validating the current live service. Back up the database before authentication, schema, or attendance changes.
 
