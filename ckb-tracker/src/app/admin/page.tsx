@@ -11,6 +11,7 @@ import { RankBadge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useChartColors } from '@/hooks/useChartColors';
+import { apiUrl } from '@/lib/apiBase';
 
 import {
   usersApi,
@@ -2898,7 +2899,7 @@ export default function AdminPage() {
                   className="w-full"
                   onClick={async () => {
                     try {
-                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/export-seed`, {
+                      const res = await fetch(apiUrl('/database/export-seed'), {
                         credentials: 'include',
                       });
                       const blob = await res.blob();
@@ -2920,7 +2921,7 @@ export default function AdminPage() {
                   className="w-full"
                   onClick={async () => {
                     try {
-                      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/create-backup`, {
+                      const res = await fetch(apiUrl('/database/create-backup'), {
                         credentials: 'include',
                       });
                       const blob = await res.blob();
@@ -2957,7 +2958,7 @@ export default function AdminPage() {
                       const formData = new FormData();
                       formData.append('file', file);
                       try {
-                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/restore`, {
+                        const res = await fetch(apiUrl('/database/restore'), {
                           method: 'POST',
                           credentials: 'include',
                           body: formData,
@@ -2991,7 +2992,7 @@ export default function AdminPage() {
                     onClick={async () => {
                       if (!confirm('This will delete all data except roles. Continue?')) return;
                       try {
-                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/reset`, {
+                        const res = await fetch(apiUrl('/database/reset'), {
                           method: 'POST',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
@@ -3014,7 +3015,7 @@ export default function AdminPage() {
                     onClick={async () => {
                       if (!confirm('This will load seed data. Continue?')) return;
                       try {
-                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/database/reset`, {
+                        const res = await fetch(apiUrl('/database/reset'), {
                           method: 'POST',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },

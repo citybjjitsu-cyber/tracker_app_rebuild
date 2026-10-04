@@ -25,7 +25,7 @@ The configuration is in `backend/render.yaml`:
 - Kiosk idle timeout: `KIOSK_IDLE_MINUTES=240`
 - Upload directory: `/opt/render/project/src/backend/uploads`
 
-Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration. For the current Vercel-to-Render cross-site browser deployment, production must use `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None`; CSRF protection remains enabled for cookie-authenticated state-changing requests. A same-site custom API hostname is preferred when a project domain is available.
+Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration. During the temporary direct Vercel-to-Render browser deployment, production uses `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None`; CSRF protection remains enabled for cookie-authenticated state-changing requests. The target mobile architecture uses a same-origin Vercel proxy, after which `COOKIE_SAMESITE=Lax` is preferred.
 
 After an authentication deployment, verify the Render environment values before mobile testing. The current web flow has been rechecked on the reported phone and desktop and no longer logs out during navigation. The remaining gate is to confirm the login response `Set-Cookie` headers, then use browser remote debugging to verify `/auth/me`, `/auth/refresh`, and the first protected request after expiry include credentials. Do not mark the complete mobile session validation finished based on desktop and one phone alone.
 
@@ -33,7 +33,9 @@ The 2026-10-03 mobile verification checkpoint passed the local automated baselin
 
 ## Vercel Configuration
 
-The frontend root directory is `ckb-tracker`. `NEXT_PUBLIC_API_URL` points the browser to the Render API. `ckb-tracker/vercel.json` disables native Vercel Git integration because deployment is controlled through GitHub Actions.
+The frontend root directory is `ckb-tracker`. `NEXT_PUBLIC_API_URL` remains the Render API target used by the Vercel rewrite. After proxy code is deployed, set `NEXT_PUBLIC_API_PROXY=true` for Production and Preview; the browser then uses relative API paths while Vercel forwards them to Render. `ckb-tracker/vercel.json` disables native Vercel Git integration because deployment is controlled through GitHub Actions.
+
+The proxy must preserve the original route paths, especially `/auth/refresh`, and must not cache authenticated responses. After enabling it, change Render `COOKIE_SAMESITE` to `Lax`, redeploy both services, clear the installed PWA/site data, and verify `/auth/me`, `/auth/refresh`, attendance, teacher, and admin requests.
 
 ## GitHub Actions
 
