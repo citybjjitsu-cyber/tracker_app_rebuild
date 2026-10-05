@@ -319,9 +319,9 @@ After implementation:
 
 Phase 5E closed on 2026-10-04 after the same-origin proxy deployment and desktop/iPhone data-flow verification. Android Chrome and kiosk smoke testing remain tracked as general release checklist items.
 
-### Phase 5F: Mobile Navigation and Safe-Area Layout
+### Phase 5F: Mobile Navigation and Safe-Area Layout (Implementation Complete)
 
-Begin only after Phase 5E data flows are healthy. This phase addresses the physical-device layout findings without changing the API contract. The initial implementation is complete; physical-device validation remains open.
+Begin only after Phase 5E data flows are healthy. This phase addresses the physical-device layout findings without changing the API contract. The implementation is complete and merged; physical-device release validation remains open in the readiness checklist.
 
 Observed layout issues to resolve:
 

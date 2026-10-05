@@ -117,4 +117,5 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Added a shared mobile navigation drawer for authenticated routes and check-in.
 - Added role-filtered navigation, accessible open/close controls, backdrop dismissal, and Escape-key dismissal.
 - Added safe-area-aware check-in content spacing and offline-banner padding.
+- Merged as commit `4b75d24` on `feature/mobile-app-foundation` and reviewed after merge.
 - Automated frontend coverage passes; iPhone Safari, standalone PWA, Android Chrome, rotation, and keyboard validation remain manual follow-up work.

@@ -682,7 +682,8 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` â€
 - Added accessible menu controls with backdrop and Escape-key dismissal while preserving kiosk route isolation.
 - Added safe-area-aware navigation, check-in content, and offline status spacing for notched mobile devices.
 - Added component coverage for role filtering and menu open/close behavior.
-- Frontend verification passed: 192 Vitest tests, lint with 0 errors, and a successful production build. Physical-device Phase 5F validation remains open.
+- Frontend verification passed: 192 Vitest tests, 2 mobile Playwright tests, lint with 0 errors, and a successful production build.
+- Merged and pushed as commit `4b75d24`; post-merge review matched the expected behavior. Physical-device Phase 5F validation remains open.
 
 ## RECENT UPDATES â€” Mobile Foundation
 
