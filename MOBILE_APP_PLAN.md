@@ -189,7 +189,7 @@ Concurrent-write database constraints and offline queued writes remain deferred 
 
 Local Playwright coverage is complete. The deployed-device gate remains open until the live HTTPS application is tested on a physical phone.
 
-### Phase 5E: Deployed Data Integration Recovery (Next)
+### Phase 5E: Deployed Data Integration Recovery (Completed)
 
 The physical-device review identified a release blocker: the application shell, authentication, PWA installation, logout, and offline warning work, but live portal, schedule, attendance, and other data requests do not consistently load. Resolve this before further native packaging or broad UI refinement.
 
@@ -317,9 +317,11 @@ After implementation:
 - Authenticated browser requests remain first-party through the production proxy and no longer depend on cross-site cookie delivery.
 - The deployed-device verification checklist is updated with evidence and the remaining risk is zero or explicitly accepted.
 
+Phase 5E closed on 2026-10-04 after the same-origin proxy deployment and desktop/iPhone data-flow verification. Android Chrome and kiosk smoke testing remain tracked as general release checklist items.
+
 ### Phase 5F: Mobile Navigation and Safe-Area Layout
 
-Begin only after Phase 5E data flows are healthy. This phase addresses the physical-device layout findings without changing the API contract.
+Begin only after Phase 5E data flows are healthy. This phase addresses the physical-device layout findings without changing the API contract. The initial implementation is complete; physical-device validation remains open.
 
 Observed layout issues to resolve:
 

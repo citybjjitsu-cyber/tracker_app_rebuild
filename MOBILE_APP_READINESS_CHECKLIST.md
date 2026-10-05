@@ -13,13 +13,16 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Add normal-web access-token refresh/retry handling with concurrent-request protection.
 - [x] Verify the reported phone and desktop retain login while navigating between web-app pages.
 - [x] Run the local backend/frontend test, lint, coverage, and production-build baseline.
-- [ ] Complete Phase 5E deployed data integration recovery on physical devices.
-- [ ] Validate teacher schedule, attendance, feedback, and comments on physical devices.
+- [x] Complete Phase 5E deployed data integration recovery on physical devices.
+- [x] Validate teacher schedule, attendance, feedback, and comments on physical devices.
 - [x] Add PWA manifest and install instructions.
 - [x] Add installable app icons and mobile web-app metadata.
 - [x] Add a service worker with static-assets-only caching.
 - [x] Add visible offline status messaging and safe service-worker update handling.
 - [ ] Add Capacitor projects after the web/PWA version is stable.
+- [x] Add role-aware mobile navigation to the check-in route.
+- [x] Add safe-area spacing for mobile navigation, page content, and offline status.
+- [ ] Complete physical-device Phase 5F validation at 320/375/390/430px-equivalent widths.
 
 ## Production Test Controls
 
@@ -28,26 +31,27 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [ ] Back up the production database before API, authentication, or schema changes.
 - [ ] Record the Vercel and Render deployment versions before each release.
 - [ ] Confirm the previous deployment can be restored.
-- [ ] Verify production `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None` for the cross-site Vercel/Render deployment.
+- [x] Verify production `COOKIE_SECURE=True` and `COOKIE_SAMESITE=Lax` for the same-origin Vercel proxy deployment.
 
 ## Required Smoke Tests
 
 - [x] Web login and navigation without immediate logout on the reported phone and desktop.
-- [ ] Web logout.
-- [ ] Session refresh and expiry handling.
-- [ ] Student schedule and attendance history.
-- [ ] Student check-in.
-- [ ] Teacher schedule and attendance management.
+- [x] Web logout.
+- [x] Session refresh and expiry handling.
+- [x] Student schedule and attendance history.
+- [x] Student check-in.
+- [x] Teacher schedule and attendance management.
 - [ ] Kiosk unlock, student selection, and kiosk lock.
-- [ ] Admin access.
-- [ ] Desktop browser layout.
-- [ ] iPhone Safari layout.
+- [x] Admin access.
+- [x] Desktop browser layout.
+- [x] iPhone Safari layout.
 - [ ] Android Chrome layout.
 
-## Verification Checkpoint (2026-10-03)
+## Verification Checkpoint (2026-10-04)
 
-- Local baseline passed: 159 backend tests with 77.90% coverage, 184 frontend tests, frontend lint with 0 errors, and a successful production build.
-- Phase 3A physical-device authentication and workflow checks are complete. Phase 5 mobile API reliability work is the active follow-up phase.
+- Local baseline passed: 161 backend tests, 189 frontend tests, frontend lint with 0 errors, and a successful production build.
+- Phase 3A physical-device authentication and workflow checks are complete.
+- Phase 5E deployed data integration recovery passed on desktop and iPhone after the same-origin proxy deployment.
 
 ## Phase 4A Checkpoint (2026-10-03)
 
@@ -82,14 +86,22 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Check-in schedule, student search, and attendance loading failures now show visible recovery states.
 - Intentional empty states remain distinct from network failures.
 
-## Phase 5E Verification Scope
+## Phase 5E Verification Scope — Complete (2026-10-04)
 
-- [ ] Capture a clean deployed iPhone baseline and record sanitized request outcomes.
-- [ ] Identify and classify the first failing shared data request.
-- [ ] Verify deployed API origin, CORS, cookies, CSRF, refresh, and service-worker freshness.
-- [ ] Verify portal, weekly schedule, attendance, search, feedback, and comments with labelled data.
-- [ ] Verify check-in Retry recovery and duplicate check-in behavior.
-- [ ] Repeat the complete data-flow matrix after deployment and update the evidence record.
+- [x] Capture a clean deployed iPhone baseline and record sanitized request outcomes.
+- [x] Identify and classify the first failing shared data request: protected cross-site cookie requests returned `401`.
+- [x] Deploy the same-origin Vercel API proxy and verify first-party cookie transport.
+- [x] Verify deployed API origin, CORS, cookies, CSRF, refresh, and service-worker freshness.
+- [x] Verify portal, weekly schedule, attendance, search, feedback, and comments with labelled data.
+- [x] Verify check-in Retry recovery and duplicate check-in behavior.
+- [x] Repeat the complete data-flow matrix on desktop and iPhone after deployment.
+
+### Phase 5E Deployment Record
+
+- Frontend fix commit: `8e29baa`.
+- Vercel: `NEXT_PUBLIC_API_URL` remains the Render API target and `NEXT_PUBLIC_API_PROXY=true` enables same-origin rewrites.
+- Render: `COOKIE_SECURE=True`, `COOKIE_SAMESITE=Lax`, and the Vercel origin remains configured in `CORS_ORIGINS`.
+- Validation result: login, protected analytics, attendance, teacher, check-in, and admin flows work on desktop and iPhone.
 
 ## Deliberately Deferred
 
@@ -99,3 +111,10 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Authentication storage changes.
 - Database migrations for mobile-only features.
 - Native camera, push notification, biometric, or deep-link integrations.
+
+## Phase 5F Implementation Checkpoint (2026-10-05)
+
+- Added a shared mobile navigation drawer for authenticated routes and check-in.
+- Added role-filtered navigation, accessible open/close controls, backdrop dismissal, and Escape-key dismissal.
+- Added safe-area-aware check-in content spacing and offline-banner padding.
+- Automated frontend coverage passes; iPhone Safari, standalone PWA, Android Chrome, rotation, and keyboard validation remain manual follow-up work.
