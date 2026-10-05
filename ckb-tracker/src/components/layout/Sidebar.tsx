@@ -215,23 +215,10 @@ export function Sidebar() {
   const { isAuthenticated, user, logout, roles } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
     <>
-      <button
-        onClick={() => setIsMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 rounded-lg glass-panel text-on-surface shadow-lg"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
-      {isMobileOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-black/60 z-40 animate-in fade-in"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
+      <MobileNavigation />
 
       <aside className={cn(
         "hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-surface border-r border-outline-variant/20 transition-all duration-300 z-40",
@@ -245,33 +232,77 @@ export function Sidebar() {
           theme={theme}
           toggleTheme={toggleTheme}
           setIsCollapsed={setIsCollapsed}
-          setIsMobileOpen={setIsMobileOpen}
+          setIsMobileOpen={() => undefined}
           roles={roles?.map(r => r.name)}
         />
       </aside>
+    </>
+  );
+}
 
-      <aside className={cn(
-        "lg:hidden flex flex-col fixed left-0 top-0 h-screen w-[var(--sidebar-width)] bg-surface border-r border-outline-variant/20 transition-transform duration-300 z-50",
-        isMobileOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+export function MobileNavigation() {
+  const { isAuthenticated, user, logout, roles } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMobileOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileOpen]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsMobileOpen(true)}
+        aria-label="Open navigation menu"
+        aria-expanded={isMobileOpen}
+        className="lg:hidden fixed left-4 top-[calc(1rem+env(safe-area-inset-top))] z-50 min-h-11 min-w-11 rounded-lg glass-panel text-on-surface shadow-lg"
+      >
+        <Menu className="mx-auto h-5 w-5" aria-hidden="true" />
+      </button>
+
+      {isMobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 z-40 animate-in fade-in"
+          aria-hidden="true"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      <aside
+        aria-label="Mobile navigation"
+        className={cn(
+          'lg:hidden flex flex-col fixed left-0 top-0 min-h-dvh w-[var(--sidebar-width)] bg-surface border-r border-outline-variant/20 transition-transform duration-300 z-50 safe-area-top',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
         <div className="flex items-center justify-end p-4">
           <button
+            type="button"
             onClick={() => setIsMobileOpen(false)}
-            className="p-2 rounded-lg text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-container-high"
+            aria-label="Close navigation menu"
+            className="min-h-11 min-w-11 rounded-lg text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-container-high"
           >
-            <X className="w-5 h-5" />
+            <X className="mx-auto h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-        <SidebarContent 
-          isCollapsed={isCollapsed}
+        <SidebarContent
+          isCollapsed={false}
           isAuthenticated={isAuthenticated}
           user={user}
           logout={logout}
           theme={theme}
           toggleTheme={toggleTheme}
-          setIsCollapsed={setIsCollapsed}
+          setIsCollapsed={() => undefined}
           setIsMobileOpen={setIsMobileOpen}
-          roles={roles?.map(r => r.name)}
+          roles={roles?.map((r) => r.name)}
         />
       </aside>
     </>

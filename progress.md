@@ -676,6 +676,14 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` â€
 
 *Last Updated: July 28, 2026*
 
+## RECENT UPDATES (October 5, 2026) - Phase 5F Mobile Navigation Foundation
+
+- Added a shared role-aware mobile navigation drawer for authenticated layouts and `/check-in`.
+- Added accessible menu controls with backdrop and Escape-key dismissal while preserving kiosk route isolation.
+- Added safe-area-aware navigation, check-in content, and offline status spacing for notched mobile devices.
+- Added component coverage for role filtering and menu open/close behavior.
+- Frontend verification passed: 192 Vitest tests, lint with 0 errors, and a successful production build. Physical-device Phase 5F validation remains open.
+
 ## RECENT UPDATES â€” Mobile Foundation
 
 ### Teacher Schedule Mobile Preparation

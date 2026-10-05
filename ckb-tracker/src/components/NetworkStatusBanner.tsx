@@ -26,7 +26,7 @@ export function NetworkStatusBanner() {
   if (isOnline) return null;
 
   return (
-    <div role="status" className="sticky top-0 z-50 flex items-center justify-center gap-2 bg-error-container px-4 py-2 text-center text-sm text-on-error-container">
+    <div role="status" className="sticky top-0 z-50 flex items-center justify-center gap-2 bg-error-container px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] text-center text-sm text-on-error-container">
       <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span>You&apos;re offline. Server-backed changes are unavailable until the connection returns.</span>
     </div>

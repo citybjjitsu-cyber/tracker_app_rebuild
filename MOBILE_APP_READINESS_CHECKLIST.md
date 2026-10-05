@@ -20,6 +20,9 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Add a service worker with static-assets-only caching.
 - [x] Add visible offline status messaging and safe service-worker update handling.
 - [ ] Add Capacitor projects after the web/PWA version is stable.
+- [x] Add role-aware mobile navigation to the check-in route.
+- [x] Add safe-area spacing for mobile navigation, page content, and offline status.
+- [ ] Complete physical-device Phase 5F validation at 320/375/390/430px-equivalent widths.
 
 ## Production Test Controls
 
@@ -108,3 +111,10 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Authentication storage changes.
 - Database migrations for mobile-only features.
 - Native camera, push notification, biometric, or deep-link integrations.
+
+## Phase 5F Implementation Checkpoint (2026-10-05)
+
+- Added a shared mobile navigation drawer for authenticated routes and check-in.
+- Added role-filtered navigation, accessible open/close controls, backdrop dismissal, and Escape-key dismissal.
+- Added safe-area-aware check-in content spacing and offline-banner padding.
+- Automated frontend coverage passes; iPhone Safari, standalone PWA, Android Chrome, rotation, and keyboard validation remain manual follow-up work.
