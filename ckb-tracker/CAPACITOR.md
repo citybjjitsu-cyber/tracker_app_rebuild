@@ -36,4 +36,4 @@ npm run cap:open:ios
 
 Native builds use the bearer-token session adapter: login returns access and refresh tokens, refresh rotates and securely replaces both tokens, and logout revokes bearer credentials before clearing secure storage. Browser authentication remains cookie-based and unchanged.
 
-Native authentication is implemented but still requires real Android and iOS device verification before distributing an internal app build. Test cold launch, background/reopen, access-token expiry, refresh rotation, logout, revoked sessions, network loss, and reinstall behavior.
+Native authentication and the responsive app experience have been tested successfully on a physical phone and desktop browser, including login, refresh rotation, logout, session expiry, role-aware routes, kiosk flows, and recovery behavior. Platform-specific signing, release builds, and broader device-matrix validation remain before store distribution.
