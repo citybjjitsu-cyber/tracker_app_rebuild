@@ -440,6 +440,7 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     user: UserResponse
     roles: List[RoleResponse] = []
@@ -450,6 +451,10 @@ class UserInfoResponse(BaseModel):
     user: UserResponse
     roles: List[RoleResponse] = []
     csrf_token: Optional[str] = None
+
+
+class NativeRefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=4096)
 
 
 class DashboardStats(BaseModel):

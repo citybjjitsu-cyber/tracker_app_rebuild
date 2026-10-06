@@ -4,6 +4,8 @@ import { createContext, useContext, useState, useEffect, useRef, ReactNode } fro
 import { useRouter } from 'next/navigation';
 import type { User, Role } from '@/types';
 import { apiUrl } from '@/lib/apiBase';
+import { authApi, setOnNativeSessionExpired } from '@/lib/api';
+import { clearNativeSession, isNativeApp, loadNativeSession, saveNativeSession } from '@/lib/nativeSessionStorage';
 
 interface AuthContextType {
   user: User | null;
@@ -38,6 +40,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = Boolean(user);
 
   const logout = async () => {
+    if (isNativeApp()) {
+      try {
+        await authApi.logout();
+      } catch (error) {
+        console.error('Native logout error:', error);
+      } finally {
+        await clearNativeSession().catch(() => undefined);
+        setUser(null);
+        setRoles([]);
+        setCsrfToken(null);
+        router.push('/');
+      }
+      return;
+    }
+
     const csrfToken = sessionStorage.getItem('csrf_token');
     try {
       await fetch(apiUrl('/auth/logout'), {
@@ -58,6 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logoutAll = async () => {
+    if (isNativeApp()) {
+      try {
+        await authApi.logoutAll();
+      } catch (error) {
+        console.error('Native logout-all error:', error);
+      } finally {
+        await clearNativeSession().catch(() => undefined);
+        setUser(null);
+        setRoles([]);
+        setCsrfToken(null);
+        router.push('/');
+      }
+      return;
+    }
+
     const csrfToken = sessionStorage.getItem('csrf_token');
     try {
       await fetch(apiUrl('/auth/logout-all'), {
@@ -81,6 +113,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestId = ++authRequestId.current;
     setIsLoading(true);
     try {
+      if (isNativeApp()) {
+        const tokens = await loadNativeSession();
+        if (!tokens) {
+          if (requestId === authRequestId.current) {
+            setUser(null);
+            setRoles([]);
+            setCsrfToken(null);
+          }
+          return;
+        }
+
+        const data = await authApi.me();
+        if (requestId === authRequestId.current) {
+          setUser(data.user);
+          setRoles(data.roles || []);
+        }
+        return;
+      }
+
       const response = await fetch(apiUrl('/auth/me'), {
         method: 'GET',
         credentials: 'include',
@@ -133,6 +184,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, isTeacherLogin = false) => {
     const requestId = ++authRequestId.current;
+    if (isNativeApp()) {
+      const data = isTeacherLogin
+        ? await authApi.teacherLogin(email, password)
+        : await authApi.login(email, password);
+
+      if (!data.access_token || !data.refresh_token) {
+        throw new Error('Native login did not return session tokens');
+      }
+
+      await saveNativeSession({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+      });
+      if (requestId === authRequestId.current) {
+        setUser(data.user);
+        setRoles(data.roles || []);
+        setCsrfToken(null);
+      }
+      return;
+    }
+
     const endpoint = isTeacherLogin ? '/auth/teacher-login' : '/auth/login';
 
     const response = await fetch(apiUrl(endpoint), {
@@ -161,8 +233,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (isNativeApp()) {
+      setOnNativeSessionExpired(() => {
+        setUser(null);
+        setRoles([]);
+        setCsrfToken(null);
+        router.push('/login');
+      });
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSession();
+    return () => setOnNativeSessionExpired(null);
   }, []);
 
   return (
