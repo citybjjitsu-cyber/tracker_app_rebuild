@@ -11,6 +11,7 @@ def _utcnow() -> datetime:
 from fastapi import (
     APIRouter,
     Cookie,
+    Body,
     Depends,
     Header,
     HTTPException,
@@ -219,6 +220,19 @@ def clear_auth_cookies(response: Response):
     )
 
 
+def _is_native_request(request: Request) -> bool:
+    return request.headers.get("X-Client-Platform", "").lower() == "capacitor"
+
+
+def _bearer_token(authorization: Optional[str]) -> Optional[str]:
+    if not authorization:
+        return None
+    parts = authorization.split()
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1]
+    return None
+
+
 @router.post("/login")
 @limiter.limit(AUTH_LIMIT)
 def login(
@@ -256,7 +270,8 @@ def login(
     )
 
     csrf_token = generate_csrf_token()
-    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    if not _is_native_request(request):
+        set_auth_cookies(response, access_token, refresh_token, csrf_token)
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")
@@ -270,11 +285,14 @@ def login(
         user_agent=user_agent,
     )
 
-    return {
+    result = {
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
         "csrf_token": csrf_token,
     }
+    if _is_native_request(request):
+        result.update({"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"})
+    return result
 
 
 @router.post("/teacher-login")
@@ -319,7 +337,8 @@ def teacher_login(
     )
 
     csrf_token = generate_csrf_token()
-    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    if not _is_native_request(request):
+        set_auth_cookies(response, access_token, refresh_token, csrf_token)
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")
@@ -333,11 +352,14 @@ def teacher_login(
         user_agent=user_agent,
     )
 
-    return {
+    result = {
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
         "csrf_token": csrf_token,
     }
+    if _is_native_request(request):
+        result.update({"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"})
+    return result
 
 
 @router.post("/refresh")
@@ -346,8 +368,12 @@ def refresh_token(
     request: Request,
     response: Response,
     refresh_token: Optional[str] = Cookie(None),
+    body: Optional[schemas.NativeRefreshRequest] = Body(None),
     db: Session = Depends(get_db),
 ):
+    is_native = _is_native_request(request)
+    if is_native and body:
+        refresh_token = body.refresh_token
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token required")
 
@@ -397,7 +423,8 @@ def refresh_token(
     )
 
     csrf_token = generate_csrf_token()
-    set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
+    if not is_native:
+        set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
 
     client_host = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent")
@@ -411,12 +438,15 @@ def refresh_token(
         user_agent=user_agent,
     )
 
-    return {
+    result = {
         "access_token": access_token,
         "user": schemas.UserResponse.model_validate(user),
         "roles": roles,
         "csrf_token": csrf_token,
     }
+    if is_native:
+        result.update({"refresh_token": new_refresh_token, "token_type": "bearer"})
+    return result
 
 
 @router.post("/logout")
@@ -426,8 +456,15 @@ def logout(
     request: Request,
     access_token: Optional[str] = Cookie(None),
     refresh_token: Optional[str] = Cookie(None),
+    authorization: Optional[str] = Header(None),
+    body: Optional[schemas.NativeRefreshRequest] = Body(None),
     db: Session = Depends(get_db),
 ):
+    bearer_access_token = _bearer_token(authorization)
+    if bearer_access_token:
+        access_token = bearer_access_token
+    if body and body.refresh_token:
+        refresh_token = body.refresh_token
     if access_token:
         payload = decode_token(access_token)
         if payload and payload.get("jti"):
@@ -463,8 +500,12 @@ def logout_all(
     request: Request,
     response: Response,
     access_token: Optional[str] = Cookie(None),
+    authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db),
 ):
+    bearer_access_token = _bearer_token(authorization)
+    if bearer_access_token:
+        access_token = bearer_access_token
     if access_token:
         payload = decode_token(access_token)
         if payload and payload.get("sub"):

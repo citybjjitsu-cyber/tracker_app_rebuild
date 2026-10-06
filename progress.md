@@ -692,6 +692,20 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` â€
 - Passed both mobile Playwright integration tests at a 375px viewport.
 - Physical-device validation remains open for iPhone Safari/PWA, Android Chrome/PWA, rotation, keyboard behavior, kiosk smoke testing, and the remaining width matrix.
 
+## RECENT UPDATES (October 6, 2026) - Phase 5F Closeout
+
+- Physical mobile and desktop behavior was verified after the mobile navigation and safe-area changes.
+- Mobile navigation, responsive layouts, offline/error messaging, role-aware routes, and kiosk flows behaved as expected.
+- Closed Phase 5F; Capacitor wrapper work is now the next mobile phase.
+
+## RECENT UPDATES (October 6, 2026) - Phase 6A Capacitor Wrapper Foundation
+
+- Added Capacitor Android and iOS projects with app id `com.ckbtracker.app`.
+- Added remote-web wrapper configuration with `CAPACITOR_SERVER_URL` support for local device testing.
+- Registered Keychain/Keystore-backed secure storage and added the native session storage boundary.
+- Added native bearer-token login, secure token storage, refresh rotation, bearer logout, and native session-expiry handling while keeping browser cookie authentication unchanged.
+- Real Android/iOS device validation remains before internal distribution.
+
 ## RECENT UPDATES â€” Mobile Foundation
 
 ### Teacher Schedule Mobile Preparation

@@ -386,9 +386,25 @@ Observed layout issues to resolve:
 - Passed 194 frontend tests, 161 backend tests, frontend lint with 0 errors, production build, and both mobile Playwright integration tests at 375px.
 - Phase 5F remains open until the physical-device matrix, kiosk smoke flow, rotation, keyboard behavior, and Android Chrome/PWA checks are observed and recorded.
 
+#### 5F.7 Closeout (2026-10-06)
+
+- Physical mobile and desktop behavior was verified after the navigation and safe-area changes.
+- Mobile navigation, offline/error messaging, responsive layouts, role-aware routes, and kiosk flows behaved as expected.
+- Phase 5F exit criteria are satisfied. Capacitor wrapper planning is the next phase.
+
 ## Phase 6: Capacitor App Wrapper
 
 If App Store and Play Store presence is desired:
+
+### Phase 6A: Thin Wrapper and Native Session (Implementation complete; device validation open)
+
+- Capacitor Android and iOS projects are present under `ckb-tracker/android/` and `ckb-tracker/ios/`.
+- The app id is `com.ckbtracker.app` and the display name is `CKB Tracker`.
+- The wrapper loads the deployed Vercel app by default and accepts `CAPACITOR_SERVER_URL` for local device testing.
+- Keychain/Keystore-backed storage is registered through `@aparajita/capacitor-secure-storage` and exposed through `src/lib/nativeSessionStorage.ts`.
+- Native login, bearer authorization, refresh rotation, logout, and session-expiry handling are implemented without changing browser cookie authentication.
+
+The next required subphase is real-device validation. Do not distribute an internal Capacitor build until native login, refresh, logout, and session-expiry behavior are verified on Android and iOS.
 
 - Add Capacitor around the existing frontend.
 - Start with a thin wrapper using the existing web UI.

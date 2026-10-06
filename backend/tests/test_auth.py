@@ -24,6 +24,20 @@ def test_login_valid_staff(client):
     assert data["user"]["email"] == "staff@test.com"
 
 
+def test_native_login_returns_bearer_tokens_without_changing_cookie_flow(client):
+    response = client.post(
+        "/auth/login",
+        json={"email": "staff@test.com", "password": STAFF_PASSWORD},
+        headers={"X-Client-Platform": "capacitor"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["access_token"]
+    assert data["refresh_token"]
+    assert data["token_type"] == "bearer"
+    assert "set-cookie" not in response.headers
+
+
 def test_login_sets_scoped_secure_auth_cookies(client):
     response = client.post(
         "/auth/login",
@@ -161,6 +175,49 @@ def test_refresh_token(client):
     data = response.json()
     assert "user" in data
     assert "csrf_token" in data
+
+
+def test_native_refresh_rotates_and_returns_both_tokens(client):
+    login_response = client.post(
+        "/auth/login",
+        json={"email": "staff@test.com", "password": STAFF_PASSWORD},
+        headers={"X-Client-Platform": "capacitor"},
+    )
+    tokens = login_response.json()
+
+    response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": tokens["refresh_token"]},
+        headers={"X-Client-Platform": "capacitor"},
+    )
+    assert response.status_code == 200
+    refreshed = response.json()
+    assert refreshed["access_token"] != tokens["access_token"]
+    assert refreshed["refresh_token"] != tokens["refresh_token"]
+
+    old_token_response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": tokens["refresh_token"]},
+        headers={"X-Client-Platform": "capacitor"},
+    )
+    assert old_token_response.status_code == 401
+
+
+def test_native_logout_revokes_bearer_access_token(client):
+    login_response = client.post(
+        "/auth/login",
+        json={"email": "staff@test.com", "password": STAFF_PASSWORD},
+        headers={"X-Client-Platform": "capacitor"},
+    )
+    tokens = login_response.json()
+    bearer_headers = {
+        "Authorization": f"Bearer {tokens['access_token']}",
+        "X-Client-Platform": "capacitor",
+    }
+
+    assert client.get("/auth/me", headers=bearer_headers).status_code == 200
+    assert client.post("/auth/logout", headers=bearer_headers).status_code == 200
+    assert client.get("/auth/me", headers=bearer_headers).status_code == 401
 
 
 def test_send_invite(client, headers):

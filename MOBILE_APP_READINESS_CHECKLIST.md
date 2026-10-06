@@ -19,10 +19,10 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Add installable app icons and mobile web-app metadata.
 - [x] Add a service worker with static-assets-only caching.
 - [x] Add visible offline status messaging and safe service-worker update handling.
-- [ ] Add Capacitor projects after the web/PWA version is stable.
+- [x] Add Capacitor Android and iOS projects after the web/PWA version is stable.
 - [x] Add role-aware mobile navigation to the check-in route.
 - [x] Add safe-area spacing for mobile navigation, page content, and offline status.
-- [ ] Complete physical-device Phase 5F validation at 320/375/390/430px-equivalent widths.
+- [x] Complete physical-device Phase 5F validation at 320/375/390/430px-equivalent widths.
 
 ## Production Test Controls
 
@@ -41,11 +41,11 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Student schedule and attendance history.
 - [x] Student check-in.
 - [x] Teacher schedule and attendance management.
-- [ ] Kiosk unlock, student selection, and kiosk lock.
+- [x] Kiosk unlock, student selection, and kiosk lock.
 - [x] Admin access.
 - [x] Desktop browser layout.
 - [x] iPhone Safari layout.
-- [ ] Android Chrome layout.
+- [x] Android Chrome layout.
 
 ## Verification Checkpoint (2026-10-04)
 
@@ -126,3 +126,18 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Passed 194 frontend Vitest tests, 161 backend tests, frontend lint with 0 errors, and a successful production build.
 - Passed both mobile Playwright integration tests at a 375px viewport.
 - Physical-device validation remains open: iPhone Safari/PWA, Android Chrome/PWA, rotation, keyboard behavior, kiosk smoke flow, and the 320/390/430px width matrix.
+
+## Phase 5F Closeout (2026-10-06)
+
+- [x] Physical mobile and desktop behavior verified after the Phase 5F navigation and safe-area changes.
+- [x] Mobile navigation, offline/error messaging, responsive layouts, and role-appropriate routes verified as expected.
+- [x] Kiosk unlock, student selection, and kiosk lock verified.
+- [x] Phase 5F exit criteria satisfied; Capacitor wrapper work may begin as Phase 6.
+
+## Phase 6A Checkpoint (2026-10-06)
+
+- [x] Added Capacitor Android and iOS project scaffolding with app id `com.ckbtracker.app`.
+- [x] Added a thin remote-web wrapper configuration with `CAPACITOR_SERVER_URL` override support.
+- [x] Registered Keychain/Keystore-backed secure storage for the native session adapter.
+- [x] Implemented native bearer-token login, refresh rotation, logout, and session-expiry handling.
+- [ ] Verify native login, refresh, logout, session expiry, background/reopen, and reinstall on real Android and iOS devices before internal distribution.

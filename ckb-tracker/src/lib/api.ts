@@ -25,6 +25,14 @@ import type {
   WeeklySchedule,
 } from '@/types';
 import { API_BASE_URL, apiUrl } from '@/lib/apiBase';
+import {
+  clearNativeSession,
+  getNativeAccessToken,
+  isNativeApp,
+  loadNativeSession,
+  saveNativeSession,
+  setNativeAccessToken,
+} from '@/lib/nativeSessionStorage';
 
 
 export interface BulkCheckInError {
@@ -68,6 +76,9 @@ api.interceptors.request.use((config) => {
   const kioskToken = getKioskStaffToken();
   if (kioskToken) {
     config.headers['Authorization'] = `Bearer ${kioskToken}`;
+  } else {
+    const nativeToken = getNativeAccessToken();
+    if (nativeToken) config.headers['Authorization'] = `Bearer ${nativeToken}`;
   }
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
@@ -79,9 +90,49 @@ api.interceptors.request.use((config) => {
 let onKioskLockCallback: (() => void) | null = null;
 let kioskRefreshInProgress = false;
 let webRefreshInProgress: Promise<boolean> | null = null;
+let nativeRefreshInProgress: Promise<boolean> | null = null;
+let onNativeSessionExpired: (() => void) | null = null;
 
 export function setOnKioskLock(callback: (() => void) | null) {
   onKioskLockCallback = callback;
+}
+
+export function setOnNativeSessionExpired(callback: (() => void) | null) {
+  onNativeSessionExpired = callback;
+}
+
+async function refreshNativeSession(): Promise<boolean> {
+  if (nativeRefreshInProgress) return nativeRefreshInProgress;
+
+  nativeRefreshInProgress = (async () => {
+    try {
+      const stored = await loadNativeSession();
+      if (!stored) return false;
+
+      const response = await axios.post<{
+        access_token: string;
+        refresh_token: string;
+      }>(apiUrl('/auth/refresh'), { refresh_token: stored.refreshToken }, {
+        headers: { 'X-Client-Platform': 'capacitor' },
+        withCredentials: false,
+      });
+
+      await saveNativeSession({
+        accessToken: response.data.access_token,
+        refreshToken: response.data.refresh_token,
+      });
+      setNativeAccessToken(response.data.access_token);
+      return true;
+    } catch {
+      await clearNativeSession().catch(() => undefined);
+      onNativeSessionExpired?.();
+      return false;
+    } finally {
+      nativeRefreshInProgress = null;
+    }
+  })();
+
+  return nativeRefreshInProgress;
 }
 
 async function refreshWebSession(): Promise<boolean> {
@@ -107,6 +158,21 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      isNativeApp() &&
+      getNativeAccessToken() &&
+      !originalRequest?._nativeRetried
+    ) {
+      originalRequest._nativeRetried = true;
+      const refreshed = await refreshNativeSession();
+      if (refreshed) {
+        originalRequest.headers['Authorization'] = `Bearer ${getNativeAccessToken()}`;
+        return api(originalRequest);
+      }
+      return Promise.reject(error);
+    }
 
     if (
       error.response?.status === 401 &&
@@ -140,6 +206,7 @@ api.interceptors.response.use(
     const isAuthRequest = originalRequest?.url?.includes('/auth/');
     if (
       error.response?.status === 401 &&
+      !isNativeApp() &&
       !getKioskStaffToken() &&
       !isAuthRequest &&
       !originalRequest?._webRetried
@@ -156,11 +223,30 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+    const payload = { email, password };
+    const response = isNativeApp()
+      ? await api.post('/auth/login', payload, { headers: { 'X-Client-Platform': 'capacitor' } })
+      : await api.post('/auth/login', payload);
     return response.data;
   },
   teacherLogin: async (email: string, password: string) => {
-    const response = await api.post('/auth/teacher-login', { email, password });
+    const payload = { email, password };
+    const response = isNativeApp()
+      ? await api.post('/auth/teacher-login', payload, { headers: { 'X-Client-Platform': 'capacitor' } })
+      : await api.post('/auth/teacher-login', payload);
+    return response.data;
+  },
+  me: async () => {
+    const response = await api.get('/auth/me');
+    return response.data;
+  },
+  logout: async () => {
+    const stored = isNativeApp() ? await loadNativeSession() : null;
+    const response = await api.post('/auth/logout', stored ? { refresh_token: stored.refreshToken } : null);
+    return response.data;
+  },
+  logoutAll: async () => {
+    const response = await api.post('/auth/logout-all', null);
     return response.data;
   },
   verifySession: async () => {
