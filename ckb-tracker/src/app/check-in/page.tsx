@@ -928,31 +928,23 @@ export default function CheckInPage() {
                 className="mb-4"
               />
             )}
-            <div className="mb-5 overflow-x-auto pb-1">
-              <div className="flex min-w-max gap-2" role="tablist" aria-label="Select class day">
-                {DAYS_OF_WEEK.map((day) => {
-                  const isSelected = selectedDay === day;
-                  const isTodayDay = day === todayDayName;
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      role="tab"
-                      aria-selected={isSelected}
-                      onClick={() => setSelectedDay(day)}
-                      className={cn(
-                        "min-w-[4.5rem] rounded-lg border px-3 py-2 text-center transition-colors",
-                        isSelected
-                          ? "border-primary-container bg-primary-container text-on-primary-container"
-                          : "border-outline-variant/20 bg-surface-container text-on-surface-variant hover:border-primary-container/50",
-                      )}
-                    >
-                      <span className="block text-[10px] font-black uppercase tracking-widest">{day.slice(0, 3)}</span>
-                      {isTodayDay && <span className="mt-1 block text-[9px] font-bold uppercase">Today</span>}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mb-5">
+              <label htmlFor="check-in-day" className="mb-2 block text-xs font-black uppercase tracking-widest text-on-surface-variant">
+                Select class day
+              </label>
+              <select
+                id="check-in-day"
+                value={selectedDay}
+                onChange={(event) => setSelectedDay(event.target.value)}
+                className="w-full rounded-lg border border-outline-variant/20 bg-surface-container px-3 py-3 text-sm font-bold text-on-surface outline-none transition-colors focus:border-primary-container focus:ring-2 focus:ring-primary-container/30"
+              >
+                {DAYS_OF_WEEK.map((day, dayIndex) => (
+                  <option key={day} value={day}>
+                    {day}{day === todayDayName ? ' - Today' : ''}
+                    {weekDates[dayIndex] ? ` (${formatDate(weekDates[dayIndex])})` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
             {(() => {
               const dayIndex = DAYS_OF_WEEK.indexOf(selectedDay);

@@ -453,33 +453,26 @@ export default function TeacherPage() {
               />
             )}
 
-            <div className="mb-6 overflow-x-auto pb-1">
-              <div className="flex min-w-max gap-2" role="tablist" aria-label="Select class day">
+            <div className="mb-6">
+              <label htmlFor="teacher-day" className="mb-2 block text-xs font-black uppercase tracking-widest text-on-surface-variant">
+                Select class day
+              </label>
+              <select
+                id="teacher-day"
+                value={selectedDate}
+                onChange={(event) => selectDay(event.target.value)}
+                className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-3 py-3 text-sm font-bold text-on-surface outline-none transition-colors focus:border-primary-container focus:ring-2 focus:ring-primary-container/30"
+              >
                 {WEEK_DAYS.map((day, i) => {
                   const dateStr = toDateString(weekDates[i]);
-                  const isSelected = dateStr === selectedDate;
                   const isToday = dateStr === toDateString(new Date());
                   return (
-                    <button
-                      key={day}
-                      type="button"
-                      role="tab"
-                      aria-selected={isSelected}
-                      onClick={() => selectDay(dateStr)}
-                      className={cn(
-                        "min-w-[4.75rem] rounded-lg border px-3 py-2 text-center transition-colors",
-                        isSelected
-                          ? "border-primary-container bg-primary-container text-on-primary-container"
-                          : "border-outline-variant/20 bg-surface-container-low text-on-surface-variant hover:border-primary-container/50",
-                      )}
-                    >
-                      <span className="block text-[10px] font-black uppercase tracking-widest">{day.slice(0, 3)}</span>
-                      <span className="mt-1 block text-xs">{weekDates[i].getDate()}</span>
-                      {isToday && <span className="mt-1 block text-[9px] font-bold uppercase">Today</span>}
-                    </button>
+                    <option key={dateStr} value={dateStr}>
+                      {day}{isToday ? ' - Today' : ''} ({formatDate(dateStr)})
+                    </option>
                   );
                 })}
-              </div>
+              </select>
             </div>
 
             <div className="mb-6 flex items-center justify-between">
