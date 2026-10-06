@@ -117,4 +117,12 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Added a shared mobile navigation drawer for authenticated routes and check-in.
 - Added role-filtered navigation, accessible open/close controls, backdrop dismissal, and Escape-key dismissal.
 - Added safe-area-aware check-in content spacing and offline-banner padding.
+- Merged as commit `4b75d24` on `feature/mobile-app-foundation` and reviewed after merge.
 - Automated frontend coverage passes; iPhone Safari, standalone PWA, Android Chrome, rotation, and keyboard validation remain manual follow-up work.
+
+## Phase 5F Automated Validation Checkpoint (2026-10-06)
+
+- Added component coverage for backdrop dismissal, permitted-route dismissal, and safe-area/touch-target classes in `mobile-navigation.test.tsx`.
+- Passed 194 frontend Vitest tests, 161 backend tests, frontend lint with 0 errors, and a successful production build.
+- Passed both mobile Playwright integration tests at a 375px viewport.
+- Physical-device validation remains open: iPhone Safari/PWA, Android Chrome/PWA, rotation, keyboard behavior, kiosk smoke flow, and the 320/390/430px width matrix.

@@ -319,9 +319,9 @@ After implementation:
 
 Phase 5E closed on 2026-10-04 after the same-origin proxy deployment and desktop/iPhone data-flow verification. Android Chrome and kiosk smoke testing remain tracked as general release checklist items.
 
-### Phase 5F: Mobile Navigation and Safe-Area Layout
+### Phase 5F: Mobile Navigation and Safe-Area Layout (Implementation Complete)
 
-Begin only after Phase 5E data flows are healthy. This phase addresses the physical-device layout findings without changing the API contract. The initial implementation is complete; physical-device validation remains open.
+Begin only after Phase 5E data flows are healthy. This phase addresses the physical-device layout findings without changing the API contract. The implementation is complete and merged; physical-device release validation remains open in the readiness checklist.
 
 Observed layout issues to resolve:
 
@@ -379,6 +379,12 @@ Observed layout issues to resolve:
 - No horizontal overflow occurs at the smallest supported phone width.
 - Portal, teacher, and check-in navigation remains role-appropriate.
 - The same physical-device smoke flows pass after the layout changes.
+
+#### 5F.6 Automated validation checkpoint (2026-10-06)
+
+- Added automated coverage for mobile navigation backdrop dismissal, permitted-route dismissal, and safe-area/touch-target contracts.
+- Passed 194 frontend tests, 161 backend tests, frontend lint with 0 errors, production build, and both mobile Playwright integration tests at 375px.
+- Phase 5F remains open until the physical-device matrix, kiosk smoke flow, rotation, keyboard behavior, and Android Chrome/PWA checks are observed and recorded.
 
 ## Phase 6: Capacitor App Wrapper
 

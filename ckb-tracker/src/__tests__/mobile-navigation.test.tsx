@@ -55,4 +55,27 @@ describe('MobileNavigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close navigation menu' }))
     expect(screen.getByRole('complementary', { name: 'Mobile navigation' })).toHaveClass('-translate-x-full')
   })
+
+  it('dismisses from the backdrop and keeps the trigger touch-safe', () => {
+    const { container } = render(<MobileNavigation />)
+    const trigger = screen.getByRole('button', { name: 'Open navigation menu' })
+
+    expect(trigger).toHaveClass('min-h-11', 'min-w-11')
+    expect(trigger).toHaveClass('top-[calc(1rem+env(safe-area-inset-top))]')
+
+    fireEvent.click(trigger)
+    const backdrop = container.querySelector('div[aria-hidden="true"]')
+    expect(backdrop).not.toBeNull()
+    fireEvent.click(backdrop!)
+
+    expect(screen.getByRole('complementary', { name: 'Mobile navigation' })).toHaveClass('-translate-x-full')
+  })
+
+  it('closes after choosing a permitted destination', () => {
+    render(<MobileNavigation />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Teacher' }))
+
+    expect(screen.getByRole('complementary', { name: 'Mobile navigation' })).toHaveClass('-translate-x-full')
+  })
 })
