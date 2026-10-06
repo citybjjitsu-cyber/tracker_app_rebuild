@@ -380,6 +380,12 @@ Observed layout issues to resolve:
 - Portal, teacher, and check-in navigation remains role-appropriate.
 - The same physical-device smoke flows pass after the layout changes.
 
+#### 5F.6 Automated validation checkpoint (2026-10-06)
+
+- Added automated coverage for mobile navigation backdrop dismissal, permitted-route dismissal, and safe-area/touch-target contracts.
+- Passed 194 frontend tests, 161 backend tests, frontend lint with 0 errors, production build, and both mobile Playwright integration tests at 375px.
+- Phase 5F remains open until the physical-device matrix, kiosk smoke flow, rotation, keyboard behavior, and Android Chrome/PWA checks are observed and recorded.
+
 ## Phase 6: Capacitor App Wrapper
 
 If App Store and Play Store presence is desired:
