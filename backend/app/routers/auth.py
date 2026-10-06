@@ -445,8 +445,7 @@ def refresh_token(
         "csrf_token": csrf_token,
     }
     if is_native:
-        result["refresh_token"] = new_refresh_token
-        result["token_type"] = "bearer"
+        result.update({"refresh_token": new_refresh_token, "token_type": "bearer"})
     return result
 
 
