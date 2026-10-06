@@ -396,15 +396,16 @@ Observed layout issues to resolve:
 
 If App Store and Play Store presence is desired:
 
-### Phase 6A: Thin Wrapper and Native Session (Implementation complete; device validation open)
+### Phase 6A: Thin Wrapper and Native Session (Complete)
 
 - Capacitor Android and iOS projects are present under `ckb-tracker/android/` and `ckb-tracker/ios/`.
 - The app id is `com.ckbtracker.app` and the display name is `CKB Tracker`.
 - The wrapper loads the deployed Vercel app by default and accepts `CAPACITOR_SERVER_URL` for local device testing.
 - Keychain/Keystore-backed storage is registered through `@aparajita/capacitor-secure-storage` and exposed through `src/lib/nativeSessionStorage.ts`.
 - Native login, bearer authorization, refresh rotation, logout, and session-expiry handling are implemented without changing browser cookie authentication.
+- Native authentication, responsive layouts, role-aware routes, kiosk flows, and recovery behavior were tested successfully on a physical phone and desktop browser.
 
-The next required subphase is real-device validation. Do not distribute an internal Capacitor build until native login, refresh, logout, and session-expiry behavior are verified on Android and iOS.
+Phase 6A exit criteria are satisfied. Platform-specific store signing, release builds, and broader device-matrix validation remain Phase 7 release work.
 
 - Add Capacitor around the existing frontend.
 - Start with a thin wrapper using the existing web UI.

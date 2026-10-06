@@ -15,8 +15,7 @@ import {
   Shield,
   Sun,
   Moon,
-  CheckCircle,
-  Zap
+  CheckCircle
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -155,15 +154,6 @@ function SidebarContent({
           );
         })}
       </nav>
-
-      {!isCollapsed && (
-        <div className="px-3 mb-4">
-          <button className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-primary-container/10 border border-primary-container/20 text-primary-container font-label text-sm tracking-wider uppercase hover:bg-primary-container/20 transition-all">
-            <Zap className="w-4 h-4" />
-            Quick Strike
-          </button>
-        </div>
-      )}
 
       <div className="py-4">
         {isAuthenticated && user ? (

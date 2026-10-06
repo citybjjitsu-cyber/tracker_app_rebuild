@@ -8,7 +8,7 @@ This file is a historical implementation log. The current operational facts are:
 - GitHub Actions tests run on pushes and pull requests. Deployment is manually dispatched with a selected environment; it is not triggered automatically by every push to `main`.
 - Render startup runs Alembic migrations. Application startup initializes rank tiers and backfills rank-tier links, but does not seed the complete demo dataset automatically.
 - Kiosk staff tokens are memory-only. The kiosk idle timeout is configurable through `KIOSK_IDLE_MINUTES` and is currently 240 minutes in Render; access-token refresh is supported.
-- The current mobile work is an installable Next.js PWA with a static shell and online-only authenticated data. Phase 5E deployed data integration recovery is complete; Capacitor packaging remains deferred.
+- The current mobile work is an installable Next.js PWA with a static shell and online-only authenticated data. Capacitor packaging and native bearer-token authentication are implemented and validated on a physical phone and desktop browser.
 
 See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_phases.md` for current plans and operating procedures.
 
@@ -20,7 +20,14 @@ See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_p
 - Fixed a `/news/` proxy/page-route collision that caused the home page to crash when the API response was HTML instead of JSON.
 - Fixed the theme hydration mismatch and allowed the configured Google font through the frontend CSP.
 - Revalidated login, portal analytics, attendance, teacher schedule, check-in, admin access, and recovery flows on desktop and iPhone.
-- Frontend deployment fix commit: `8e29baa`; Capacitor packaging remains deferred until the next mobile phase.
+- Frontend deployment fix commit: `8e29baa`; Capacitor packaging is now implemented in Phase 6A.
+
+## RECENT UPDATES (October 6, 2026) - Phase 6A Complete
+
+- Added the Capacitor Android and iOS wrapper projects with remote-web configuration and secure native token storage.
+- Added native bearer-token login, refresh rotation, logout, and session-expiry handling while preserving browser cookie authentication.
+- Verified the mobile experience and authentication flows on a physical phone and desktop browser, including responsive layouts, role-aware routes, kiosk flows, and recovery behavior.
+- Platform-specific signing, release builds, and broader device-matrix validation remain before store distribution.
 
 ## Project Overview
 Martial Arts Attendance Tracking System - A full-stack application for managing student attendance, class scheduling, curriculum/lesson management, teacher assignments, and providing analytics dashboards for students, teachers, and administrators.

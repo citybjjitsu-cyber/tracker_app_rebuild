@@ -83,6 +83,7 @@ export default function CheckInPage() {
 
   const today = new Date();
   const todayDayName = DAYS_OF_WEEK[today.getDay()];
+  const [selectedDay, setSelectedDay] = useState(todayDayName);
 
   const weekDates = useMemo(() => {
     const now = new Date();
@@ -837,17 +838,6 @@ export default function CheckInPage() {
                   </div>
                 </div>
               </div>
-              <div className="relative z-10 ml-auto self-center flex flex-col items-end gap-2">
-                {(hasCheckedIn || pendingCheckIns.length > 0) && (
-                  <button
-                    onClick={handleComplete}
-                    disabled={isFormLoading}
-                    className="bg-primary-container text-white px-8 py-4 rounded-lg font-headline font-black text-base uppercase tracking-widest shadow-xl shadow-primary-container/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {isFormLoading ? 'Checking in...' : 'Confirm'}
-                  </button>
-                )}
-              </div>
             </div>
           </div>
 
@@ -938,97 +928,122 @@ export default function CheckInPage() {
                 className="mb-4"
               />
             )}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                {DAYS_OF_WEEK.map((day, dayIndex) => {
-                  const dayDateStr = weekDates[dayIndex];
-                  const dayClasses = classes.filter(c => c.day?.toLowerCase() === day.toLowerCase()).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            <div className="mb-5 overflow-x-auto pb-1">
+              <div className="flex min-w-max gap-2" role="tablist" aria-label="Select class day">
+                {DAYS_OF_WEEK.map((day) => {
+                  const isSelected = selectedDay === day;
                   const isTodayDay = day === todayDayName;
-                  
-                   return (
-                      <div key={day} className="space-y-3">
-                        <div className={cn(
-                          "text-center py-2 rounded-t-lg",
-                          isTodayDay ? "bg-neutral-950 border border-primary-container/30" : "bg-surface-container"
-                        )}>
-                          <p className={cn(
-                            "text-[10px] font-black uppercase tracking-widest",
-                            isTodayDay ? "text-primary" : "text-on-surface-variant"
-                          )}>{day.slice(0, 3)}</p>
-                        </div>
-                        <div className="space-y-3">
-                          {dayClasses.length > 0 ? (
-                            dayClasses.map((cls) => {
-                              const { status, attendance } = getAttendanceStatus(cls.id, dayDateStr);
-                              
-                              return (
-                                <div
-                                  key={cls.id}
-                                  className={cn(
-                                    "p-3 rounded-lg border-l-[3px] transition-all duration-200",
-                                    status === 'confirmed'
-                                      ? "bg-surface-container-low border-green-500"
-                                      : status === 'pending'
-                                      ? "bg-surface-container-low border-amber-500"
-                                      : "bg-surface-container-low border-primary-container hover:bg-surface-container-high cursor-pointer"
-                                  )}
-                                >
-                                  <p className="text-[10px] font-bold text-primary-container uppercase mb-1">{cls.time}</p>
-                                  <p className="text-xs font-bold text-on-surface leading-tight">{cls.class_name}</p>
-                                  <div className="mt-2 flex justify-between items-center">
-                                    {status === 'not_checked_in' && (
-                                      <Button
-                                        size="sm"
-                                        className="w-full text-[10px] font-black uppercase tracking-tight"
-                                        onClick={() => togglePendingCheckIn(cls.id, dayDateStr)}
-                                        disabled={isFormLoading}
-                                      >
-                                        Check In
-                                      </Button>
-                                    )}
-                                    {status === 'queued' && (
-                                      <Button
-                                        size="sm"
-                                        variant="success"
-                                        className="w-full text-[10px] font-black uppercase tracking-tight"
-                                        onClick={() => togglePendingCheckIn(cls.id, dayDateStr)}
-                                      >
-                                        Selected ✓
-                                      </Button>
-                                    )}
-                                    {status === 'pending' && (
-                                      <>
-                                        <span className="text-[10px] font-bold text-amber-400 uppercase">Pending</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-[10px] text-error font-bold"
-                                          onClick={() => handleCancelCheckIn(attendance!.id)}
-                                        >
-                                          Cancel
-                                        </Button>
-                                      </>
-                                    )}
-                                    {status === 'confirmed' && (
-                                      <span className="text-[10px] font-bold text-green-500 uppercase flex items-center gap-1">
-                                        <CheckCircle2 className="w-3 h-3" /> Confirmed
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div className="border-2 border-dashed border-outline-variant/20 h-24 rounded-lg flex items-center justify-center">
-                              <p className="text-[10px] font-bold text-neutral-700 uppercase text-center leading-tight">
-                                {day === 'Sunday' ? 'Gym Closed' : 'No Classes'}
-                              </p>
-                            </div>
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      role="tab"
+                      aria-selected={isSelected}
+                      onClick={() => setSelectedDay(day)}
+                      className={cn(
+                        "min-w-[4.5rem] rounded-lg border px-3 py-2 text-center transition-colors",
+                        isSelected
+                          ? "border-primary-container bg-primary-container text-on-primary-container"
+                          : "border-outline-variant/20 bg-surface-container text-on-surface-variant hover:border-primary-container/50",
+                      )}
+                    >
+                      <span className="block text-[10px] font-black uppercase tracking-widest">{day.slice(0, 3)}</span>
+                      {isTodayDay && <span className="mt-1 block text-[9px] font-bold uppercase">Today</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {(() => {
+              const dayIndex = DAYS_OF_WEEK.indexOf(selectedDay);
+              const dayDateStr = weekDates[dayIndex];
+              const dayClasses = classes
+                .filter(c => c.day?.toLowerCase() === selectedDay.toLowerCase())
+                .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-headline text-sm font-black uppercase tracking-widest text-on-surface">
+                      {selectedDay}
+                    </h3>
+                    <span className="text-xs text-on-surface-variant">{formatDate(dayDateStr)}</span>
+                  </div>
+                  {dayClasses.length > 0 ? (
+                    dayClasses.map((cls) => {
+                      const { status, attendance } = getAttendanceStatus(cls.id, dayDateStr);
+
+                      return (
+                        <div
+                          key={cls.id}
+                          className={cn(
+                            "p-4 rounded-lg border-l-[3px] transition-all duration-200",
+                            status === 'confirmed'
+                              ? "bg-surface-container-low border-green-500"
+                              : status === 'pending'
+                              ? "bg-surface-container-low border-amber-500"
+                              : "bg-surface-container-low border-primary-container hover:bg-surface-container-high cursor-pointer"
                           )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-bold text-primary-container uppercase mb-1">{cls.time}</p>
+                              <p className="text-sm font-bold text-on-surface leading-tight">{cls.class_name}</p>
+                            </div>
+                            <div className="min-w-[7rem]">
+                              {status === 'not_checked_in' && (
+                                <Button
+                                  size="sm"
+                                  className="w-full text-[10px] font-black uppercase tracking-tight"
+                                  onClick={() => togglePendingCheckIn(cls.id, dayDateStr)}
+                                  disabled={isFormLoading}
+                                >
+                                  Check In
+                                </Button>
+                              )}
+                              {status === 'queued' && (
+                                <Button
+                                  size="sm"
+                                  variant="success"
+                                  className="w-full text-[10px] font-black uppercase tracking-tight"
+                                  onClick={() => togglePendingCheckIn(cls.id, dayDateStr)}
+                                >
+                                  Selected ✓
+                                </Button>
+                              )}
+                              {status === 'pending' && (
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="text-[10px] font-bold text-amber-400 uppercase">Pending</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-[10px] text-error font-bold"
+                                    onClick={() => handleCancelCheckIn(attendance!.id)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              )}
+                              {status === 'confirmed' && (
+                                <span className="text-[10px] font-bold text-green-500 uppercase flex items-center justify-end gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> Confirmed
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                   );
-                 })}
-               </div>
+                      );
+                    })
+                  ) : (
+                    <div className="border-2 border-dashed border-outline-variant/20 h-24 rounded-lg flex items-center justify-center">
+                      <p className="text-[10px] font-bold text-neutral-700 uppercase text-center leading-tight">
+                        {selectedDay === 'Sunday' ? 'Gym Closed' : 'No Classes'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
              {(hasCheckedIn || pendingCheckIns.length > 0) && (
                 <div className="flex gap-3 mt-6 pt-6 border-t border-outline-variant/20">
                   <Button className="flex-1" onClick={handleComplete} disabled={isFormLoading} isLoading={isFormLoading}>

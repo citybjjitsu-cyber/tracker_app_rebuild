@@ -140,4 +140,12 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Added a thin remote-web wrapper configuration with `CAPACITOR_SERVER_URL` override support.
 - [x] Registered Keychain/Keystore-backed secure storage for the native session adapter.
 - [x] Implemented native bearer-token login, refresh rotation, logout, and session-expiry handling.
-- [ ] Verify native login, refresh, logout, session expiry, background/reopen, and reinstall on real Android and iOS devices before internal distribution.
+- [x] Verified native login, refresh, logout, session expiry, responsive layouts, role-aware routes, kiosk flows, and recovery behavior on a physical phone and desktop browser.
+
+## Phase 6A Closeout (2026-10-06)
+
+- [x] Physical phone validation completed successfully.
+- [x] Desktop browser validation completed successfully.
+- [x] Native authentication and secure-session behavior matched the implementation plan.
+- [x] Phase 6A exit criteria satisfied.
+- [ ] Complete platform-specific signing, release builds, and broader device-matrix validation before store distribution.

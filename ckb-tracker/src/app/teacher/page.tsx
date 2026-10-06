@@ -8,7 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
 import { formatDate, cn } from '@/lib/utils';
-import { LogOut, GraduationCap, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
+import { LogOut, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WeeklyScheduleClass, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
@@ -17,7 +17,7 @@ import { WEEK_DAYS, getWeekDates, toDateString } from '@/lib/teacherSchedule';
 
 export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
-  const [activeTab, setActiveTab] = useState<'attendance' | 'feedback' | 'comments' | 'students'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'feedback' | 'comments'>('attendance');
   const [classes, setClasses] = useState<WeeklyScheduleClass[]>([]);
   const [selectedDate, setSelectedDate] = useState(toDateString(new Date()));
   const [selectedClass, setSelectedClass] = useState<number | ''>('');
@@ -40,10 +40,6 @@ export default function TeacherPage() {
   const [showCreateComment, setShowCreateComment] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [manualStudentUuid, setManualStudentUuid] = useState('');
-
-  const [newStudentForm, setNewStudentForm] = useState({ first_name: '', last_name: '', email: '' });
-  const [studentCreateError, setStudentCreateError] = useState('');
-  const [studentCreateSuccess, setStudentCreateSuccess] = useState('');
 
   const weekDates = getWeekDates(weekOffset);
 
@@ -310,22 +306,6 @@ export default function TeacherPage() {
     }
   };
 
-  const handleCreateStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStudentCreateError('');
-    setStudentCreateSuccess('');
-    try {
-      await usersApi.teacherCreate(newStudentForm);
-      setStudentCreateSuccess(`${newStudentForm.first_name} ${newStudentForm.last_name} created successfully. They can be invited to set their password and PIN.`);
-      setNewStudentForm({ first_name: '', last_name: '', email: '' });
-    } catch (err: unknown) {
-      const msg = err instanceof Error && 'response' in err
-        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || err.message
-        : String(err);
-      setStudentCreateError(msg);
-    }
-  };
-
   const pendingCount = attendance.filter(a => a.status === 'pending').length;
   const confirmedCount = attendance.filter(a => a.status === 'confirmed').length;
 
@@ -371,13 +351,7 @@ export default function TeacherPage() {
     );
   }
 
-  const classesByDay: Record<string, WeeklyScheduleClass[]> = {};
-  for (const [index, day] of WEEK_DAYS.entries()) {
-    classesByDay[day] = classes.filter(
-      c => c.scheduled_date === toDateString(weekDates[index])
-    );
-  }
-  const unassignedClasses: WeeklyScheduleClass[] = [];
+  const selectedDayClasses = classes.filter(c => c.scheduled_date === selectedDate);
 
   return (
     <>
@@ -394,7 +368,7 @@ export default function TeacherPage() {
         </div>
 
         <div className="flex gap-6 mb-6 border-b border-outline-variant/20 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
-          {(['attendance', 'feedback', 'comments', 'students'] as const).map((tab) => (
+          {(['attendance', 'feedback', 'comments'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); if (tab === 'feedback') loadFeedback(); if (tab === 'comments') loadComments(); }}
@@ -404,7 +378,7 @@ export default function TeacherPage() {
                   : 'text-on-surface-variant/70 hover:text-on-surface'
               }`}
             >
-              {tab === 'attendance' ? 'Attendance' : tab === 'feedback' ? 'Feedback' : tab === 'comments' ? 'Comments' : 'New Student'}
+              {tab === 'attendance' ? 'Attendance' : tab === 'feedback' ? 'Feedback' : 'Comments'}
             </button>
           ))}
         </div>
@@ -479,159 +453,80 @@ export default function TeacherPage() {
               />
             )}
 
-            {/* Desktop View: 7-column calendar grid */}
-            <div className="hidden md:grid grid-cols-7 gap-3 mb-6">
-              {WEEK_DAYS.map((day, i) => {
-                const dateStr = toDateString(weekDates[i]);
-                const isToday = dateStr === toDateString(new Date());
-                const isSelected = dateStr === selectedDate;
-                const dayClasses = classesByDay[day] || [];
-                return (
-                  <div
-                    key={day}
-                    className={`rounded-lg border p-3 min-h-[120px] cursor-pointer transition-all duration-200 ${
-                      isSelected
-                        ? 'border-primary-container bg-primary-container/10 ring-1 ring-primary-container'
-                        : isToday
-                          ? 'border-primary-container/50 bg-surface-container-low'
-                          : 'border-outline-variant/20 bg-surface-container-low hover:border-outline-variant/40'
-                    }`}
-                    onClick={() => selectDay(dateStr)}
-                  >
-                    <p className={`text-xs font-bold font-label uppercase mb-1 ${isToday ? 'text-primary-container' : 'text-on-surface-variant'}`}>
-                      {day.slice(0, 3)}
-                    </p>
-                    <p className={`text-xs mb-2 ${isToday ? 'text-primary-container' : 'text-on-surface-variant'}`}>
-                      {weekDates[i].getDate()}
-                    </p>
-                    <div className="space-y-1">
-                      {dayClasses.map((cls) => (
-                        <button
-                          key={cls.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectClass(dateStr, cls.id);
-                          }}
-                          className={`w-full text-left text-xs leading-tight p-2 rounded transition-colors ${
-                            selectedClass === cls.id && isSelected
-                              ? 'bg-primary-container text-on-primary-container font-bold'
-                              : 'bg-surface text-on-surface hover:bg-surface-container'
-                          }`}
-                        >
-                          {cls.class_name}
-                        </button>
-                      ))}
-                      {dayClasses.length === 0 && (
-                        <p className="text-xs text-on-surface-variant/50 italic">No classes</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Mobile View: Match check-in with a two-column weekly class grid */}
-            <div className="md:hidden grid grid-cols-2 gap-3 mb-6">
-              <>
+            <div className="mb-6 overflow-x-auto pb-1">
+              <div className="flex min-w-max gap-2" role="tablist" aria-label="Select class day">
                 {WEEK_DAYS.map((day, i) => {
                   const dateStr = toDateString(weekDates[i]);
-                  const dayClasses = classesByDay[day] || [];
-                  const isSelectedDay = dateStr === selectedDate;
+                  const isSelected = dateStr === selectedDate;
                   const isToday = dateStr === toDateString(new Date());
-
                   return (
-                    <section
+                    <button
                       key={day}
+                      type="button"
+                      role="tab"
+                      aria-selected={isSelected}
+                      onClick={() => selectDay(dateStr)}
                       className={cn(
-                        "rounded-xl border p-3",
-                        isSelectedDay
-                          ? "border-primary-container/60 bg-primary-container/5"
-                          : "border-outline-variant/15 bg-surface-container-low"
+                        "min-w-[4.75rem] rounded-lg border px-3 py-2 text-center transition-colors",
+                        isSelected
+                          ? "border-primary-container bg-primary-container text-on-primary-container"
+                          : "border-outline-variant/20 bg-surface-container-low text-on-surface-variant hover:border-primary-container/50",
                       )}
                     >
-                      <button
-                        type="button"
-                        onClick={() => selectDay(dateStr)}
-                        className="flex w-full items-center justify-between text-left mb-2"
-                      >
-                        <span className={cn(
-                          "text-xs font-bold uppercase tracking-widest",
-                          isToday ? "text-primary-container" : "text-on-surface-variant"
-                        )}>
-                          {day}
-                        </span>
-                        <span className="text-xs text-on-surface-variant">
-                          {formatDate(dateStr)}
-                        </span>
-                      </button>
-
-                      {dayClasses.length > 0 ? (
-                        <div className="space-y-2">
-                          {dayClasses.map((cls) => {
-                            const isSelectedClass = selectedClass === cls.id && isSelectedDay;
-                            return (
-                              <button
-                                key={cls.id}
-                                type="button"
-                                onClick={() => selectClass(dateStr, cls.id)}
-                                className={cn(
-                                  "w-full flex items-center justify-between gap-3 p-3 rounded-lg border text-left transition-colors",
-                                  isSelectedClass
-                                    ? "border-primary-container bg-primary-container/10 text-on-surface ring-1 ring-primary-container"
-                                    : "border-outline-variant/10 bg-surface hover:bg-surface-container text-on-surface"
-                                )}
-                              >
-                                <span className="min-w-0 flex-1">
-                                  <span className={cn(
-                                    "block text-xs font-bold uppercase tracking-wider",
-                                    isSelectedClass ? "text-primary-container" : "text-on-surface-variant"
-                                  )}>
-                                    {cls.time || "No Time"}
-                                  </span>
-                                  <span className="block font-headline font-bold text-sm break-words">
-                                    {cls.class_name}
-                                  </span>
-                                </span>
-                                <span className={cn(
-                                  "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                                  isSelectedClass ? "border-primary-container bg-primary-container" : "border-outline-variant/30"
-                                )}>
-                                  {isSelectedClass && <span className="w-2 h-2 rounded-full bg-white" />}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-on-surface-variant/60 italic">No classes</p>
-                      )}
-                    </section>
+                      <span className="block text-[10px] font-black uppercase tracking-widest">{day.slice(0, 3)}</span>
+                      <span className="mt-1 block text-xs">{weekDates[i].getDate()}</span>
+                      {isToday && <span className="mt-1 block text-[9px] font-bold uppercase">Today</span>}
+                    </button>
                   );
                 })}
-                {unassignedClasses.length > 0 && (
-                  <section className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3">
-                    <p className="text-xs font-bold uppercase tracking-widest text-yellow-400 mb-2">
-                      Other scheduled classes
-                    </p>
-                    <div className="space-y-2">
-                      {unassignedClasses.map((cls) => (
-                        <button
-                          key={cls.id}
-                          type="button"
-                          onClick={() => selectClass(selectedDate, cls.id)}
-                          className="w-full rounded-lg border border-outline-variant/10 bg-surface p-3 text-left text-sm text-on-surface"
-                        >
-                          <span className="block text-xs text-on-surface-variant">
-                            {cls.day || 'Day not set'}{cls.time ? ` - ${cls.time}` : ''}
-                          </span>
-                          <span className="block font-headline font-bold break-words">{cls.class_name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )}
-              </>
+              </div>
             </div>
+
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="font-headline text-sm font-black uppercase tracking-widest text-on-surface">
+                  {formatDate(selectedDate)}
+                </h3>
+                <p className="text-xs text-on-surface-variant">
+                  {selectedDayClasses.length} {selectedDayClasses.length === 1 ? 'class' : 'classes'} scheduled
+                </p>
+              </div>
+            </div>
+
+            {selectedDayClasses.length > 0 ? (
+              <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {selectedDayClasses.map((cls) => {
+                  const isSelectedClass = selectedClass === cls.id;
+                  return (
+                    <button
+                      key={cls.id}
+                      type="button"
+                      onClick={() => selectClass(selectedDate, cls.id)}
+                      className={cn(
+                        "rounded-lg border p-3 text-left transition-colors",
+                        isSelectedClass
+                          ? "border-primary-container bg-primary-container/10 ring-1 ring-primary-container"
+                          : "border-outline-variant/20 bg-surface-container-low hover:border-primary-container/50"
+                      )}
+                    >
+                      <span className={cn(
+                        "block text-xs font-bold uppercase tracking-wider",
+                        isSelectedClass ? "text-primary-container" : "text-on-surface-variant"
+                      )}>
+                        {cls.time || 'No Time'}
+                      </span>
+                      <span className="mt-1 block font-headline font-bold text-sm break-words text-on-surface">
+                        {cls.class_name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mb-6 rounded-lg border border-dashed border-outline-variant/20 py-8 text-center text-sm text-on-surface-variant">
+                No classes scheduled for this day.
+              </p>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="text-center p-4 glass-panel rounded-lg">
@@ -918,58 +813,6 @@ export default function TeacherPage() {
           </>
         )}
 
-        {activeTab === 'students' && (
-          <div className="glass-panel rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center">
-                <UserPlus className="w-5 h-5 text-on-primary-container" />
-              </div>
-              <div>
-                <h2 className="text-lg font-headline font-bold text-on-surface">Create New Student</h2>
-                <p className="text-sm text-on-surface-variant">Add a basic student profile. Password and PIN are set via invite.</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleCreateStudent} className="space-y-4 max-w-md">
-              <div>
-                <label className="block text-sm font-label text-on-surface-variant mb-1">First Name *</label>
-                <Input
-                  type="text"
-                  value={newStudentForm.first_name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudentForm({ ...newStudentForm, first_name: e.target.value })}
-                  required
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-label text-on-surface-variant mb-1">Last Name *</label>
-                <Input
-                  type="text"
-                  value={newStudentForm.last_name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudentForm({ ...newStudentForm, last_name: e.target.value })}
-                  required
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-label text-on-surface-variant mb-1">Email *</label>
-                <Input
-                  type="email"
-                  value={newStudentForm.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudentForm({ ...newStudentForm, email: e.target.value })}
-                  required
-                  maxLength={255}
-                />
-              </div>
-              {studentCreateError && <p className="text-error text-sm">{studentCreateError}</p>}
-              {studentCreateSuccess && <p className="text-green-400 text-sm">{studentCreateSuccess}</p>}
-              <Button type="submit" disabled={isProcessing}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Create Student
-              </Button>
-            </form>
-          </div>
-        )}
       </div>
     </>
   );
