@@ -32,7 +32,6 @@ const nextConfig: NextConfig = {
       'database',
       'feedback',
       'gym-locations',
-      'kiosk',
       'lessons',
       'news',
       'points-adjustments',
@@ -42,6 +41,16 @@ const nextConfig: NextConfig = {
       'themes',
       'users',
       'uploads',
+    ];
+
+    const kioskApiRoutes = [
+      'unlock',
+      'lock',
+      'verify-user-pin',
+      'verify-pin-for-user',
+      'verify-pin',
+      'update-pin',
+      'setup',
     ];
 
     const rewrites = apiRoutes.flatMap((route) => [
@@ -54,6 +63,13 @@ const nextConfig: NextConfig = {
         destination: `${apiUrl}/${route}/:path*`,
       },
     ]);
+
+    rewrites.push(
+      ...kioskApiRoutes.map((route) => ({
+        source: `/kiosk/${route}`,
+        destination: `${apiUrl}/kiosk/${route}`,
+      })),
+    );
 
     return { beforeFiles: rewrites };
   },

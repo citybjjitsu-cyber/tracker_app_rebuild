@@ -35,7 +35,7 @@ The 2026-10-03 mobile verification checkpoint passed the local automated baselin
 
 The frontend root directory is `ckb-tracker`. `NEXT_PUBLIC_API_URL` remains the Render API target used by the Vercel rewrite. After proxy code is deployed, set `NEXT_PUBLIC_API_PROXY=true` for Production and Preview; the browser then uses relative API paths while Vercel forwards them to Render. `ckb-tracker/vercel.json` disables native Vercel Git integration because deployment is controlled through GitHub Actions.
 
-The proxy must preserve the original route paths, especially `/auth/refresh`, and must not cache authenticated responses. After enabling it, change Render `COOKIE_SAMESITE` to `Lax`, redeploy both services, clear the installed PWA/site data, and verify `/auth/me`, `/auth/refresh`, attendance, teacher, and admin requests.
+The proxy must preserve the original route paths, especially `/auth/refresh`, and must not cache authenticated responses. Kiosk routes require special care: proxy only explicit backend endpoints such as `/kiosk/unlock`, `/kiosk/lock`, and `/kiosk/verify-pin-for-user`; never proxy the frontend pages `/kiosk`, `/kiosk/select`, or `/kiosk/confirm`. After enabling it, change Render `COOKIE_SAMESITE` to `Lax`, redeploy both services, clear the installed PWA/site data, and verify `/auth/me`, `/auth/refresh`, attendance, teacher, admin, and kiosk requests.
 
 ## GitHub Actions
 
