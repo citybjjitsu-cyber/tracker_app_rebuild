@@ -12,6 +12,7 @@ import { dashboardApi, feedbackApi, attendanceApi, commentsApi } from '@/lib/api
 import { formatDate } from '@/lib/utils';
 import type { DashboardStats, AttendanceTrend, ClassFeedback, Attendance, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
+import { StudentQuickActions } from '@/components/portal/StudentQuickActions';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { LogOut, Shield, Lock, Mail, AlertCircle } from 'lucide-react';
 import {
@@ -261,6 +262,11 @@ export default function PortalPage() {
         </div>
       </div>
 
+      <StudentQuickActions
+        pendingFeedbackCount={pendingFeedback.length}
+        onFeedbackClick={() => setActiveTab('feedback')}
+      />
+
       <div className="flex gap-2 mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
         {(['analytics', 'feedback', 'comments'] as const).map((tab) => (
           <button
@@ -375,7 +381,7 @@ export default function PortalPage() {
       )}
 
       {activeTab === 'feedback' && (
-        <div className="space-y-6">
+          <div id="feedback" className="space-y-6">
           <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6">
             <h2 className="font-headline text-base sm:text-lg font-black uppercase tracking-tight text-on-surface mb-1">Submit Feedback</h2>
             <p className="text-sm text-on-surface-variant mb-4">Feedback must be submitted within 7 days of attending</p>
