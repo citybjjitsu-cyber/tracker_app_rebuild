@@ -382,64 +382,7 @@ describe('useTheme', () => {
     })
   })
 
-  it('toggleTheme switches from light to dark', async () => {
-    function TestComponent() {
-      const { theme, toggleTheme } = useTheme()
-      return (
-        <div>
-          <div data-testid="theme">{theme}</div>
-          <button onClick={toggleTheme}>Toggle</button>
-        </div>
-      )
-    }
-
-    render(<Wrapper><TestComponent /></Wrapper>)
-
-    expect(screen.getByTestId('theme')).toHaveTextContent('light')
-
-    await userEvent.click(screen.getByRole('button', { name: /toggle/i }))
-
-    expect(screen.getByTestId('theme')).toHaveTextContent('dark')
-  })
-
-  it('resetToDefault clears active theme', async () => {
-    const themeConfig = {
-      '--background': '#fff',
-      '--foreground': '#000',
-    }
-
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        name: 'custom',
-        config: themeConfig,
-      }),
-    } as Response)
-
-    function TestComponent() {
-      const { activeThemeName, resetToDefault } = useTheme()
-      return (
-        <div>
-          <div data-testid="theme-name">{activeThemeName || 'none'}</div>
-          <button onClick={resetToDefault}>Reset</button>
-        </div>
-      )
-    }
-
-    render(<Wrapper><TestComponent /></Wrapper>)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('theme-name')).toHaveTextContent('custom')
-    })
-
-    await userEvent.click(screen.getByRole('button', { name: /reset/i }))
-
-    expect(screen.getByTestId('theme-name')).toHaveTextContent('none')
-  })
-
-  it('initial theme from localStorage', async () => {
-    localStorage.setItem('theme', 'dark')
-
+  it('uses the fixed dark theme without loading a remote theme', () => {
     function TestComponent() {
       const { theme } = useTheme()
       return <div data-testid="theme">{theme}</div>
@@ -448,37 +391,6 @@ describe('useTheme', () => {
     render(<Wrapper><TestComponent /></Wrapper>)
 
     expect(screen.getByTestId('theme')).toHaveTextContent('dark')
-  })
-
-  it('active theme from API sets activeThemeName and activeTheme', async () => {
-    const themeConfig = {
-      '--background': '#fff',
-      '--foreground': '#000',
-    }
-
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        name: 'custom',
-        config: themeConfig,
-      }),
-    } as Response)
-
-    function TestComponent() {
-      const { activeThemeName, activeTheme } = useTheme()
-      return (
-        <div>
-          <div data-testid="theme-name">{activeThemeName || 'none'}</div>
-          <div data-testid="theme-config">{activeTheme ? 'loaded' : 'none'}</div>
-        </div>
-      )
-    }
-
-    render(<Wrapper><TestComponent /></Wrapper>)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('theme-name')).toHaveTextContent('custom')
-    })
-    expect(screen.getByTestId('theme-config')).toHaveTextContent('loaded')
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

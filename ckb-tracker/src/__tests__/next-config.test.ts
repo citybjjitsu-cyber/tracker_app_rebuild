@@ -17,5 +17,10 @@ describe('Next.js API proxy rewrites', () => {
       source: '/kiosk/verify-pin-for-user',
       destination: 'https://api.example.com/kiosk/verify-pin-for-user',
     }));
+    expect(beforeFiles).toContainEqual(expect.objectContaining({
+      source: '/classes',
+      destination: 'https://api.example.com/classes/',
+    }));
+    expect(config.skipTrailingSlashRedirect).toBe(true);
   });
 });

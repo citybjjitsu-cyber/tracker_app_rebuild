@@ -66,6 +66,14 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Obsolete static caches are removed during activation; `/sw.js` is not cached, and an updated worker takes control and triggers one page reload.
 - Offline status is visible in the app shell, but server-backed operations remain online-only.
 
+## Phase 4C Theme Decision (2026-10-08)
+
+- Initial mobile release uses the fixed CKB dark theme; light mode is not a supported release path.
+- Admin-managed arbitrary theme JSON is removed from the active product surface.
+- The frontend no longer depends on `/themes/active`; missing database themes must not affect app startup or kiosk operation.
+- CSS variables remain the styling contract so a future approved theme catalog can be added without rewriting components.
+- Future personal themes are deferred until a token audit, contrast review, catalog model, and per-user preference design are complete.
+
 ## Phase 5A Checkpoint (2026-10-03)
 
 - Bulk check-in retries return the existing attendance record in `already_present` and never create a second record.

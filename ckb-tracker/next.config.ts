@@ -18,6 +18,9 @@ const cspHeader = `
 `;
 
 const nextConfig: NextConfig = {
+  // API routers use both slash and no-slash root paths; let the rewrite handle
+  // either form instead of redirecting a credentialed request to Render.
+  skipTrailingSlashRedirect: true,
   async rewrites() {
     if (!useApiProxy) return { beforeFiles: [] };
 
@@ -56,7 +59,7 @@ const nextConfig: NextConfig = {
     const rewrites = apiRoutes.flatMap((route) => [
       {
         source: `/${route}`,
-        destination: `${apiUrl}/${route}`,
+        destination: `${apiUrl}/${route}/`,
       },
       {
         source: `/${route}/:path*`,

@@ -69,26 +69,6 @@
   --mobile-header-height: 4rem;
 }
 
-.light {
-  --background: #f8f6f5;
-  --foreground: #1c1b1b;
-  --card: #ffffff;
-  --card-foreground: #1c1b1b;
-  --primary: #dc2626;
-  --primary-foreground: #ffffff;
-  --secondary: #e8e4e2;
-  --secondary-foreground: #49454f;
-  --muted: #e8e4e2;
-  --muted-foreground: #49454f;
-  --accent: #e8e4e2;
-  --accent-foreground: #1c1b1b;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #c4bfbd;
-  --input: #c4bfbd;
-  --ring: #dc2626;
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -153,12 +133,6 @@ body {
 
   .glass-panel {
     background: rgba(53, 53, 52, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
-  .light .glass-panel {
-    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -236,10 +210,4 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
 input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
-}
-
-.light input[type="date"]::-webkit-calendar-picker-indicator,
-.light input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-.light input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(0);
 }

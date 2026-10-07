@@ -337,7 +337,7 @@ export const usersApi = {
 
 export const classesApi = {
   list: async () => {
-    const response = await api.get<ClassSchedule[]>('/classes/');
+    const response = await api.get<ClassSchedule[]>('/classes');
     return response.data;
   },
   weekly: async (weekStart?: string) => {
@@ -351,7 +351,7 @@ export const classesApi = {
     return response.data;
   },
   create: async (data: Partial<ClassSchedule>) => {
-    const response = await api.post('/classes/', data);
+    const response = await api.post('/classes', data);
     return response.data;
   },
   update: async (uuid: string, data: Partial<ClassSchedule>) => {
@@ -642,7 +642,7 @@ export const kioskApi = {
 
 export const newsApi = {
   list: async (publishedOnly: boolean = true) => {
-    const response = await api.get<News[]>('/news/', { params: { published_only: publishedOnly } });
+    const response = await api.get<News[]>('/news', { params: { published_only: publishedOnly } });
     return Array.isArray(response.data) ? response.data : [];
   },
   get: async (id: number) => {
@@ -665,7 +665,7 @@ export const newsApi = {
 
 export const themesApi = {
   list: async () => {
-    const response = await api.get<WebsiteTheme[]>('/themes/');
+    const response = await api.get<WebsiteTheme[]>('/themes');
     return response.data;
   },
   getActive: async () => {
@@ -677,7 +677,7 @@ export const themesApi = {
     return response.data;
   },
   create: async (data: { name: string; config: string; is_active?: boolean }) => {
-    const response = await api.post<WebsiteTheme>('/themes/', data);
+    const response = await api.post<WebsiteTheme>('/themes', data);
     return response.data;
   },
   update: async (id: number, data: { name?: string; config?: string; is_active?: boolean }) => {

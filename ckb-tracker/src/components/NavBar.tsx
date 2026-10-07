@@ -3,22 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/Button';
-import { Check, UserPlus, Users, Settings, Sun, Moon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Check, UserPlus, Users, Settings } from 'lucide-react';
 
 export default function NavBar() {
   const pathname = usePathname();
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
-
   const navItems = [
     { href: '/', label: 'Check In', icon: Check },
     { href: '/portal', label: 'Student Portal', icon: UserPlus },
@@ -48,13 +36,6 @@ export default function NavBar() {
               ))}
             </nav>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          >
-            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-          </Button>
         </div>
       </div>
     </header>
