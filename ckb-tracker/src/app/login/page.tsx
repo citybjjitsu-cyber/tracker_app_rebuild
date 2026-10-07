@@ -10,6 +10,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { InstallAppHint } from '@/components/InstallAppHint';
 import { Shield, Lock, Mail, AlertCircle } from 'lucide-react';
 
+export function getPostLoginRoute(): '/portal' {
+  return '/portal';
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, roles, login } = useAuth();
@@ -20,14 +24,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user && roles.length > 0) {
-      const roleNames = roles.map((r: { name: string }) => r.name);
-      if (roleNames.includes('Admin')) {
-        router.push('/admin');
-      } else if (roleNames.includes('Teacher')) {
-        router.push('/teacher');
-      } else {
-        router.push('/portal');
-      }
+      router.push(getPostLoginRoute());
     }
   }, [authLoading, isAuthenticated, user, roles, router]);
 
