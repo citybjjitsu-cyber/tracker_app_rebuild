@@ -241,8 +241,8 @@ export default function PortalPage() {
               {user.nicknames && <Badge variant="outline">{user.nicknames}</Badge>}
             </div>
           </div>
-          <div className="flex flex-shrink-0 items-center gap-3">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
+          <div className="flex flex-shrink-0 flex-col items-center gap-2">
+            <div className="w-16 h-16 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
               <Avatar
                 src={user.profile_image_url}
                 firstName={user.first_name}
