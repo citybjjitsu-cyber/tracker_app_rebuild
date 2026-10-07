@@ -793,6 +793,12 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` â€
 - Kept document navigations, API requests, authenticated responses, and writes outside the service-worker cache.
 - Deferred offline attendance writes, background sync, and authenticated data caching.
 
+## RECENT UPDATES (October 8, 2026) - PWA Bundle Freshness
+
+- Bumped the service-worker cache version and changed Next.js static bundles to network-first with cached fallback, preventing an old API configuration from surviving a deployment.
+- Excluded `/sw.js` from service-worker caching so worker updates can be detected promptly.
+- Corrected the deploy workflow to pull and deploy Vercel preview settings for `dev` and production settings for `production`.
+
 ## RECENT UPDATES (October 3, 2026) - Check-In Reliability
 
 ### Phase 5A

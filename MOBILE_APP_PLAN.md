@@ -137,9 +137,10 @@ Initially keep API operations online-only. Do not cache attendance, PINs, profil
 ### Phase 4B: Static Shell and Network Status (Completed)
 
 - Register a versioned service worker from the app shell.
-- Cache only same-origin static assets and Next.js static bundles.
+- Cache only same-origin static assets; fetch Next.js static bundles network-first with cached fallback so build-time API configuration cannot remain stale after deployment.
 - Never intercept document navigations, API requests, authenticated responses, or writes.
 - Remove obsolete static caches during activation and reload once after an update takes control.
+- Do not cache `/sw.js`, allowing the browser to detect worker version changes promptly.
 - Show a visible offline status message while preserving online-only API behavior.
 
 Offline attendance writes, authenticated page caching, API caching, and background sync remain deliberately deferred.
