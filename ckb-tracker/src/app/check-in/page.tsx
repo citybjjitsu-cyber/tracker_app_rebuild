@@ -782,11 +782,11 @@ export default function CheckInPage() {
         </div>
       ) : (
         <div className="space-y-6 animate-in">
-          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6 flex items-center gap-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/10 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
-            <div className="relative z-10 flex items-start gap-4 flex-1">
-              <div className="relative flex-shrink-0">
-                <div className="w-24 h-24 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
+           <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6 flex items-center gap-8 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/10 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
+             <div className="relative z-10 flex flex-row-reverse items-start gap-4 flex-1">
+               <div className="relative flex-shrink-0">
+                 <div className="w-24 h-24 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
                   <Avatar
                     src={selectedUser.profile_image_url}
                     firstName={selectedUser.first_name}
@@ -794,25 +794,25 @@ export default function CheckInPage() {
                     offsetX={selectedUser.image_offset_x}
                     offsetY={selectedUser.image_offset_y}
                     size="xl"
-                    className="w-full h-full rounded-[10px]"
+                   className="w-full h-full rounded-[10px]"
                   />
                 </div>
                 <button
                   onClick={() => setShowPhotoUpload(!showPhotoUpload)}
                   className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary-container text-white rounded-full flex items-center justify-center hover:bg-inverse-primary transition-colors shadow-lg"
                 >
-                  <Camera className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
+                   <Camera className="w-3.5 h-3.5" />
+                 </button>
+                 <span className="mt-2 block bg-primary-container/20 text-primary px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-center">
+                   Active
+                 </span>
+               </div>
+               <div className="flex-1">
+                 <div className="flex items-center gap-3 mb-1">
                   <h2 className="font-headline text-2xl font-black uppercase tracking-tight text-on-surface">
                     {selectedUser.first_name} {selectedUser.last_name}
                   </h2>
-                  <span className="bg-primary-container/20 text-primary px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest">
-                    Active
-                  </span>
-                </div>
+                 </div>
                 <div className="flex items-center gap-3 mb-4">
                   <RankBadge rank={selectedUser.rank} degree={selectedUser.rank_tier?.degree} />
                   {selectedUser.nicknames && (
@@ -822,21 +822,17 @@ export default function CheckInPage() {
                     </>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="border-l border-outline-variant/30 pl-4">
-                    <p className="text-[9px] uppercase tracking-widest text-on-surface-variant mb-1">Session Time</p>
+                 <div className="grid grid-cols-1 gap-6 mt-4">
+                   <div className="border-l border-outline-variant/30 pl-4">
+                     <p className="text-[9px] uppercase tracking-widest text-on-surface-variant mb-1">Session Time</p>
                     <p className={cn(
                       "text-xl font-black font-headline",
                       sessionTimeLeft < 30 ? "text-primary" : "text-on-surface"
                     )}>
-                      {formatTimeLeft()}
-                    </p>
-                  </div>
-                  <div className="border-l border-outline-variant/30 pl-4">
-                    <p className="text-[9px] uppercase tracking-widest text-on-surface-variant mb-1">Classes Checked</p>
-                    <p className="text-xl font-black text-on-surface font-headline">{attendanceRecords.length}</p>
-                  </div>
-                </div>
+                       {formatTimeLeft()}
+                     </p>
+                   </div>
+                 </div>
               </div>
             </div>
           </div>
@@ -913,10 +909,7 @@ export default function CheckInPage() {
               <div>
                 <h2 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface">Weekly Registration</h2>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-primary-container font-black uppercase tracking-[0.2em]">{attendanceRecords.length} CLASSES CHECKED</p>
-              </div>
-            </div>
+             </div>
             {isClassesLoading && (
               <p className="mb-4 text-center text-sm text-on-surface-variant">Loading class schedule...</p>
             )}
