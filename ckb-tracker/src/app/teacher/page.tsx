@@ -5,10 +5,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
+import { ProfileHeader } from '@/components/ProfileHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
 import { formatDate, cn } from '@/lib/utils';
-import { LogOut, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WeeklyScheduleClass, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
@@ -356,16 +357,7 @@ export default function TeacherPage() {
   return (
     <>
       <div className="max-w-6xl mx-auto px-4 sm:px-0">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <h1 className="text-xl sm:text-2xl font-headline font-bold text-on-surface">Teacher Dashboard</h1>
-          <div className="flex items-center justify-between sm:justify-end gap-3">
-            <span className="text-xs sm:text-sm text-on-surface-variant truncate max-w-[60vw]">{user?.email}</span>
-            <Button variant="outline" size="sm" onClick={() => logout()} className="flex-shrink-0">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
+        {user && <ProfileHeader user={user} onLogout={() => logout()} className="mb-6" />}
 
         <div className="flex gap-6 mb-6 border-b border-outline-variant/20 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
           {(['attendance', 'feedback', 'comments'] as const).map((tab) => (
