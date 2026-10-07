@@ -1,7 +1,5 @@
 def test_verify_valid_pin(client, headers):
-    response = client.post(
-        "/kiosk/verify-user-pin", json={"pin": "1234"}, headers=headers
-    )
+    response = client.post("/kiosk/verify-user-pin", json={"pin": "1234"}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["valid"] is True
@@ -12,9 +10,7 @@ def test_verify_valid_pin(client, headers):
 
 
 def test_verify_invalid_pin(client, headers):
-    response = client.post(
-        "/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers
-    )
+    response = client.post("/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["valid"] is False
@@ -31,9 +27,7 @@ def test_pin_lockout_3_strikes(client, headers):
     for _ in range(3):
         client.post("/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers)
 
-    response = client.post(
-        "/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers
-    )
+    response = client.post("/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers)
     assert response.status_code == 429
 
 
@@ -41,17 +35,13 @@ def test_pin_lockout_429_has_retry_after(client, headers):
     for _ in range(3):
         client.post("/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers)
 
-    response = client.post(
-        "/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers
-    )
+    response = client.post("/kiosk/verify-user-pin", json={"pin": "9999"}, headers=headers)
     assert response.status_code == 429
     assert "Retry-After" in response.headers
 
 
 def test_pin_no_hash(client, headers):
-    response = client.post(
-        "/kiosk/verify-user-pin", json={"pin": "1234"}, headers=headers
-    )
+    response = client.post("/kiosk/verify-user-pin", json={"pin": "1234"}, headers=headers)
     data = response.json()
     assert data["user"] is not None
     assert data["user"].get("pin_hash") is None
@@ -59,9 +49,7 @@ def test_pin_no_hash(client, headers):
 
 
 def test_unlock_kiosk_valid(client):
-    response = client.post(
-        "/kiosk/unlock", json={"email": "staff@test.com", "password": "password123"}
-    )
+    response = client.post("/kiosk/unlock", json={"email": "staff@test.com", "password": "password123"})
     assert response.status_code == 200
     data = response.json()
     assert data["access_token"] is not None
@@ -70,16 +58,12 @@ def test_unlock_kiosk_valid(client):
 
 
 def test_unlock_kiosk_invalid_password(client):
-    response = client.post(
-        "/kiosk/unlock", json={"email": "staff@test.com", "password": "wrongpass"}
-    )
+    response = client.post("/kiosk/unlock", json={"email": "staff@test.com", "password": "wrongpass"})
     assert response.status_code == 401
 
 
 def test_unlock_kiosk_no_kiosk_role(client):
-    response = client.post(
-        "/kiosk/unlock", json={"email": "student@test.com", "password": "password123"}
-    )
+    response = client.post("/kiosk/unlock", json={"email": "student@test.com", "password": "password123"})
     assert response.status_code == 403
     data = response.json()
     assert "Kiosk service account" in data["detail"]
@@ -105,7 +89,8 @@ def test_verify_pin_for_user_valid(client, headers):
     assert response.status_code == 200
     data = response.json()
     assert data["valid"] is True
-    assert data["access_token"] is not None
+    assert data.get("access_token") is None
+    assert "access_token=" not in response.headers.get("set-cookie", "")
 
 
 def test_verify_pin_for_user_invalid(client, headers):
@@ -126,6 +111,20 @@ def test_verify_pin_for_user_no_pin(client, headers):
     )
     assert response.status_code == 200
     assert response.json()["valid"] is False
+
+
+def test_bearer_token_takes_precedence_over_session_cookie(client, headers):
+    login = client.post(
+        "/auth/login",
+        json={"email": "student@test.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+
+    first_lock = client.post("/kiosk/lock", headers=headers)
+    assert first_lock.status_code == 200
+
+    second_lock = client.post("/kiosk/lock", headers=headers)
+    assert second_lock.status_code == 401
 
 
 def test_verify_pin_default(client):

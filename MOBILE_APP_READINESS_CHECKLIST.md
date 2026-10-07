@@ -102,6 +102,14 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Vercel: `NEXT_PUBLIC_API_URL` remains the Render API target and `NEXT_PUBLIC_API_PROXY=true` enables same-origin rewrites.
 - Render: `COOKIE_SECURE=True`, `COOKIE_SAMESITE=Lax`, and the Vercel origin remains configured in `CORS_ORIGINS`.
 - Validation result: login, protected analytics, attendance, teacher, check-in, and admin flows work on desktop and iPhone.
+- Kiosk proxy safeguard: only explicit kiosk API endpoints are rewritten; `/kiosk/select` and `/kiosk/confirm` remain frontend routes.
+- Kiosk session safeguard: selected-user PIN verification does not overwrite the kiosk staff cookies or memory-only Bearer token.
+
+### Kiosk Follow-up Verification
+
+- [ ] Deploy the kiosk rewrite/session fix to Vercel and Render.
+- [ ] Smoke-test unlock, student search, PIN confirmation, `/kiosk/select`, class loading, confirmation, attendance submission, and lock on desktop and a physical mobile browser.
+- [ ] Confirm the browser network trace shows `/kiosk/select` served by Vercel/Next.js rather than Render/Uvicorn.
 
 ## Deliberately Deferred
 

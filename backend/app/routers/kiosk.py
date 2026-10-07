@@ -258,7 +258,6 @@ def verify_user_pin(
 def verify_pin_for_user(
     request: Request,
     data: schemas.KioskUserPinVerifyForUserRequest,
-    response: Response,
     db: Session = Depends(get_db),
     kiosk_user: models.User = Depends(get_current_user),
 ):
@@ -302,27 +301,6 @@ def verify_pin_for_user(
     if pwd_context.verify(data.pin, user.pin_hash):
         clear_pin_lockout(lockout_key)
 
-        access_token, access_jti = create_access_token(user.user_uuid)
-        refresh_token, refresh_jti = create_refresh_token(user.user_uuid)
-
-        store_token_record(
-            db,
-            access_jti,
-            user.user_uuid,
-            "access",
-            datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-        )
-        store_token_record(
-            db,
-            refresh_jti,
-            user.user_uuid,
-            "refresh",
-            datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-        )
-
-        csrf_token = generate_csrf_token()
-        set_auth_cookies(response, access_token, refresh_token, csrf_token)
-
         create_audit_log(
             db,
             action="pin_for_user_success",
@@ -336,9 +314,6 @@ def verify_pin_for_user(
 
         return {
             "valid": True,
-            "csrf_token": csrf_token,
-            "access_token": access_token,
-            "refresh_token": refresh_token,
         }
 
     record_failed_attempt(lockout_key)

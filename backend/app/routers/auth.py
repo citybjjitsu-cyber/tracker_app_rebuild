@@ -101,7 +101,7 @@ def get_current_user(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db),
 ):
-    if not access_token and authorization:
+    if authorization:
         parts = authorization.split()
         if len(parts) == 2 and parts[0].lower() == "bearer":
             access_token = parts[1]

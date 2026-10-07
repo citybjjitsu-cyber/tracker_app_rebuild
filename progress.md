@@ -9,6 +9,9 @@ This file is a historical implementation log. The current operational facts are:
 - Render startup runs Alembic migrations. Application startup initializes rank tiers and backfills rank-tier links, but does not seed the complete demo dataset automatically.
 - Kiosk staff tokens are memory-only. The kiosk idle timeout is configurable through `KIOSK_IDLE_MINUTES` and is currently 240 minutes in Render; access-token refresh is supported.
 - The current mobile work is an installable Next.js PWA with a static shell and online-only authenticated data. Capacitor packaging and native bearer-token authentication are implemented and validated on a physical phone and desktop browser.
+- Normal login opens the Student Portal for Admin, Teacher, and Student roles; the root route remains the separate staff-authenticated kiosk experience.
+- Kiosk frontend pages are excluded from the same-origin API proxy; only explicit `/kiosk/*` API endpoints are rewritten to Render.
+- Student PIN confirmation does not issue student cookies or tokens, so the in-memory kiosk staff session remains authoritative.
 
 See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_phases.md` for current plans and operating procedures.
 
@@ -27,7 +30,16 @@ See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_p
 - Added the Capacitor Android and iOS wrapper projects with remote-web configuration and secure native token storage.
 - Added native bearer-token login, refresh rotation, logout, and session-expiry handling while preserving browser cookie authentication.
 - Verified the mobile experience and authentication flows on a physical phone and desktop browser, including responsive layouts, role-aware routes, kiosk flows, and recovery behavior.
+- Replaced horizontal day selectors with full-width dropdowns on the Check-in and Teacher Dashboard schedule views so day selection stays within a mobile-width screen.
 - Platform-specific signing, release builds, and broader device-matrix validation remain before store distribution.
+
+## RECENT UPDATES (October 8, 2026) - Kiosk Proxy Regression Fixed
+
+- Fixed the Vercel `beforeFiles` rewrite collision that proxied `/kiosk/select` to Render and returned a backend 404 instead of serving the Next.js page.
+- Replaced the broad kiosk rewrite with explicit rewrites for kiosk API endpoints while preserving `/kiosk`, `/kiosk/select`, and `/kiosk/confirm` as frontend routes.
+- Stopped `/kiosk/verify-pin-for-user` from replacing kiosk staff cookies with student tokens after successful PIN confirmation.
+- Made Bearer authentication take precedence over cookies when both are present, protecting the memory-only kiosk session from stale browser cookies.
+- Added proxy and authentication regression tests; 165 backend tests pass and the frontend production build succeeds.
 
 ## Project Overview
 Martial Arts Attendance Tracking System - A full-stack application for managing student attendance, class scheduling, curriculum/lesson management, teacher assignments, and providing analytics dashboards for students, teachers, and administrators.
@@ -711,7 +723,15 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - Added remote-web wrapper configuration with `CAPACITOR_SERVER_URL` support for local device testing.
 - Registered Keychain/Keystore-backed secure storage and added the native session storage boundary.
 - Added native bearer-token login, secure token storage, refresh rotation, bearer logout, and native session-expiry handling while keeping browser cookie authentication unchanged.
-- Real Android/iOS device validation remains before internal distribution.
+- Initial physical-phone validation is complete; platform signing, release builds, and broader device-matrix validation remain before internal distribution.
+
+## RECENT UPDATES (October 7, 2026) - Student Portal Mobile Experience
+
+- Made the Student Portal the first destination after every normal login, while preserving Admin and Teacher dashboard navigation.
+- Added mobile quick actions for pre-class check-in and feedback.
+- Replaced horizontally scrolling portal tabs with stacked phone-friendly controls.
+- Reworked the portal header to emphasize the profile photo and provide a clearly labeled Logout action.
+- Added Phase 8 documentation for in-app unread/read notifications, with native push notifications deferred until the in-app flow is reliable.
 
 ## RECENT UPDATES — Mobile Foundation
 
@@ -721,7 +741,7 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - ✅ Updated `ckb-tracker/src/app/teacher/page.tsx` to use the shared schedule helpers without changing the existing attendance behavior.
 - ✅ Added focused tests in `ckb-tracker/src/__tests__/teacher-schedule.test.ts`.
 - ✅ Documented the current mobile roadmap and readiness checklist.
-- ⏳ Physical iPhone/Android testing, PWA installability, offline behavior, and native Capacitor packaging remain outstanding.
+- ✅ PWA installability and native Capacitor packaging are complete; offline authenticated writes and broader release validation remain deferred.
 
 ### Student Portal Mobile Audit
 
@@ -729,7 +749,7 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - ✅ Added visible loading, data failure, comments failure, feedback failure, and retry/recovery states.
 - ✅ Hardened comment content wrapping and responsive chart sizing to avoid narrow-screen overflow.
 - ✅ Added Playwright coverage for mobile overflow, tab navigation, and portal data retry behavior.
-- ⏳ Real-device Safari/Chrome validation, PWA installability, offline behavior, and native Capacitor packaging remain outstanding.
+- ✅ PWA installability and the initial native wrapper are complete; broader real-device release validation and offline authenticated writes remain outstanding.
 
 ### Mobile Authentication Investigation
 
@@ -741,7 +761,7 @@ Frontend CSP `img-src` directive in `next.config.ts` was `'self' data: blob:` �
 - ⏳ Production cookie attributes, mobile cookie persistence, and refresh requests still require verification on an affected phone.
 - ✅ Deployed and rechecked the reported phone and desktop flows; navigation no longer causes an immediate logout.
 - ⏳ Access-token expiry, direct cookie attributes, and the complete iPhone Safari/Android Chrome matrix remain outstanding.
-- ⏳ Native iOS/Android authentication remains planned around bearer tokens with secure platform storage, not WebView cookie assumptions.
+- ✅ Native iOS/Android authentication uses bearer tokens with secure platform storage, not WebView cookie assumptions.
 
 ## RECENT UPDATES (October 3, 2026) - Mobile Verification Checkpoint
 
