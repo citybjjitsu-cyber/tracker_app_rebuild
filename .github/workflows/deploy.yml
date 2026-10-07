@@ -143,11 +143,23 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ENVIRONMENT: ${{ github.event.inputs.environment == 'production' && 'production' || 'preview' }}
+        run: vercel pull --yes --environment="$VERCEL_ENVIRONMENT" --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: ckb-tracker
       - name: Build project
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel build --token=${{ secrets.VERCEL_TOKEN }}
+          fi
         working-directory: ckb-tracker
       - name: Deploy to Vercel
-        run: vercel deploy --prod --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            vercel deploy --prod --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+          else
+            vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+          fi
         working-directory: ckb-tracker

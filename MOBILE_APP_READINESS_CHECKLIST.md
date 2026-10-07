@@ -61,9 +61,9 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 
 ## Phase 4B Checkpoint (2026-10-03)
 
-- `sw.js` precaches only the manifest, app icons, and favicon, then caches same-origin static assets and Next.js static bundles.
+- `sw.js` precaches only the manifest, app icons, and favicon, caches same-origin static assets, and fetches Next.js static bundles network-first with cached fallback.
 - Document navigations, API requests, authenticated responses, and non-GET requests bypass the worker.
-- Obsolete static caches are removed during activation; an updated worker takes control and triggers one page reload.
+- Obsolete static caches are removed during activation; `/sw.js` is not cached, and an updated worker takes control and triggers one page reload.
 - Offline status is visible in the app shell, but server-backed operations remain online-only.
 
 ## Phase 5A Checkpoint (2026-10-03)
