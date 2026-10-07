@@ -27,9 +27,8 @@ describe('NavBar', () => {
     expect(screen.getByText('Admin')).toBeInTheDocument()
   })
 
-  it('renders theme toggle button', () => {
+  it('does not expose an unsupported theme toggle', () => {
     render(<NavBar />)
-    const buttons = screen.getAllByRole('button')
-    expect(buttons.length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 })

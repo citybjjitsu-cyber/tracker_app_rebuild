@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { newsApi } from '@/lib/api';
-import { Newspaper, ArrowLeft, Sun, Moon } from 'lucide-react';
-import { useTheme } from '@/hooks/useTheme';
+import { Newspaper, ArrowLeft } from 'lucide-react';
 import type { News } from '@/types';
 
 export default function NewsPage() {
-  const { theme, toggleTheme } = useTheme();
   const [articles, setArticles] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -32,13 +30,6 @@ export default function NewsPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to CKB Tracker
           </Link>
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all"
-            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          >
-            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-          </button>
         </div>
 
         <div className="flex items-center gap-3 mb-8">

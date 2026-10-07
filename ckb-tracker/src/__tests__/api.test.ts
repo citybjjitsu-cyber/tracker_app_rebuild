@@ -225,14 +225,14 @@ describe('authApi', () => {
 })
 
 describe('classesApi', () => {
-  it('list calls GET /classes/', async () => {
+  it('list calls GET /classes without a trailing-slash redirect', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
     vi.mocked(axios.default.get).mockResolvedValue({ data: [{ id: 1, name: 'Test Class' }] })
     const result = await apiModule.classesApi.list()
 
-    expect(axios.default.get).toHaveBeenCalledWith('/classes/')
+    expect(axios.default.get).toHaveBeenCalledWith('/classes')
     expect(result).toHaveLength(1)
   })
 
@@ -247,14 +247,14 @@ describe('classesApi', () => {
     expect(result.name).toBe('Karate')
   })
 
-  it('create calls POST /classes/', async () => {
+  it('create calls POST /classes without a trailing-slash redirect', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
     vi.mocked(axios.default.post).mockResolvedValue({ data: { id: 1, name: 'New Class' } })
     const result = await apiModule.classesApi.create({ name: 'New Class' })
 
-    expect(axios.default.post).toHaveBeenCalledWith('/classes/', { name: 'New Class' })
+    expect(axios.default.post).toHaveBeenCalledWith('/classes', { name: 'New Class' })
     expect(result.name).toBe('New Class')
   })
 
@@ -614,14 +614,14 @@ describe('dashboardApi', () => {
 })
 
 describe('newsApi', () => {
-  it('list calls GET /news/ with published_only param', async () => {
+  it('list calls GET /news without a trailing-slash redirect', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
     vi.mocked(axios.default.get).mockResolvedValue({ data: [{ id: 1, title: 'News' }] })
     const result = await apiModule.newsApi.list(true)
 
-    expect(axios.default.get).toHaveBeenCalledWith('/news/', { params: { published_only: true } })
+    expect(axios.default.get).toHaveBeenCalledWith('/news', { params: { published_only: true } })
     expect(result).toHaveLength(1)
   })
 
@@ -680,14 +680,14 @@ describe('newsApi', () => {
 })
 
 describe('themesApi', () => {
-  it('list calls GET /themes/', async () => {
+  it('list calls GET /themes without a trailing-slash redirect', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
     vi.mocked(axios.default.get).mockResolvedValue({ data: [{ id: 1, name: 'Dark' }] })
     const result = await apiModule.themesApi.list()
 
-    expect(axios.default.get).toHaveBeenCalledWith('/themes/')
+    expect(axios.default.get).toHaveBeenCalledWith('/themes')
     expect(result).toHaveLength(1)
   })
 
@@ -713,14 +713,14 @@ describe('themesApi', () => {
     expect(result.name).toBe('Light')
   })
 
-  it('create calls POST /themes/', async () => {
+  it('create calls POST /themes without a trailing-slash redirect', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')
 
     vi.mocked(axios.default.post).mockResolvedValue({ data: { id: 1, name: 'New Theme' } })
     const result = await apiModule.themesApi.create({ name: 'New Theme', config: '{}' })
 
-    expect(axios.default.post).toHaveBeenCalledWith('/themes/', { name: 'New Theme', config: '{}' })
+    expect(axios.default.post).toHaveBeenCalledWith('/themes', { name: 'New Theme', config: '{}' })
     expect(result.name).toBe('New Theme')
   })
 

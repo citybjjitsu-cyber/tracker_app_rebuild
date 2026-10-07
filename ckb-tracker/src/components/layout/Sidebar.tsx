@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
 import { Avatar } from '@/components/ui/Avatar';
 import { 
   UserCog, 
@@ -13,8 +12,6 @@ import {
   Menu,
   X,
   Shield,
-  Sun,
-  Moon,
   CheckCircle
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -42,8 +39,6 @@ function SidebarContent({
   isAuthenticated, 
   user, 
   logout, 
-  theme, 
-  toggleTheme,
   setIsCollapsed,
   setIsMobileOpen,
   roles
@@ -53,21 +48,12 @@ function SidebarContent({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any;
   logout: () => void;
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
   setIsCollapsed: (v: boolean) => void;
   setIsMobileOpen: (v: boolean) => void;
   roles?: string[];
 }) {
   const pathname = usePathname();
   const isTablet = roles?.some((r: string) => r === 'Tablet');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
   const shouldShowItem = (item: NavItem) => {
     if (item.requiresTablet && !isTablet) return false;
     if (item.requiresTeacher && !roles?.some((r: string) => r === 'Teacher')) return false;
@@ -104,27 +90,6 @@ function SidebarContent({
         >
           <Menu className="w-4 h-4" />
         </button>
-      </div>
-
-      <div className="px-3 py-2">
-        {mounted && (
-          <button
-            onClick={toggleTheme}
-            className={cn(
-              "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
-              "text-on-surface-variant/70 hover:text-on-surface hover:bg-surface-container-high",
-              isCollapsed && "justify-center px-2"
-            )}
-            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          >
-            {theme === 'light' ? (
-              <Moon className="w-5 h-5" />
-            ) : (
-              <Sun className="w-5 h-5" />
-            )}
-            {!isCollapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
-          </button>
-        )}
       </div>
 
       <nav className="flex-1 py-4 space-y-1">
@@ -203,7 +168,6 @@ function SidebarContent({
 
 export function Sidebar() {
   const { isAuthenticated, user, logout, roles } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -219,8 +183,6 @@ export function Sidebar() {
           isAuthenticated={isAuthenticated}
           user={user}
           logout={logout}
-          theme={theme}
-          toggleTheme={toggleTheme}
           setIsCollapsed={setIsCollapsed}
           setIsMobileOpen={() => undefined}
           roles={roles?.map(r => r.name)}
@@ -232,7 +194,6 @@ export function Sidebar() {
 
 export function MobileNavigation() {
   const { isAuthenticated, user, logout, roles } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -288,8 +249,6 @@ export function MobileNavigation() {
           isAuthenticated={isAuthenticated}
           user={user}
           logout={logout}
-          theme={theme}
-          toggleTheme={toggleTheme}
           setIsCollapsed={() => undefined}
           setIsMobileOpen={setIsMobileOpen}
           roles={roles?.map((r) => r.name)}

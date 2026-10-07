@@ -145,6 +145,23 @@ Initially keep API operations online-only. Do not cache attendance, PINs, profil
 
 Offline attendance writes, authenticated page caching, API caching, and background sync remain deliberately deferred.
 
+### Phase 4C: Stable Mobile Visual System (Current)
+
+- Use one fixed CKB-branded dark theme for the initial phone app release.
+- Remove the admin-managed arbitrary CSS/JSON theme editor from the mobile-facing product; do not make `/themes/active` a required frontend request.
+- Keep the CSS variable/token layer and the backend theme tables temporarily for compatibility and rollback, but treat the global `WebsiteTheme` APIs as dormant until a replacement is designed.
+- Remove light-mode controls from the active product until every component has been audited for token usage and contrast. Do not advertise light-mode support in device test criteria.
+- Keep kiosk, student, teacher, and admin surfaces on the same fixed theme so screenshots, support instructions, and device testing remain predictable.
+
+#### Future theme personalization (deferred)
+
+- Reintroduce personalization as a small, code-defined catalog of approved themes rather than arbitrary admin-entered CSS JSON.
+- Store a stable theme identifier (for example `default-dark`, `ocean`, or `forest`) separately from theme token definitions.
+- Start with local device preference, then persist the selected identifier in user profile preferences so it can sync across devices.
+- Keep kiosk mode on the fixed branded theme even if personal themes are later available in the phone app.
+- Add admin controls only for enabling/disabling approved catalog entries; admins should not edit raw CSS values.
+- Before reintroducing light mode, audit all hard-coded colors, component states, images, charts, dialogs, and contrast requirements.
+
 ## Phase 5: Mobile API Improvements
 
 Before native packaging:
@@ -643,7 +660,7 @@ After bulk onboarding is validated, complete a full end-to-end functionality tes
 
 - Repeat the three workflow groups on a physical iPhone Safari/PWA and Android Chrome/PWA; repeat the native Capacitor build when the device build is available.
 - Test portrait and landscape at representative small and large phone widths, including 320px, 375px, 390px, and 430px-equivalent layouts where possible.
-- Test touch targets, keyboard opening and dismissal, scrolling, camera permissions, slow network, temporary offline/reconnected network, dark/light mode, and session expiry.
+- Test touch targets, keyboard opening and dismissal, scrolling, camera permissions, slow network, temporary offline/reconnected network, fixed dark-theme rendering, and session expiry.
 - Record the device model, OS/browser or app build, deployment versions, test account label, tested workflow, result, and sanitized failure evidence. Never record credentials, tokens, PINs, or unnecessary student data.
 - Re-test every failed workflow after its fix and run backend tests, frontend tests, lint, production build, and relevant Playwright tests before sign-off.
 
@@ -667,7 +684,7 @@ Test on real devices:
 - Tablet
 - Slow network
 - Offline and reconnected network
-- Dark and light mode
+- Fixed dark theme
 - Camera permissions
 - Session expiration
 - Rotation and keyboard behavior

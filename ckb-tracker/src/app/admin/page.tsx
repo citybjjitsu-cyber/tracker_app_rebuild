@@ -10,7 +10,6 @@ import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
 import { useChartColors } from '@/hooks/useChartColors';
 import { apiUrl } from '@/lib/apiBase';
 
@@ -28,7 +27,6 @@ import {
   dashboardApi,
   classInstancesApi,
   newsApi,
-  themesApi,
   rankTiersApi,
   pointsAdjustmentsApi,
   inviteApi,
@@ -38,7 +36,7 @@ import {
 import type { AttendanceOverview } from '@/lib/api';
 import { cn, formatDate, DAYS_OF_WEEK, getRankColor } from '@/lib/utils';
 import { Camera, Plus, Shield, X, Edit3, UserX, UserCheck } from 'lucide-react';
-import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, WebsiteTheme, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
+import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -137,11 +135,6 @@ export default function AdminPage() {
   const [newsItems, setNewsItems] = useState<News[]>([]);
   const [newsForm, setNewsForm] = useState({ title: '', content: '', is_published: false });
   const [editingNews, setEditingNews] = useState<News | null>(null);
-  const { resetToDefault } = useTheme();
-  const [themes, setThemes] = useState<WebsiteTheme[]>([]);
-  const [themeForm, setThemeForm] = useState({ name: '', config: '' });
-  const [editingTheme, setEditingTheme] = useState<WebsiteTheme | null>(null);
-  const [themeConfigEditor, setThemeConfigEditor] = useState('');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvImportResult, setCsvImportResult] = useState<Record<string, unknown> | null>(null);
   const [rankTiers, setRankTiers] = useState<RankTier[]>([]);
@@ -236,93 +229,12 @@ export default function AdminPage() {
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab === 'themes') {
-      loadThemes();
-    }
-  }, [activeTab]);
-
   async function loadNews() {
     try {
       const data = await newsApi.list(false);
       setNewsItems(data);
     } catch (error) {
       console.error('Error loading news:', error);
-    }
-  };
-
-  async function loadThemes() {
-    try {
-      const data = await themesApi.list();
-      setThemes(data);
-    } catch (error) {
-      console.error('Error loading themes:', error);
-    }
-  };
-
-  const handleApplyTheme = async (themeId: number) => {
-    try {
-      await themesApi.apply(themeId);
-      await loadThemes();
-      window.location.reload();
-    } catch (error) {
-      console.error('Error applying theme:', error);
-    }
-  };
-
-  const handleDeleteTheme = async (themeId: number) => {
-    if (!confirm('Delete this theme?')) return;
-    try {
-      await themesApi.delete(themeId);
-      await loadThemes();
-    } catch (error) {
-      console.error('Error deleting theme:', error);
-    }
-  };
-
-  const handleResetToDefault = async () => {
-    if (!confirm('Reset to default theme? This will deactivate the current theme.')) return;
-    try {
-      const activeThemes = themes.filter(t => t.is_active);
-      for (const t of activeThemes) {
-        await themesApi.update(t.id, { is_active: false });
-      }
-      resetToDefault();
-      await loadThemes();
-    } catch (error) {
-      console.error('Error resetting theme:', error);
-    }
-  };
-
-  const handleCreateTheme = async () => {
-    if (!themeForm.name.trim()) {
-      alert('Theme name is required');
-      return;
-    }
-    try {
-      await themesApi.create({
-        name: themeForm.name,
-        config: themeForm.config,
-      });
-      setThemeForm({ name: '', config: '' });
-      await loadThemes();
-    } catch (error) {
-      console.error('Error creating theme:', error);
-    }
-  };
-
-  const handleUpdateTheme = async () => {
-    if (!editingTheme) return;
-    try {
-      await themesApi.update(editingTheme.id, {
-        name: editingTheme.name,
-        config: themeConfigEditor,
-      });
-      setEditingTheme(null);
-      setThemeConfigEditor('');
-      await loadThemes();
-    } catch (error) {
-      console.error('Error updating theme:', error);
     }
   };
 
@@ -974,7 +886,6 @@ export default function AdminPage() {
     { id: 'feedback', label: 'Feedback Analytics' },
     { id: 'database', label: 'Database' },
     { id: 'csv', label: 'CSV Import/Export' },
-    { id: 'themes', label: 'Themes' },
   ];
 
   if (isLoading || !isAuthenticated || !isAdmin) {
@@ -3299,144 +3210,6 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
-          </div>
-        )}
-
-        {activeTab === 'themes' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Website Themes</h2>
-              {themes.some(t => t.is_active) && (
-                <Button variant="outline" size="sm" onClick={handleResetToDefault}>
-                  Reset to Default
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {themes.map((t) => {
-                let configObj: Record<string, unknown> = {};
-                try { configObj = JSON.parse(t.config); } catch { /* ignore */ }
-                const primary = (configObj['--primary'] as string) || '#2563eb';
-                const bg = (configObj['--background'] as string) || '#ffffff';
-                const accent = (configObj['--accent'] as string) || '#f1f5f9';
-                const darkPrimary = ((configObj.dark as Record<string, string>)?.['--primary']) || primary;
-
-                return (
-                  <Card key={t.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-2">
-                          {t.name}
-                          {t.is_active && (
-                            <span className="text-xs font-normal text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">Active</span>
-                          )}
-                        </CardTitle>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingTheme(t);
-                              setThemeConfigEditor(t.config);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          {!t.is_active && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleApplyTheme(t.id)}
-                            >
-                              Apply
-                            </Button>
-                          )}
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteTheme(t.id)}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-2 mb-3">
-                        <div className="w-8 h-8 rounded" style={{ backgroundColor: primary }} title="Primary" />
-                        <div className="w-8 h-8 rounded" style={{ backgroundColor: bg }} title="Background" />
-                        <div className="w-8 h-8 rounded" style={{ backgroundColor: accent }} title="Accent" />
-                        <div className="w-8 h-8 rounded border border-slate-300" style={{ backgroundColor: darkPrimary }} title="Dark Primary" />
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Created: {new Date(t.created_at).toLocaleDateString()}
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Create Theme</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Input
-                    label="Theme Name"
-                    value={themeForm.name}
-                    onChange={(e) => setThemeForm({ ...themeForm, name: e.target.value })}
-                    placeholder="e.g. My Custom Theme"
-                  />
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                      Theme Config (JSON)
-                    </label>
-                    <textarea
-                      className="w-full h-40 text-xs font-mono border dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-md p-2"
-                      value={themeForm.config}
-                      onChange={(e) => setThemeForm({ ...themeForm, config: e.target.value })}
-                      placeholder='{"--primary": "#dc2626", ...}'
-                    />
-                  </div>
-                  <Button onClick={handleCreateTheme} className="w-full">
-                    Create Theme
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {editingTheme && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Edit Theme: {editingTheme.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Input
-                    label="Theme Name"
-                    value={editingTheme.name}
-                    onChange={(e) => setEditingTheme({ ...editingTheme, name: e.target.value })}
-                  />
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                      Theme Config (JSON)
-                    </label>
-                    <textarea
-                      className="w-full h-60 text-xs font-mono border dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded-md p-2"
-                      value={themeConfigEditor}
-                      onChange={(e) => setThemeConfigEditor(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={handleUpdateTheme}>
-                      Save Changes
-                    </Button>
-                    <Button variant="outline" onClick={() => { setEditingTheme(null); setThemeConfigEditor(''); }}>
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         )}
 

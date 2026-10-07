@@ -1,136 +1,27 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { ThemeConfig } from '@/types';
-import { apiUrl } from '@/lib/apiBase';
+import { createContext, useContext, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'dark';
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
-  activeTheme: ThemeConfig | null;
-  activeThemeName: string | null;
-  resetToDefault: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-const THEME_VAR_KEYS = [
-  '--background', '--foreground', '--card', '--card-foreground',
-  '--primary', '--primary-foreground', '--secondary', '--secondary-foreground',
-  '--muted', '--muted-foreground', '--accent', '--accent-foreground',
-  '--destructive', '--destructive-foreground', '--border', '--input',
-  '--ring', '--radius', '--headline-font', '--body-font',
-] as const;
-
-const SAFE_CSS_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\(|hsla?\(|oklch\(|var\(--|inherit|transparent|currentColor|none|[\d.]+(?:px|em|rem|%|vh|vw|deg|s|ms)?)$/;
-
-function isSafeCssValue(value: string): boolean {
-  return SAFE_CSS_RE.test(value);
-}
-
-function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark';
-  const stored = localStorage.getItem('theme') as Theme | null;
-  if (stored) return stored;
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefersDark ? 'dark' : 'light';
-}
-
-function clearThemeVars() {
-  const root = document.documentElement;
-  for (const key of THEME_VAR_KEYS) {
-    root.style.removeProperty(key);
-  }
-}
-
-function applyThemeVars(config: ThemeConfig, isDark: boolean) {
-  const root = document.documentElement;
-  const vars = isDark && config.dark ? { ...config, ...config.dark } : config;
-  Object.entries(vars).forEach(([key, value]) => {
-    if (key === 'dark' || key === 'headline_font' || key === 'body_font' || key === 'logo_url') return;
-    if (typeof value === 'string' && isSafeCssValue(value)) {
-      root.style.setProperty(key, value);
-    }
-  });
-  if (config.headline_font) {
-    root.style.setProperty('--headline-font', config.headline_font);
-  }
-  if (config.body_font) {
-    root.style.setProperty('--body-font', config.body_font);
-  }
-}
+const ThemeContext = createContext<ThemeContextType>({ theme: 'dark' });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Keep server and first client render identical; browser preferences apply after hydration.
-  const [theme, setTheme] = useState<Theme>('dark');
-  const [activeTheme, setActiveTheme] = useState<ThemeConfig | null>(null);
-  const [activeThemeName, setActiveThemeName] = useState<string | null>(null);
-
   useEffect(() => {
-    const initialTheme = getInitialTheme();
-    if (initialTheme !== 'dark') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTheme(initialTheme);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    document.documentElement.classList.toggle('light', theme === 'light');
-  }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    if (activeTheme) {
-      applyThemeVars(activeTheme, theme === 'dark');
-    }
-  }, [theme, activeTheme]);
-
-  useEffect(() => {
-    fetch(apiUrl('/themes/active'))
-      .then(res => {
-        if (!res.ok) throw new Error('No active theme');
-        return res.json();
-      })
-      .then(data => {
-        try {
-          const config = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
-          setActiveTheme(config as ThemeConfig);
-          setActiveThemeName(data.name);
-          applyThemeVars(config as ThemeConfig, getInitialTheme() === 'dark');
-        } catch {
-          clearThemeVars();
-        }
-      })
-      .catch(() => {
-        clearThemeVars();
-      });
-  }, []);
-
-  const resetToDefault = useCallback(() => {
-    clearThemeVars();
-    setActiveTheme(null);
-    setActiveThemeName(null);
-  }, []);
-
-  const toggleTheme = useCallback(() => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    document.documentElement.classList.add('dark');
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, activeTheme, activeThemeName, resetToDefault }}>
+    <ThemeContext.Provider value={{ theme: 'dark' }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error('useTheme must be used within ThemeProvider');
-  return context;
+  return useContext(ThemeContext);
 }

@@ -7,14 +7,12 @@ import { KioskLocked } from '@/app/kiosk/KioskLocked';
 import { usersApi, kioskApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
-import { useTheme } from '@/hooks/useTheme';
-import { Search, X, ChevronLeft, User as UserIcon, Shield, Lock as LockIcon, LogIn, Sun, Moon } from 'lucide-react';
+import { Search, X, ChevronLeft, User as UserIcon, Shield, Lock as LockIcon, LogIn } from 'lucide-react';
 import type { User } from '@/types';
 
 function KioskContent() {
   const router = useRouter();
   const { isUnlocked, unlockedBy, lockKiosk, identifyUser } = useKiosk();
-  const { theme, toggleTheme } = useTheme();
   const [step, setStep] = useState<'welcome' | 'search' | 'pin'>('welcome');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [pinValue, setPinValue] = useState('');
@@ -127,13 +125,6 @@ function KioskContent() {
           <span className="text-xs text-[var(--muted-foreground)]">
             {unlockedBy}
           </span>
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 rounded-lg text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all"
-            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          >
-            {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
-          </button>
           <a
             href="/login"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all"
