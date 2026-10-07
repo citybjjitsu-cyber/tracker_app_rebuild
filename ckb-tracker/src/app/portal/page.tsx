@@ -242,7 +242,7 @@ export default function PortalPage() {
             </div>
           </div>
           <div className="flex flex-shrink-0 flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
               <Avatar
                 src={user.profile_image_url}
                 firstName={user.first_name}
@@ -255,13 +255,13 @@ export default function PortalPage() {
             </div>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={handleLogout}
-              aria-label="Logout"
               title="Logout"
               className="text-error"
             >
               <LogOut className="w-4 h-4" />
+              Logout
             </Button>
           </div>
         </div>
