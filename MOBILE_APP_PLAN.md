@@ -2,11 +2,11 @@
 
 ## Current Project Status
 
-The current product is a responsive Next.js web application. It is not yet a PWA or a native Android/iOS application:
+The current product is a responsive Next.js web application with PWA support and a thin Capacitor Android/iOS wrapper:
 
-- No `manifest.webmanifest` or service worker has been added.
-- Capacitor, iOS, and Android projects have not been added.
-- Offline writes, push notifications, native secure storage, and native device integrations remain future work.
+- PWA installability and static offline messaging are implemented; authenticated offline writes remain prohibited.
+- Capacitor, iOS, and Android projects are present and use native secure storage for native sessions.
+- Offline writes, push notifications, and most native device integrations remain future work.
 - The current mobile implementation work includes the responsive teacher schedule redesign.
 - The student portal now has a focused mobile resilience pass with narrow-viewport coverage and visible retry states.
 - Phase 3A browser-session and physical-device verification is complete; PWA installability is now the active phase.
@@ -403,7 +403,8 @@ If App Store and Play Store presence is desired:
 - The wrapper loads the deployed Vercel app by default and accepts `CAPACITOR_SERVER_URL` for local device testing.
 - Keychain/Keystore-backed storage is registered through `@aparajita/capacitor-secure-storage` and exposed through `src/lib/nativeSessionStorage.ts`.
 - Native login, bearer authorization, refresh rotation, logout, and session-expiry handling are implemented without changing browser cookie authentication.
-- Native authentication, responsive layouts, role-aware routes, kiosk flows, and recovery behavior were tested successfully on a physical phone and desktop browser.
+- Native authentication, responsive layouts, role-aware routes, kiosk flows, recovery behavior, and the selected-day schedule views were tested successfully on a physical phone and desktop browser.
+- Check-in and teacher schedules use full-width day dropdowns instead of horizontally scrolling day selectors, keeping all day choices accessible on small screens.
 
 Phase 6A exit criteria are satisfied. Platform-specific store signing, release builds, and broader device-matrix validation remain Phase 7 release work.
 
@@ -437,6 +438,20 @@ Test on real devices:
 - Accessibility and touch targets
 
 Release first to a small teacher and student pilot, then publish broadly.
+
+## Phase 8: Notifications and Student Re-engagement
+
+Add notifications after the core mobile experience and store release path are stable. Start with reliable in-app notifications before adding phone push notifications:
+
+- Add server-side unread/read tracking for comments and other student-facing events.
+- Add a notification count and notification area near the top of the Student Portal.
+- Make notification items link directly to the relevant comment, feedback, or class action.
+- Refresh notification state when the portal opens and after a notification is viewed.
+- Add Capacitor push notifications later for high-value reminders such as upcoming classes or teacher replies.
+- Request phone notification permission only when the user enables push notifications or reaches a feature that needs them.
+- Never include sensitive student data in notification text or cache notifications as authenticated offline data.
+
+The in-app notification layer should be completed before push delivery. Push notifications are a later enhancement, not a prerequisite for the first store release.
 
 ## Technology Recommendation
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MobileNavigation } from '@/components/layout/Sidebar'
 
 const logout = vi.fn()
@@ -38,8 +38,16 @@ describe('MobileNavigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }))
 
     expect(screen.getByRole('complementary', { name: 'Mobile navigation' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Check In' })).toHaveAttribute('href', '/check-in')
-    expect(screen.getByRole('link', { name: 'Student Portal' })).toHaveAttribute('href', '/portal')
+    const navigation = screen.getByRole('complementary', { name: 'Mobile navigation' })
+    const links = within(navigation).getAllByRole('link')
+    expect(links.map((link) => link.textContent?.trim())).toEqual([
+      'CKB Tracker',
+      'Student Portal',
+      'Check In',
+      'Teacher',
+    ])
+    expect(within(navigation).getByRole('link', { name: 'Check In' })).toHaveAttribute('href', '/check-in')
+    expect(within(navigation).getByRole('link', { name: 'Student Portal' })).toHaveAttribute('href', '/portal')
     expect(screen.getByRole('link', { name: 'Teacher' })).toHaveAttribute('href', '/teacher')
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
   })

@@ -141,11 +141,20 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Registered Keychain/Keystore-backed secure storage for the native session adapter.
 - [x] Implemented native bearer-token login, refresh rotation, logout, and session-expiry handling.
 - [x] Verified native login, refresh, logout, session expiry, responsive layouts, role-aware routes, kiosk flows, and recovery behavior on a physical phone and desktop browser.
+- [x] Replaced horizontal schedule selectors with mobile-friendly day dropdowns on Check-in and Teacher Dashboard.
 
 ## Phase 6A Closeout (2026-10-06)
 
 - [x] Physical phone validation completed successfully.
 - [x] Desktop browser validation completed successfully.
 - [x] Native authentication and secure-session behavior matched the implementation plan.
+- [x] Check-in and Teacher Dashboard schedule views keep day selection and class content within a single mobile-width screen.
 - [x] Phase 6A exit criteria satisfied.
 - [ ] Complete platform-specific signing, release builds, and broader device-matrix validation before store distribution.
+
+## Phase 8 Notification Plan
+
+- [ ] Add server-side unread/read tracking for student comments and other notification events.
+- [ ] Add an in-app notification count and notification area to the Student Portal.
+- [ ] Link notifications to the relevant comment, feedback, or class action.
+- [ ] Evaluate Capacitor push notifications after the in-app notification flow is reliable.

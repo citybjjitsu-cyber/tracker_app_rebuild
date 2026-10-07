@@ -231,9 +231,18 @@ export default function PortalPage() {
     <div className="max-w-6xl min-w-0 mx-auto px-4 sm:px-0">
       <div className="bg-surface-container-low rounded-xl border border-outline-variant/10 p-4 sm:p-6 mb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary-container/10 blur-[100px] -mr-32 -mt-32 pointer-events-none" />
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
-            <div className="w-14 h-14 flex-shrink-0 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div className="min-w-0 text-left">
+            <h1 className="font-headline text-lg sm:text-2xl font-black uppercase tracking-tight text-on-surface truncate">
+              {user.first_name} {user.last_name}
+            </h1>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <RankBadge rank={user.rank} degree={user.rank_tier?.degree} />
+              {user.nicknames && <Badge variant="outline">{user.nicknames}</Badge>}
+            </div>
+          </div>
+          <div className="flex flex-shrink-0 items-center gap-3">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl p-0.5 bg-gradient-to-tr from-primary-container to-transparent">
               <Avatar
                 src={user.profile_image_url}
                 firstName={user.first_name}
@@ -244,21 +253,17 @@ export default function PortalPage() {
                 className="w-full h-full rounded-[10px]"
               />
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="font-headline text-lg sm:text-2xl font-black uppercase tracking-tight text-on-surface truncate">
-                {user.first_name} {user.last_name}
-              </h1>
-              <p className="text-on-surface-variant text-xs sm:text-sm truncate">{user.email}</p>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <RankBadge rank={user.rank} degree={user.rank_tier?.degree} />
-                {user.nicknames && <Badge variant="outline">{user.nicknames}</Badge>}
-              </div>
-            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleLogout}
+              aria-label="Logout"
+              title="Logout"
+              className="text-error"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="text-error self-start sm:self-auto flex-shrink-0">
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
         </div>
       </div>
 
@@ -267,12 +272,18 @@ export default function PortalPage() {
         onFeedbackClick={() => setActiveTab('feedback')}
       />
 
-      <div className="flex gap-2 mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
+      <div
+        role="tablist"
+        aria-label="Student portal sections"
+        className="mb-6 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap"
+      >
         {(['analytics', 'feedback', 'comments'] as const).map((tab) => (
           <button
             key={tab}
+            role="tab"
+            aria-selected={activeTab === tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-shrink-0 px-4 sm:px-5 py-2.5 rounded-lg font-headline font-bold uppercase tracking-widest text-xs transition-all ${
+            className={`w-full rounded-lg px-4 py-3 text-left font-headline text-xs font-bold uppercase tracking-widest transition-all sm:w-auto sm:px-5 ${
               activeTab === tab
                 ? 'bg-primary-container text-on-primary-container shadow-lg shadow-primary-container/20'
                 : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
