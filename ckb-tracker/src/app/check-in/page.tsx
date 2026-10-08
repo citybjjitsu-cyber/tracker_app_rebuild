@@ -325,11 +325,7 @@ export default function CheckInPage() {
     stopCamera();
     setPendingCheckIns([]);
     closePinModal();
-    if (isTeacher) {
-      router.push('/teacher');
-    } else {
-      router.push('/portal');
-    }
+    router.push('/portal');
   };
 
   const handleCreateMember = async () => {
@@ -545,7 +541,7 @@ export default function CheckInPage() {
         <div className="flex items-center gap-3">
           {!isTablet && (
             <button
-              onClick={() => router.push(isTeacher ? '/teacher' : '/portal')}
+              onClick={() => router.push('/portal')}
               className="p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all"
             >
               <ChevronLeft className="w-5 h-5" />

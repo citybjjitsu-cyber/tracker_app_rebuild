@@ -73,6 +73,7 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - The frontend no longer depends on `/themes/active`; missing database themes must not affect app startup or kiosk operation.
 - CSS variables remain the styling contract so a future approved theme catalog can be added without rewriting components.
 - Future personal themes are deferred until a token audit, contrast review, catalog model, and per-user preference design are complete.
+- Mobile navigation policy: all authenticated user roles return to `/portal` after check-in; kiosk/tablet mode remains a separate staff-controlled flow.
 
 ## Phase 5A Checkpoint (2026-10-03)
 
