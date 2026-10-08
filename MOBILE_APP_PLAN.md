@@ -152,6 +152,7 @@ Offline attendance writes, authenticated page caching, API caching, and backgrou
 - Keep the CSS variable/token layer and the backend theme tables temporarily for compatibility and rollback, but treat the global `WebsiteTheme` APIs as dormant until a replacement is designed.
 - Remove light-mode controls from the active product until every component has been audited for token usage and contrast. Do not advertise light-mode support in device test criteria.
 - Keep kiosk, student, teacher, and admin surfaces on the same fixed theme so screenshots, support instructions, and device testing remain predictable.
+- Use `/portal` as the single authenticated mobile home: students, teachers, and admins return there after check-in and normal login. Desktop-only teacher/admin routes may remain available, but mobile navigation should not vary by role.
 
 #### Future theme personalization (deferred)
 
