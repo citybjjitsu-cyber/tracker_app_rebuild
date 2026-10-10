@@ -4,7 +4,7 @@ import pytest
 from app import models
 from app.main import app
 from app.routers.dashboard import get_db as dashboard_get_db
-from tests.conftest import STAFF_UUID, STUDENT_UUID, STAFF_PASSWORD
+from tests.conftest import PINLESS_UUID, STAFF_UUID, STUDENT_UUID, STAFF_PASSWORD
 
 
 @pytest.fixture(autouse=True)
@@ -92,7 +92,7 @@ def test_attendance_overview_with_data_and_class_filter(client, db_session):
             ),
             # A pending record should be excluded from the confirmed-only overview
             models.Attendance(
-                user_uuid=STUDENT_UUID,
+                user_uuid=PINLESS_UUID,
                 class_id=1,
                 attendance_date=today,
                 status="pending",

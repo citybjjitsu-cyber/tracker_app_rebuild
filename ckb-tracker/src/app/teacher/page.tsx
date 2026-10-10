@@ -23,7 +23,8 @@ export default function TeacherPage() {
   const [selectedDate, setSelectedDate] = useState(toDateString(new Date()));
   const [selectedClass, setSelectedClass] = useState<number | ''>('');
   const [attendance, setAttendance] = useState<Attendance[]>([]);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [attendanceError, setAttendanceError] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [feedback, setFeedback] = useState<ClassFeedback[]>([]);
@@ -168,10 +169,12 @@ export default function TeacherPage() {
 
   async function loadAttendance() {
     if (!selectedClass) return;
+    setAttendanceError('');
     try {
       const data = await attendanceApi.getByClass(selectedClass, selectedDate);
       setAttendance(data);
     } catch (error) {
+      setAttendanceError('Unable to load attendance. Please retry.');
       console.error('Error loading attendance:', error);
     }
   }
@@ -530,6 +533,13 @@ export default function TeacherPage() {
 
             {selectedClass ? (
               <>
+                {attendanceError && (
+                  <RetryState
+                    message={attendanceError}
+                    onRetry={loadAttendance}
+                    className="mb-4"
+                  />
+                )}
                 <div className="space-y-2 mb-4">
                   {attendance.map((att) => (
                     <div

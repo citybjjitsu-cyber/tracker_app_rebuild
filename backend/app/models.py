@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     Date,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -220,6 +221,14 @@ class ClassInstance(Base):
 
 class Attendance(Base):
     __tablename__ = "attendance"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_uuid",
+            "class_id",
+            "attendance_date",
+            name="uq_attendance_user_class_date",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_uuid = Column(String, ForeignKey("users.user_uuid"))

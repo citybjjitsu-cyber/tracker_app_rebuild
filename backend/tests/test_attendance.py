@@ -232,6 +232,20 @@ def test_direct_attendance(client, headers):
     assert data["class_id"] == 1
 
 
+def test_direct_attendance_rejects_duplicate(client, headers):
+    payload = {
+        "user_uuid": "student-uuid-0000-0000-000000000002",
+        "class_id": 1,
+    }
+    first = client.post("/attendance/direct", json=payload, headers=headers)
+    duplicate = client.post("/attendance/direct", json=payload, headers=headers)
+
+    assert first.status_code == 200
+    assert duplicate.status_code == 400
+    assert duplicate.headers["X-Error-Code"] == "already_checked_in"
+    assert duplicate.headers["X-Retryable"] == "false"
+
+
 def test_bulk_confirm(client, headers):
     create_resp = client.post(
         "/attendance/bulk-check-in",
