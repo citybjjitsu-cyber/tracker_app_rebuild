@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
@@ -19,6 +20,64 @@ def get_db():
         db.close()
 
 
+def _existing_attendance(db: Session, user_uuid: str, class_id: int, target_date: date):
+    return (
+        db.query(models.Attendance)
+        .filter(
+            models.Attendance.user_uuid == user_uuid,
+            models.Attendance.class_id == class_id,
+            models.Attendance.attendance_date == target_date,
+        )
+        .first()
+    )
+
+
+def _create_attendance(
+    db: Session,
+    user_uuid: str,
+    class_id: int,
+    target_date: date,
+    class_instance_id: Optional[int] = None,
+    teacher_uuid: Optional[str] = None,
+):
+    existing = _existing_attendance(db, user_uuid, class_id, target_date)
+    if existing:
+        return existing, False
+
+    # Keep attendance tied to the concrete occurrence whenever one exists.
+    if class_instance_id is None:
+        instance = (
+            db.query(models.ClassInstance)
+            .filter(
+                models.ClassInstance.class_id == class_id,
+                models.ClassInstance.class_date == target_date,
+            )
+            .first()
+        )
+        if instance:
+            class_instance_id = instance.id
+            teacher_uuid = teacher_uuid or instance.teacher_uuid
+
+    attendance = models.Attendance(
+        user_uuid=user_uuid,
+        class_id=class_id,
+        class_instance_id=class_instance_id,
+        teacher_uuid=teacher_uuid,
+        attendance_date=target_date,
+        status="pending",
+    )
+    try:
+        with db.begin_nested():
+            db.add(attendance)
+            db.flush()
+    except IntegrityError:
+        existing = _existing_attendance(db, user_uuid, class_id, target_date)
+        if existing:
+            return existing, False
+        raise
+    return attendance, True
+
+
 @router.post("/", response_model=schemas.AttendanceResponse)
 @limiter.limit(WRITE_LIMIT)
 def create_attendance(
@@ -29,16 +88,7 @@ def create_attendance(
 ):
     today = date.today()
 
-    # Check if already checked in
-    existing = (
-        db.query(models.Attendance)
-        .filter(
-            models.Attendance.user_uuid == attendance.user_uuid,
-            models.Attendance.class_id == attendance.class_id,
-            models.Attendance.attendance_date == today,
-        )
-        .first()
-    )
+    existing = _existing_attendance(db, attendance.user_uuid, attendance.class_id, today)
 
     if existing:
         raise HTTPException(
@@ -47,8 +97,14 @@ def create_attendance(
             headers={"X-Error-Code": "already_checked_in", "X-Retryable": "false"},
         )
 
-    db_attendance = models.Attendance(**attendance.model_dump(), attendance_date=today, status="pending")
-    db.add(db_attendance)
+    db_attendance, _ = _create_attendance(
+        db,
+        attendance.user_uuid,
+        attendance.class_id,
+        today,
+        attendance.class_instance_id,
+        attendance.teacher_uuid,
+    )
     db.commit()
     db.refresh(db_attendance)
 
@@ -117,15 +173,7 @@ def check_in(
 
     target_date = data.check_in_date or date.today()
 
-    existing = (
-        db.query(models.Attendance)
-        .filter(
-            models.Attendance.user_uuid == user_uuid,
-            models.Attendance.class_id == class_id,
-            models.Attendance.attendance_date == target_date,
-        )
-        .first()
-    )
+    existing = _existing_attendance(db, user_uuid, class_id, target_date)
 
     if existing:
         raise HTTPException(
@@ -134,14 +182,13 @@ def check_in(
             headers={"X-Error-Code": "already_checked_in", "X-Retryable": "false"},
         )
 
-    db_attendance = models.Attendance(
-        user_uuid=user_uuid,
-        class_id=class_id,
-        class_instance_id=class_instance_id,
-        attendance_date=target_date,
-        status="pending",
+    db_attendance, _ = _create_attendance(
+        db,
+        user_uuid,
+        class_id,
+        target_date,
+        class_instance_id,
     )
-    db.add(db_attendance)
     db.commit()
     db.refresh(db_attendance)
 
@@ -175,15 +222,7 @@ def bulk_check_in(
 
     for item in data.classes:
         target_date = item.check_in_date or date.today()
-        existing = (
-            db.query(models.Attendance)
-            .filter(
-                models.Attendance.user_uuid == data.user_uuid,
-                models.Attendance.class_id == item.class_id,
-                models.Attendance.attendance_date == target_date,
-            )
-            .first()
-        )
+        existing = _existing_attendance(db, data.user_uuid, item.class_id, target_date)
 
         if existing:
             already_present.append(existing)
@@ -198,14 +237,12 @@ def bulk_check_in(
             )
             continue
 
-        db_attendance = models.Attendance(
-            user_uuid=data.user_uuid,
-            class_id=item.class_id,
-            attendance_date=target_date,
-            status="pending",
+        db_attendance, _ = _create_attendance(
+            db,
+            data.user_uuid,
+            item.class_id,
+            target_date,
         )
-        db.add(db_attendance)
-        db.flush()
         created.append(db_attendance)
 
     db.commit()
@@ -229,21 +266,30 @@ def direct_attendance(
 ):
     user_uuid = data.get("user_uuid")
     class_id = data.get("class_id")
+    if not isinstance(user_uuid, str) or not isinstance(class_id, int):
+        raise HTTPException(status_code=422, detail="user_uuid and class_id are required")
     class_instance_id = data.get("class_instance_id")
     teacher_uuid = data.get("teacher_uuid")
     attendance_date_str = data.get("attendance_date")
 
     today = date.fromisoformat(attendance_date_str) if attendance_date_str else date.today()
 
-    db_attendance = models.Attendance(
-        user_uuid=user_uuid,
-        class_id=class_id,
-        class_instance_id=class_instance_id,
-        teacher_uuid=teacher_uuid,
-        attendance_date=today,
-        status="pending",
+    existing = _existing_attendance(db, user_uuid, class_id, today)
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Already checked in for this class on this date",
+            headers={"X-Error-Code": "already_checked_in", "X-Retryable": "false"},
+        )
+
+    db_attendance, _ = _create_attendance(
+        db,
+        user_uuid,
+        class_id,
+        today,
+        class_instance_id,
+        teacher_uuid,
     )
-    db.add(db_attendance)
     db.commit()
     db.refresh(db_attendance)
     return db_attendance
