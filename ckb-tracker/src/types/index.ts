@@ -174,7 +174,7 @@ export interface Attendance {
 
 export interface ClassFeedback {
   id: number;
-  user_uuid: string;
+  user_uuid?: string;
   attendance_id: number;
   class_instance_id: number;
   rating?: FeedbackRating;

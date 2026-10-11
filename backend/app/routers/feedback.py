@@ -5,6 +5,7 @@ from app import models, schemas
 from datetime import date
 from typing import List, Optional
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, DASHBOARD_LIMIT
+from app.routers.auth import get_teacher_user
 from app.services.attendance import ensure_class_instance
 
 router = APIRouter()
@@ -79,7 +80,7 @@ def get_user_feedback(request: Request, user_uuid: str, db: Session = Depends(ge
     )
 
 
-@router.get("/teacher/{teacher_uuid}", response_model=List[schemas.FeedbackResponse])
+@router.get("/teacher/{teacher_uuid}", response_model=List[schemas.TeacherFeedbackResponse])
 @limiter.limit(READ_LIMIT)
 def get_teacher_feedback(
     request: Request,
@@ -89,12 +90,12 @@ def get_teacher_feedback(
     class_id: Optional[int] = Query(None),
     rating: Optional[str] = Query(None),
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_teacher_user),
 ):
     query = (
         db.query(models.ClassFeedback)
         .options(joinedload(models.ClassFeedback.class_instance))
         .join(models.ClassInstance)
-        .filter(models.ClassInstance.teacher_uuid == teacher_uuid)
     )
     if start_date:
         query = query.filter(models.ClassInstance.class_date >= start_date)

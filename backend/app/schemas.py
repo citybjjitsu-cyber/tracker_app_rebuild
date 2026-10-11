@@ -434,6 +434,16 @@ class FeedbackResponse(FeedbackBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TeacherFeedbackResponse(FeedbackBase):
+    id: int
+    class_instance_id: int
+    created_at: datetime
+    updated_at: datetime
+    class_instance: Optional["ClassInstanceResponse"] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class LoginRequest(BaseModel):
     email: str = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
