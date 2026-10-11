@@ -55,6 +55,10 @@ export function getWeekStart(date: Date): Date {
   return monday;
 }
 
+export function getDayName(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date);
+}
+
 export function toDateString(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');

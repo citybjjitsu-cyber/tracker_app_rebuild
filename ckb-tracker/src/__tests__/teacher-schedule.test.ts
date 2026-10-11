@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { getSlidingWindowDates, getWeekDates, normalizeDay, toDateString, WEEK_DAYS } from '@/lib/teacherSchedule'
+import { getDayName, getSlidingWindowDates, getWeekDates, normalizeDay, toDateString, WEEK_DAYS } from '@/lib/teacherSchedule'
 
 describe('teacher schedule helpers', () => {
   it('normalizes supported day abbreviations and whitespace', () => {
@@ -57,5 +57,10 @@ describe('teacher schedule helpers', () => {
     ])
 
     vi.useRealTimers()
+  })
+
+  it('uses the actual weekday for each rolling-window date', () => {
+    expect(getDayName(new Date(2026, 9, 11, 12, 0, 0))).toBe('Sunday')
+    expect(getDayName(new Date(2026, 9, 12, 12, 0, 0))).toBe('Monday')
   })
 })
