@@ -104,17 +104,23 @@ def test_get_user_feedback(client, db_session):
     assert data[0]["rating"] == "positive"
 
 
-def test_get_teacher_feedback_empty(client):
-    response = client.get(f"/feedback/teacher/{STAFF_UUID}")
+def test_get_teacher_feedback_empty(client, headers):
+    response = client.get(f"/feedback/teacher/{STAFF_UUID}", headers=headers)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-def test_get_teacher_feedback_applies_date_class_and_rating_filters(client, db_session):
+def test_get_teacher_feedback_requires_teacher_auth(client):
+    response = client.get(f"/feedback/teacher/{STAFF_UUID}")
+
+    assert response.status_code == 401
+
+
+def test_get_teacher_feedback_applies_date_class_and_rating_filters(client, db_session, headers):
     today_instance = models.ClassInstance(
         class_id=1,
         class_date=date.today(),
-        teacher_uuid=STAFF_UUID,
+        teacher_uuid="different-teacher",
     )
     old_instance = models.ClassInstance(
         class_id=1,
@@ -144,6 +150,7 @@ def test_get_teacher_feedback_applies_date_class_and_rating_filters(client, db_s
     response = client.get(
         f"/feedback/teacher/{STAFF_UUID}",
         params={"start_date": date.today().isoformat(), "rating": "positive", "class_id": 1},
+        headers=headers,
     )
 
     assert response.status_code == 200
@@ -151,6 +158,8 @@ def test_get_teacher_feedback_applies_date_class_and_rating_filters(client, db_s
     assert len(data) == 1
     assert data[0]["rating"] == "positive"
     assert data[0]["class_instance_id"] == today_instance.id
+    assert "user_uuid" not in data[0]
+    assert "user" not in data[0]
 
 
 def _seed_feedback_data(db_session):
