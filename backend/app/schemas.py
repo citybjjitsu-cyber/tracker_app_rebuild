@@ -344,6 +344,7 @@ class ClassInstanceUpdate(ClassInstanceBase):
 class ClassInstanceResponse(ClassInstanceBase):
     id: int
     class_schedule: Optional["ClassScheduleResponse"] = None
+    lesson: Optional[LessonResponse] = None
     created_at: datetime
     updated_at: datetime
 

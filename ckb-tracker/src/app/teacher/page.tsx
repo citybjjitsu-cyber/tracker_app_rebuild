@@ -724,13 +724,13 @@ export default function TeacherPage() {
               </div>
               <div className="text-center p-3 glass-panel rounded-lg">
                 <p className="text-xl font-bold font-headline text-green-400">
-                  {feedback.filter(f => f.rating === 'thumbs_up').length}
+                  {feedback.filter(f => f.rating === 'positive' || f.rating === 'thumbs_up').length}
                 </p>
                 <p className="text-sm text-green-400">Positive</p>
               </div>
               <div className="text-center p-3 glass-panel rounded-lg">
                 <p className="text-xl font-bold font-headline text-red-400">
-                  {feedback.filter(f => f.rating === 'thumbs_down').length}
+                  {feedback.filter(f => f.rating === 'negative' || f.rating === 'thumbs_down').length}
                 </p>
                 <p className="text-sm text-red-400">Negative</p>
               </div>
@@ -750,21 +750,22 @@ export default function TeacherPage() {
                 <tbody>
                   {feedback
                     .filter(f => {
-                      if (ratingFilter === 'positive' && f.rating !== 'thumbs_up') return false;
-                      if (ratingFilter === 'negative' && f.rating !== 'thumbs_down') return false;
-                      if (dateRange.start && f.created_at < dateRange.start) return false;
-                      if (dateRange.end && f.created_at > dateRange.end + 'T23:59:59') return false;
-                      if (classesFilter.length > 0 && !classesFilter.includes(f.class_instance_id || 0)) return false;
+                       if (ratingFilter === 'positive' && f.rating !== 'positive' && f.rating !== 'thumbs_up') return false;
+                       if (ratingFilter === 'negative' && f.rating !== 'negative' && f.rating !== 'thumbs_down') return false;
+                       const classDate = f.class_instance?.class_date || f.created_at.slice(0, 10);
+                       if (dateRange.start && classDate < dateRange.start) return false;
+                       if (dateRange.end && classDate > dateRange.end) return false;
+                       if (classesFilter.length > 0 && !classesFilter.includes(f.class_instance?.class_id || 0)) return false;
                       return true;
                     })
                     .map((fb) => (
                       <tr key={fb.id} className="bg-surface-container-low">
-                        <td className="p-3 text-sm text-on-surface-variant">{formatDate(fb.created_at)}</td>
-                        <td className="p-3 text-sm text-on-surface-variant">Class #{fb.class_instance_id || '-'}</td>
-                        <td className="p-3 text-sm text-on-surface-variant">-</td>
+                         <td className="p-3 text-sm text-on-surface-variant">{formatDate(fb.class_instance?.class_date || fb.created_at)}</td>
+                         <td className="p-3 text-sm text-on-surface-variant">{fb.class_instance?.class_schedule?.class_name || 'Class'}</td>
+                         <td className="p-3 text-sm text-on-surface-variant">{fb.class_instance?.lesson?.title || '-'}</td>
                         <td className="p-3">
-                          <span className={fb.rating === 'thumbs_up' ? 'text-green-400' : 'text-red-400'}>
-                            {fb.rating === 'thumbs_up' ? 'Positive' : 'Negative'}
+                          <span className={fb.rating === 'positive' || fb.rating === 'thumbs_up' ? 'text-green-400' : 'text-red-400'}>
+                             {fb.rating === 'positive' || fb.rating === 'thumbs_up' ? 'Positive' : 'Negative'}
                           </span>
                         </td>
                         <td className="p-3 text-sm text-on-surface-variant">{fb.comment || '-'}</td>

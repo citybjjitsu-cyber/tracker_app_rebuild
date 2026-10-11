@@ -24,25 +24,42 @@ def test_submit_feedback(client, db_session):
     db_session.add(att)
     db_session.flush()
 
-    from fastapi.exceptions import ResponseValidationError
-
-    try:
-        client.post(
-            "/feedback/",
-            json={
-                "attendance_id": att.id,
-                "rating": "positive",
-                "comment": "Great class!",
-            },
-        )
-    except ResponseValidationError:
-        pass
+    response = client.post(
+        "/feedback/",
+        json={
+            "attendance_id": att.id,
+            "rating": "thumbs_up",
+            "comment": "Great class!",
+        },
+    )
 
     feedback = db_session.query(models.ClassFeedback).first()
+    assert response.status_code == 200
     assert feedback is not None
     assert feedback.rating == "positive"
     assert feedback.comment == "Great class!"
     assert feedback.attendance_id == att.id
+    assert feedback.user_uuid == STUDENT_UUID
+    assert feedback.class_instance_id == ci.id
+
+
+def test_submit_feedback_rejects_duplicate_for_attendance(client, db_session):
+    ci = models.ClassInstance(class_id=1, class_date=date.today())
+    db_session.add(ci)
+    db_session.flush()
+    att = models.Attendance(
+        user_uuid=STUDENT_UUID,
+        class_id=1,
+        class_instance_id=ci.id,
+    )
+    db_session.add(att)
+    db_session.flush()
+
+    payload = {"attendance_id": att.id, "rating": "positive"}
+    assert client.post("/feedback/", json=payload).status_code == 200
+    duplicate = client.post("/feedback/", json=payload)
+
+    assert duplicate.status_code == 409
 
 
 def test_get_user_feedback(client, db_session):
@@ -74,9 +91,7 @@ def test_get_teacher_feedback_empty(client):
 
 
 def _seed_feedback_data(db_session):
-    ci = models.ClassInstance(
-        class_id=1, class_date="2024-06-01", teacher_uuid=STAFF_UUID
-    )
+    ci = models.ClassInstance(class_id=1, class_date="2024-06-01", teacher_uuid=STAFF_UUID)
     db_session.add(ci)
     db_session.flush()
     fb1 = models.ClassFeedback(
@@ -102,9 +117,7 @@ def _seed_feedback_data(db_session):
 def test_get_admin_feedback_list(client, db_session):
     from datetime import date
 
-    ci = models.ClassInstance(
-        class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID
-    )
+    ci = models.ClassInstance(class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID)
     db_session.add(ci)
     db_session.flush()
     fb = models.ClassFeedback(
@@ -127,9 +140,7 @@ def test_get_admin_feedback_list(client, db_session):
 def test_get_admin_stats(client, db_session):
     from datetime import date
 
-    ci = models.ClassInstance(
-        class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID
-    )
+    ci = models.ClassInstance(class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID)
     db_session.add(ci)
     db_session.flush()
     fb = models.ClassFeedback(
@@ -153,9 +164,7 @@ def test_get_admin_stats(client, db_session):
 def test_get_admin_feedback_list_with_filters(client, db_session):
     from datetime import date
 
-    ci = models.ClassInstance(
-        class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID
-    )
+    ci = models.ClassInstance(class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID)
     db_session.add(ci)
     db_session.flush()
     fb1 = models.ClassFeedback(
@@ -167,7 +176,7 @@ def test_get_admin_feedback_list_with_filters(client, db_session):
     )
     fb2 = models.ClassFeedback(
         user_uuid=STUDENT_UUID,
-        attendance_id=1,
+        attendance_id=2,
         class_instance_id=ci.id,
         rating="negative",
         comment="Bad",

@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, DASHBOARD_LIMIT
 
 router = APIRouter()
+
+
+def _canonical_rating(rating: str) -> str:
+    return {
+        "thumbs_up": "positive",
+        "thumbs_down": "negative",
+    }.get(rating, rating)
 
 
 def get_db():
@@ -18,10 +25,34 @@ def get_db():
 
 @router.post("/", response_model=schemas.FeedbackResponse)
 @limiter.limit(WRITE_LIMIT)
-def submit_feedback(
-    request: Request, feedback: schemas.FeedbackCreate, db: Session = Depends(get_db)
-):
-    db_feedback = models.ClassFeedback(**feedback.model_dump())
+def submit_feedback(request: Request, feedback: schemas.FeedbackCreate, db: Session = Depends(get_db)):
+    attendance = (
+        db.query(models.Attendance)
+        .options(joinedload(models.Attendance.class_instance))
+        .filter(models.Attendance.id == feedback.attendance_id)
+        .first()
+    )
+    if not attendance:
+        raise HTTPException(status_code=404, detail="Attendance not found")
+
+    class_instance = attendance.class_instance
+    if not class_instance:
+        raise HTTPException(
+            status_code=422,
+            detail="Attendance is not linked to a class instance",
+        )
+
+    existing = db.query(models.ClassFeedback).filter(models.ClassFeedback.attendance_id == attendance.id).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Feedback already submitted")
+
+    db_feedback = models.ClassFeedback(
+        user_uuid=attendance.user_uuid,
+        attendance_id=attendance.id,
+        class_instance_id=class_instance.id,
+        rating=_canonical_rating(feedback.rating),
+        comment=feedback.comment,
+    )
     db.add(db_feedback)
     db.commit()
     db.refresh(db_feedback)
@@ -33,6 +64,7 @@ def submit_feedback(
 def get_user_feedback(request: Request, user_uuid: str, db: Session = Depends(get_db)):
     return (
         db.query(models.ClassFeedback)
+        .options(joinedload(models.ClassFeedback.class_instance))
         .filter(models.ClassFeedback.user_uuid == user_uuid)
         .order_by(models.ClassFeedback.created_at.desc())
         .all()
@@ -41,19 +73,15 @@ def get_user_feedback(request: Request, user_uuid: str, db: Session = Depends(ge
 
 @router.get("/teacher/{teacher_uuid}", response_model=List[schemas.FeedbackResponse])
 @limiter.limit(READ_LIMIT)
-def get_teacher_feedback(
-    request: Request, teacher_uuid: str, db: Session = Depends(get_db)
-):
-    instances = (
-        db.query(models.ClassInstance)
-        .filter(models.ClassInstance.teacher_uuid == teacher_uuid)
-        .all()
-    )
+def get_teacher_feedback(request: Request, teacher_uuid: str, db: Session = Depends(get_db)):
+    instances = db.query(models.ClassInstance).filter(models.ClassInstance.teacher_uuid == teacher_uuid).all()
 
     instance_ids = [i.id for i in instances]
     return (
         db.query(models.ClassFeedback)
+        .options(joinedload(models.ClassFeedback.class_instance))
         .filter(models.ClassFeedback.class_instance_id.in_(instance_ids))
+        .order_by(models.ClassFeedback.created_at.desc())
         .all()
     )
 
@@ -71,6 +99,7 @@ def get_admin_feedback_list(
 ):
     query = (
         db.query(models.ClassFeedback)
+        .options(joinedload(models.ClassFeedback.class_instance))
         .join(models.ClassInstance)
         .join(models.User)
         .join(models.ClassSchedule)
@@ -87,7 +116,12 @@ def get_admin_feedback_list(
         teacher_uuids = [t.strip() for t in teachers.split(",")]
         query = query.filter(models.ClassInstance.teacher_uuid.in_(teacher_uuids))
     if rating and rating != "all":
-        query = query.filter(models.ClassFeedback.rating == rating)
+        ratings = [rating]
+        if rating == "positive":
+            ratings.append("thumbs_up")
+        elif rating == "negative":
+            ratings.append("thumbs_down")
+        query = query.filter(models.ClassFeedback.rating.in_(ratings))
 
     feedback = query.order_by(models.ClassInstance.class_date.desc()).all()
     return feedback
@@ -117,14 +151,17 @@ def get_admin_stats(
         teacher_uuids = [t.strip() for t in teachers.split(",")]
         query = query.filter(models.ClassInstance.teacher_uuid.in_(teacher_uuids))
     if rating:
-        query = query.filter(models.ClassFeedback.rating == rating)
+        ratings = [rating]
+        if rating == "positive":
+            ratings.append("thumbs_up")
+        elif rating == "negative":
+            ratings.append("thumbs_down")
+        query = query.filter(models.ClassFeedback.rating.in_(ratings))
 
     total_feedback = query.count()
-    positive_count = query.filter(models.ClassFeedback.rating == "positive").count()
-    negative_count = query.filter(models.ClassFeedback.rating == "negative").count()
-    positive_percent = (
-        (positive_count / total_feedback * 100) if total_feedback > 0 else 0
-    )
+    positive_count = query.filter(models.ClassFeedback.rating.in_(["positive", "thumbs_up"])).count()
+    negative_count = query.filter(models.ClassFeedback.rating.in_(["negative", "thumbs_down"])).count()
+    positive_percent = (positive_count / total_feedback * 100) if total_feedback > 0 else 0
 
     return schemas.FeedbackStats(
         totalFeedback=total_feedback,
