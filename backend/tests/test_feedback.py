@@ -62,6 +62,26 @@ def test_submit_feedback_rejects_duplicate_for_attendance(client, db_session):
     assert duplicate.status_code == 409
 
 
+def test_submit_feedback_repairs_orphan_attendance(client, db_session):
+    att = models.Attendance(
+        user_uuid=STUDENT_UUID,
+        class_id=1,
+        attendance_date=date.today(),
+    )
+    db_session.add(att)
+    db_session.flush()
+
+    response = client.post(
+        "/feedback/",
+        json={"attendance_id": att.id, "rating": "positive"},
+    )
+
+    assert response.status_code == 200
+    db_session.refresh(att)
+    assert att.class_instance_id is not None
+    assert response.json()["class_instance_id"] == att.class_instance_id
+
+
 def test_get_user_feedback(client, db_session):
     ci = models.ClassInstance(class_id=1, class_date=date.today())
     db_session.add(ci)
