@@ -14,7 +14,7 @@ import type { WeeklyScheduleClass, Attendance, User, ClassFeedback, Comment } fr
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
 import { RetryState } from '@/components/ui/RetryState';
-import { WEEK_DAYS, getWeekDates, toDateString } from '@/lib/teacherSchedule';
+import { WEEK_DAYS, getSlidingWindowDates, getWeekStart, toDateString } from '@/lib/teacherSchedule';
 
 export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
@@ -43,7 +43,7 @@ export default function TeacherPage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [manualStudentUuid, setManualStudentUuid] = useState('');
 
-  const weekDates = getWeekDates(weekOffset);
+  const weekDates = getSlidingWindowDates(weekOffset);
 
   useEffect(() => {
     if (isTeacher || isAdmin) {
@@ -77,7 +77,7 @@ export default function TeacherPage() {
     setScheduleError('');
     try {
       const [scheduleResult, usersResult] = await Promise.allSettled([
-        classesApi.weekly(toDateString(getWeekDates(0)[0])),
+        loadRollingSchedule(0),
         usersApi.list(),
       ]);
 
@@ -88,7 +88,7 @@ export default function TeacherPage() {
         return;
       }
 
-      const classesData = scheduleResult.value.days.flatMap(day => day.classes);
+      const classesData = scheduleResult.value;
       setClasses(classesData);
       if (usersResult.status === 'fulfilled') {
         setUsers(usersResult.value);
@@ -116,12 +116,31 @@ export default function TeacherPage() {
     }
   }
 
+  async function loadRollingSchedule(offset: number) {
+    const windowDates = getSlidingWindowDates(offset);
+    const startDate = windowDates[0];
+    const endDate = windowDates[windowDates.length - 1];
+    const weekStarts = [getWeekStart(startDate)];
+    const endWeekStart = getWeekStart(endDate);
+    if (toDateString(endWeekStart) !== toDateString(weekStarts[0])) {
+      weekStarts.push(endWeekStart);
+    }
+
+    const schedules = await Promise.all(
+      weekStarts.map((weekStart) => classesApi.weekly(toDateString(weekStart)))
+    );
+    const startDateString = toDateString(startDate);
+    const endDateString = toDateString(endDate);
+    return schedules
+      .flatMap(schedule => schedule.days.flatMap(day => day.classes))
+      .filter(cls => cls.scheduled_date >= startDateString && cls.scheduled_date <= endDateString);
+  }
+
   async function loadSchedule(offset: number, targetDate = selectedDate) {
     setIsScheduleLoading(true);
     setScheduleError('');
     try {
-      const schedule = await classesApi.weekly(toDateString(getWeekDates(offset)[0]));
-      const classesData = schedule.days.flatMap(day => day.classes);
+      const classesData = await loadRollingSchedule(offset);
       setClasses(classesData);
       const selectedDayClasses = classesData.filter(c => c.scheduled_date === targetDate);
       setSelectedClass(selectedDayClasses[0]?.id || classesData[0]?.id || '');
@@ -288,11 +307,11 @@ export default function TeacherPage() {
 
   const changeWeek = (delta: number) => {
     const nextWeekOffset = weekOffset + delta;
-    const currentWeekDates = getWeekDates(weekOffset);
+    const currentWeekDates = weekDates;
     const selectedDayIndex = currentWeekDates.findIndex(
       date => toDateString(date) === selectedDate
     );
-    const nextWeekDates = getWeekDates(nextWeekOffset);
+    const nextWeekDates = getSlidingWindowDates(nextWeekOffset);
     const nextSelectedDayIndex = selectedDayIndex === -1 ? 0 : selectedDayIndex;
     setWeekOffset(nextWeekOffset);
     setSelectedDate(toDateString(nextWeekDates[nextSelectedDayIndex]));

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { getWeekDates, normalizeDay, toDateString, WEEK_DAYS } from '@/lib/teacherSchedule'
+import { getSlidingWindowDates, getWeekDates, normalizeDay, toDateString, WEEK_DAYS } from '@/lib/teacherSchedule'
 
 describe('teacher schedule helpers', () => {
   it('normalizes supported day abbreviations and whitespace', () => {
@@ -36,6 +36,25 @@ describe('teacher schedule helpers', () => {
 
     expect(nextWeek[0].getTime() - currentWeek[0].getTime()).toBe(7 * 24 * 60 * 60 * 1000)
     expect(WEEK_DAYS).toHaveLength(7)
+
+    vi.useRealTimers()
+  })
+
+  it('starts each rolling window today and includes the next six days', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 11, 12, 0, 0))
+
+    const dates = getSlidingWindowDates(0)
+
+    expect(dates.map(toDateString)).toEqual([
+      '2026-10-11',
+      '2026-10-12',
+      '2026-10-13',
+      '2026-10-14',
+      '2026-10-15',
+      '2026-10-16',
+      '2026-10-17',
+    ])
 
     vi.useRealTimers()
   })
