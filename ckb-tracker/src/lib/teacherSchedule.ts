@@ -38,6 +38,26 @@ export function getWeekDates(offset: number): Date[] {
   });
 }
 
+export function getSlidingWindowDates(offset: number): Date[] {
+  const start = new Date();
+  start.setDate(start.getDate() + offset * 7);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return date;
+  });
+}
+
+export function getWeekStart(date: Date): Date {
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return monday;
+}
+
 export function toDateString(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
