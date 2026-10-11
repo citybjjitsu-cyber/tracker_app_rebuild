@@ -14,7 +14,7 @@ import type { WeeklyScheduleClass, Attendance, User, ClassFeedback, Comment } fr
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
 import { RetryState } from '@/components/ui/RetryState';
-import { WEEK_DAYS, getSlidingWindowDates, getWeekStart, toDateString } from '@/lib/teacherSchedule';
+import { getDayName, getSlidingWindowDates, getWeekStart, toDateString } from '@/lib/teacherSchedule';
 
 export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
@@ -103,9 +103,7 @@ export default function TeacherPage() {
         if (todayClasses.length > 0) {
           setSelectedClass(todayClasses[0].id);
         } else {
-          const firstClass = classesData[0];
-          setSelectedClass(firstClass.id);
-          setSelectedDate(firstClass.scheduled_date);
+          setSelectedClass('');
         }
       }
     } catch (error) {
@@ -143,7 +141,7 @@ export default function TeacherPage() {
       const classesData = await loadRollingSchedule(offset);
       setClasses(classesData);
       const selectedDayClasses = classesData.filter(c => c.scheduled_date === targetDate);
-      setSelectedClass(selectedDayClasses[0]?.id || classesData[0]?.id || '');
+      setSelectedClass(selectedDayClasses[0]?.id || '');
     } catch (error) {
       setClasses([]);
       setSelectedClass('');
@@ -477,12 +475,12 @@ export default function TeacherPage() {
                 onChange={(event) => selectDay(event.target.value)}
                 className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-3 py-3 text-sm font-bold text-on-surface outline-none transition-colors focus:border-primary-container focus:ring-2 focus:ring-primary-container/30"
               >
-                {WEEK_DAYS.map((day, i) => {
-                  const dateStr = toDateString(weekDates[i]);
+                {weekDates.map((date) => {
+                  const dateStr = toDateString(date);
                   const isToday = dateStr === toDateString(new Date());
                   return (
                     <option key={dateStr} value={dateStr}>
-                      {day}{isToday ? ' - Today' : ''} ({formatDate(dateStr)})
+                      {getDayName(date)}{isToday ? ' - Today' : ''} ({formatDate(dateStr)})
                     </option>
                   );
                 })}
