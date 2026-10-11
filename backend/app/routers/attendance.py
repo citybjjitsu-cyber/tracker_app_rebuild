@@ -3,11 +3,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
-from typing import List, Optional
+from typing import List, Optional, cast
 from datetime import date
 from app.routers.auth import get_current_user
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, CSV_IMPORT_LIMIT
 from app.services.audit import create_audit_log
+from app.services.attendance import ensure_class_instance
 
 router = APIRouter()
 
@@ -44,19 +45,11 @@ def _create_attendance(
     if existing:
         return existing, False
 
-    # Keep attendance tied to the concrete occurrence whenever one exists.
     if class_instance_id is None:
-        instance = (
-            db.query(models.ClassInstance)
-            .filter(
-                models.ClassInstance.class_id == class_id,
-                models.ClassInstance.class_date == target_date,
-            )
-            .first()
-        )
+        instance = ensure_class_instance(db, class_id, target_date, teacher_uuid)
         if instance:
-            class_instance_id = instance.id
-            teacher_uuid = teacher_uuid or instance.teacher_uuid
+            class_instance_id = cast(int, instance.id)
+            teacher_uuid = teacher_uuid or cast(Optional[str], instance.teacher_uuid)
 
     attendance = models.Attendance(
         user_uuid=user_uuid,

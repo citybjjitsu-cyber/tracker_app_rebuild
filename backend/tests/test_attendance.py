@@ -229,6 +229,7 @@ def test_direct_attendance(client, headers):
     data = response.json()
     assert data["status"] == "pending"
     assert data["user_uuid"] == "student-uuid-0000-0000-000000000002"
+    assert data["class_instance_id"] is not None
     assert data["class_id"] == 1
 
 

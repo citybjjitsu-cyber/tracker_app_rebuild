@@ -4,6 +4,7 @@ from app.database import SessionLocal
 from app import models, schemas
 from typing import List, Optional
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, DASHBOARD_LIMIT
+from app.services.attendance import ensure_class_instance
 
 router = APIRouter()
 
@@ -35,7 +36,12 @@ def submit_feedback(request: Request, feedback: schemas.FeedbackCreate, db: Sess
     if not attendance:
         raise HTTPException(status_code=404, detail="Attendance not found")
 
-    class_instance = attendance.class_instance
+    class_instance = attendance.class_instance or ensure_class_instance(
+        db,
+        attendance.class_id,
+        attendance.attendance_date,
+        attendance.teacher_uuid,
+    )
     if not class_instance:
         raise HTTPException(
             status_code=422,
@@ -46,6 +52,7 @@ def submit_feedback(request: Request, feedback: schemas.FeedbackCreate, db: Sess
     if existing:
         raise HTTPException(status_code=409, detail="Feedback already submitted")
 
+    attendance.class_instance_id = class_instance.id
     db_feedback = models.ClassFeedback(
         user_uuid=attendance.user_uuid,
         attendance_id=attendance.id,
