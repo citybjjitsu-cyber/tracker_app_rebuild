@@ -625,6 +625,28 @@ describe('newsApi', () => {
     expect(result).toHaveLength(1)
   })
 
+  it('getByTeacher passes applied filters to the backend', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+
+    vi.mocked(axios.default.get).mockResolvedValue({ data: [] })
+    await apiModule.feedbackApi.getByTeacher('teacher-u1', {
+      start_date: '2026-01-01',
+      end_date: '2026-01-07',
+      class_id: 3,
+      rating: 'positive',
+    })
+
+    expect(axios.default.get).toHaveBeenCalledWith('/feedback/teacher/teacher-u1', {
+      params: {
+        start_date: '2026-01-01',
+        end_date: '2026-01-07',
+        class_id: 3,
+        rating: 'positive',
+      },
+    })
+  })
+
   it('returns an empty list when the news response is not an array', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')

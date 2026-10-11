@@ -440,8 +440,10 @@ export const feedbackApi = {
     const response = await api.get<ClassFeedback[]>(`/feedback/user/${uuid}`);
     return response.data;
   },
-  getByTeacher: async (uuid: string) => {
-    const response = await api.get<ClassFeedback[]>(`/feedback/teacher/${uuid}`);
+  getByTeacher: async (uuid: string, params?: { start_date?: string; end_date?: string; class_id?: number; rating?: string }) => {
+    const response = params
+      ? await api.get<ClassFeedback[]>(`/feedback/teacher/${uuid}`, { params })
+      : await api.get<ClassFeedback[]>(`/feedback/teacher/${uuid}`);
     return response.data;
   },
   getAdminStats: async (params?: { start_date?: string; end_date?: string; classes?: string; teachers?: string; rating?: string }) => {

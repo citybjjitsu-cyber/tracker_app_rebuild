@@ -16,6 +16,13 @@ import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
 import { RetryState } from '@/components/ui/RetryState';
 import { getDayName, getSlidingWindowDates, getWeekStart, toDateString } from '@/lib/teacherSchedule';
 
+type FeedbackFilters = {
+  start: string;
+  end: string;
+  classId: number | '';
+  rating: string;
+};
+
 export default function TeacherPage() {
   const { user, isTeacher, isAdmin, isLoading, logout, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'attendance' | 'feedback' | 'comments'>('attendance');
@@ -28,9 +35,10 @@ export default function TeacherPage() {
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [feedback, setFeedback] = useState<ClassFeedback[]>([]);
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [classesFilter, setClassesFilter] = useState<number[]>([]);
-  const [ratingFilter, setRatingFilter] = useState('all');
+  const [feedbackFilters, setFeedbackFilters] = useState<FeedbackFilters>({ start: '', end: '', classId: '', rating: 'all' });
+  const [appliedFeedbackFilters, setAppliedFeedbackFilters] = useState<FeedbackFilters>({ start: '', end: '', classId: '', rating: 'all' });
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(true);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
@@ -152,16 +160,37 @@ export default function TeacherPage() {
     }
   }
 
-  const loadFeedback = async () => {
+  const loadFeedback = async (filters = appliedFeedbackFilters) => {
     if (!user) return;
+    setIsLoadingFeedback(true);
+    setFeedbackError('');
     try {
-      const data = await feedbackApi.getByTeacher(user.user_uuid);
+      const data = await feedbackApi.getByTeacher(user.user_uuid, {
+        start_date: filters.start || undefined,
+        end_date: filters.end || undefined,
+        class_id: filters.classId || undefined,
+        rating: filters.rating,
+      });
       setFeedback(data);
     } catch (error) {
+      setFeedbackError('Unable to load feedback. Please retry.');
       console.error('Error loading data:', error);
     } finally {
+      setIsLoadingFeedback(false);
       setIsLoaded(true);
     }
+  };
+
+  const applyFeedbackFilters = () => {
+    setAppliedFeedbackFilters(feedbackFilters);
+    loadFeedback(feedbackFilters);
+  };
+
+  const clearFeedbackFilters = () => {
+    const clearedFilters: FeedbackFilters = { start: '', end: '', classId: '', rating: 'all' };
+    setFeedbackFilters(clearedFilters);
+    setAppliedFeedbackFilters(clearedFilters);
+    loadFeedback(clearedFilters);
   };
 
   async function loadComments() {
@@ -668,8 +697,8 @@ export default function TeacherPage() {
                   <label className="block text-sm text-on-surface-variant mb-1">Start Date</label>
                   <Input
                     type="date"
-                    value={dateRange.start}
-                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                     value={feedbackFilters.start}
+                     onChange={(e) => setFeedbackFilters({ ...feedbackFilters, start: e.target.value })}
                     className="w-auto"
                   />
                 </div>
@@ -677,8 +706,8 @@ export default function TeacherPage() {
                   <label className="block text-sm text-on-surface-variant mb-1">End Date</label>
                   <Input
                     type="date"
-                    value={dateRange.end}
-                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                     value={feedbackFilters.end}
+                     onChange={(e) => setFeedbackFilters({ ...feedbackFilters, end: e.target.value })}
                     className="w-auto"
                   />
                 </div>
@@ -686,8 +715,8 @@ export default function TeacherPage() {
                   <label className="block text-sm text-on-surface-variant mb-1">Rating</label>
                   <select
                     className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2"
-                    value={ratingFilter}
-                    onChange={(e) => setRatingFilter(e.target.value)}
+                     value={feedbackFilters.rating}
+                     onChange={(e) => setFeedbackFilters({ ...feedbackFilters, rating: e.target.value })}
                   >
                     <option value="all">All Ratings</option>
                     <option value="positive">Positive</option>
@@ -698,24 +727,32 @@ export default function TeacherPage() {
                   <label className="block text-sm text-on-surface-variant mb-1">Classes</label>
                   <select
                     className="border border-outline-variant/20 bg-surface text-on-surface rounded-md px-3 py-2 min-w-[150px]"
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === 'all') {
-                        setClassesFilter([]);
-                      } else {
-                        setClassesFilter([Number(val)]);
-                      }
-                    }}
-                    value={classesFilter.length === 0 ? 'all' : classesFilter[0]}
+                     onChange={(e) => setFeedbackFilters({
+                       ...feedbackFilters,
+                       classId: e.target.value === 'all' ? '' : Number(e.target.value),
+                     })}
+                     value={feedbackFilters.classId === '' ? 'all' : feedbackFilters.classId}
                   >
                     <option value="all">All Classes</option>
                     {classes.map((cls) => (
                       <option key={cls.id} value={cls.id}>{cls.class_name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </details>
+                     ))}
+                   </select>
+                 </div>
+                 <div className="flex items-end gap-2">
+                   <Button size="sm" onClick={applyFeedbackFilters} disabled={isLoadingFeedback}>
+                     {isLoadingFeedback ? 'Applying...' : 'Apply Filters'}
+                   </Button>
+                   <Button size="sm" variant="outline" onClick={clearFeedbackFilters} disabled={isLoadingFeedback}>
+                     Clear
+                   </Button>
+                 </div>
+               </div>
+             </details>
+
+             {feedbackError && (
+               <RetryState message={feedbackError} onRetry={() => loadFeedback(appliedFeedbackFilters)} className="mb-4" />
+             )}
 
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="text-center p-3 glass-panel rounded-lg">
@@ -724,7 +761,7 @@ export default function TeacherPage() {
               </div>
               <div className="text-center p-3 glass-panel rounded-lg">
                 <p className="text-xl font-bold font-headline text-green-400">
-                  {feedback.filter(f => f.rating === 'positive' || f.rating === 'thumbs_up').length}
+                   {feedback.filter(f => f.rating === 'positive' || f.rating === 'thumbs_up').length}
                 </p>
                 <p className="text-sm text-green-400">Positive</p>
               </div>
@@ -748,18 +785,14 @@ export default function TeacherPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {feedback
-                    .filter(f => {
-                       if (ratingFilter === 'positive' && f.rating !== 'positive' && f.rating !== 'thumbs_up') return false;
-                       if (ratingFilter === 'negative' && f.rating !== 'negative' && f.rating !== 'thumbs_down') return false;
-                       const classDate = f.class_instance?.class_date || f.created_at.slice(0, 10);
-                       if (dateRange.start && classDate < dateRange.start) return false;
-                       if (dateRange.end && classDate > dateRange.end) return false;
-                       if (classesFilter.length > 0 && !classesFilter.includes(f.class_instance?.class_id || 0)) return false;
-                      return true;
-                    })
-                    .map((fb) => (
-                      <tr key={fb.id} className="bg-surface-container-low">
+                   {feedback.length === 0 ? (
+                     <tr key="no-feedback">
+                       <td colSpan={5} className="p-6 text-center text-sm text-on-surface-variant">
+                         No feedback matches the applied filters.
+                       </td>
+                     </tr>
+                   ) : feedback.map((fb) => (
+                     <tr key={fb.id} className="bg-surface-container-low">
                          <td className="p-3 text-sm text-on-surface-variant">{formatDate(fb.class_instance?.class_date || fb.created_at)}</td>
                          <td className="p-3 text-sm text-on-surface-variant">{fb.class_instance?.class_schedule?.class_name || 'Class'}</td>
                          <td className="p-3 text-sm text-on-surface-variant">{fb.class_instance?.lesson?.title || '-'}</td>
@@ -770,7 +803,7 @@ export default function TeacherPage() {
                         </td>
                         <td className="p-3 text-sm text-on-surface-variant">{fb.comment || '-'}</td>
                       </tr>
-                    ))}
+                   ))}
                 </tbody>
               </table>
             </div>
