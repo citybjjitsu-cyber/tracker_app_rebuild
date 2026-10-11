@@ -2,7 +2,7 @@ export type Rank = 'White' | 'Blue' | 'Purple' | 'Brown' | 'Black' | 'Coral' | '
 
 export type AttendanceStatus = 'pending' | 'confirmed';
 
-export type FeedbackRating = 'thumbs_up' | 'thumbs_down';
+export type FeedbackRating = 'positive' | 'negative' | 'thumbs_up' | 'thumbs_down';
 
 export interface RankTier {
   id: number;
@@ -181,7 +181,13 @@ export interface ClassFeedback {
   comment?: string;
   created_at: string;
   updated_at: string;
-  class_instance?: { class_date: string; class_schedule?: { class_name: string } };
+  class_instance?: {
+    class_date: string;
+    class_id?: number;
+    lesson_id?: number;
+    class_schedule?: { class_name: string };
+    lesson?: { title: string };
+  };
   user?: { first_name: string; last_name: string };
 }
 

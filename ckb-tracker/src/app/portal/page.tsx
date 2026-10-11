@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useChartColors } from '@/hooks/useChartColors';
 import { dashboardApi, feedbackApi, attendanceApi, commentsApi } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import type { DashboardStats, AttendanceTrend, ClassFeedback, Attendance, Comment } from '@/types';
+import type { DashboardStats, AttendanceTrend, ClassFeedback, Attendance, Comment, FeedbackRating } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { StudentQuickActions } from '@/components/portal/StudentQuickActions';
 import { Bar, Doughnut } from 'react-chartjs-2';
@@ -36,7 +36,7 @@ export default function PortalPage() {
   const [recentAttendance, setRecentAttendance] = useState<Attendance[]>([]);
   const [feedbackHistory, setFeedbackHistory] = useState<ClassFeedback[]>([]);
   const [pendingFeedback, setPendingFeedback] = useState<{ attendance: Attendance; className: string }[]>([]);
-  const [feedbackForm, setFeedbackForm] = useState<{ rating: string; comment: string }>({ rating: '', comment: '' });
+  const [feedbackForms, setFeedbackForms] = useState<Record<number, { rating: FeedbackRating | ''; comment: string }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [dataError, setDataError] = useState(false);
@@ -123,12 +123,17 @@ export default function PortalPage() {
   };
 
   const handleSubmitFeedback = async (attendanceId: number) => {
-    if (!feedbackForm.rating) return;
+    const form = feedbackForms[attendanceId];
+    if (!form?.rating) return;
     setIsSubmitting(true);
     setFeedbackError(false);
     try {
-      await feedbackApi.submit(attendanceId, feedbackForm.rating, feedbackForm.comment);
-      setFeedbackForm({ rating: '', comment: '' });
+      await feedbackApi.submit(attendanceId, form.rating, form.comment);
+      setFeedbackForms((current) => {
+        const next = { ...current };
+        delete next[attendanceId];
+        return next;
+      });
       loadData();
     } catch (error) {
       setFeedbackError(true);
@@ -371,30 +376,37 @@ export default function PortalPage() {
               <div className="space-y-4">
                 {pendingFeedback.map(({ attendance, className }) => (
                   <div key={attendance.id} className="bg-surface-container-high rounded-lg p-4 border border-outline-variant/10">
+                    {(() => {
+                      const form = feedbackForms[attendance.id] ?? { rating: '', comment: '' };
+                      return (
+                        <>
                     <p className="font-bold text-on-surface">{className}</p>
                     <p className="text-sm text-on-surface-variant">{formatDate(attendance.attendance_date)}</p>
                     <div className="mt-3 space-y-3">
                       <div className="flex flex-wrap gap-4">
                         <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
-                          <input type="radio" name={`rating-${attendance.id}`} checked={feedbackForm.rating === 'thumbs_up'} onChange={() => setFeedbackForm({ ...feedbackForm, rating: 'thumbs_up' })} />
+                          <input type="radio" name={`rating-${attendance.id}`} checked={form.rating === 'positive'} onChange={() => setFeedbackForms((current) => ({ ...current, [attendance.id]: { ...form, rating: 'positive' } }))} />
                           Thumbs Up
                         </label>
                         <label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer">
-                          <input type="radio" name={`rating-${attendance.id}`} checked={feedbackForm.rating === 'thumbs_down'} onChange={() => setFeedbackForm({ ...feedbackForm, rating: 'thumbs_down' })} />
+                          <input type="radio" name={`rating-${attendance.id}`} checked={form.rating === 'negative'} onChange={() => setFeedbackForms((current) => ({ ...current, [attendance.id]: { ...form, rating: 'negative' } }))} />
                           Thumbs Down
                         </label>
                       </div>
                       <textarea
                         className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary-container"
                         placeholder="Optional comment..."
-                        value={feedbackForm.comment}
-                        onChange={(e) => setFeedbackForm({ ...feedbackForm, comment: e.target.value })}
+                        value={form.comment}
+                        onChange={(e) => setFeedbackForms((current) => ({ ...current, [attendance.id]: { ...form, comment: e.target.value } }))}
                         rows={2}
                       />
-                      <Button size="sm" onClick={() => handleSubmitFeedback(attendance.id)} disabled={!feedbackForm.rating || isSubmitting}>
+                      <Button size="sm" onClick={() => handleSubmitFeedback(attendance.id)} disabled={!form.rating || isSubmitting}>
                         Submit
                       </Button>
                     </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
@@ -410,8 +422,8 @@ export default function PortalPage() {
                 {feedbackHistory.map((fb) => (
                   <div key={fb.id} className="bg-surface-container-high rounded-lg p-3 border border-outline-variant/10">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold ${fb.rating === 'thumbs_up' ? 'text-green-500' : 'text-error'}`}>
-                        {fb.rating === 'thumbs_up' ? 'Positive' : 'Negative'}
+                        <span className={`text-sm font-bold ${fb.rating === 'positive' || fb.rating === 'thumbs_up' ? 'text-green-500' : 'text-error'}`}>
+                          {fb.rating === 'positive' || fb.rating === 'thumbs_up' ? 'Positive' : 'Negative'}
                       </span>
                       <span className="text-sm text-on-surface-variant">{formatDate(fb.created_at)}</span>
                     </div>

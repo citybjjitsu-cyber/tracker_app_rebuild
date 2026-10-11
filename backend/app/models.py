@@ -217,6 +217,8 @@ class ClassInstance(Base):
 
     attendance = relationship("Attendance", back_populates="class_instance")
     feedback = relationship("ClassFeedback", back_populates="class_instance")
+    class_schedule = relationship("ClassSchedule", foreign_keys=[class_id])
+    lesson = relationship("Lesson", foreign_keys=[lesson_id])
 
 
 class Attendance(Base):
@@ -255,6 +257,7 @@ class Attendance(Base):
 
 class ClassFeedback(Base):
     __tablename__ = "class_feedback"
+    __table_args__ = (UniqueConstraint("attendance_id", name="uq_class_feedback_attendance"),)
 
     id = Column(Integer, primary_key=True, index=True)
     user_uuid = Column(String, ForeignKey("users.user_uuid"))
