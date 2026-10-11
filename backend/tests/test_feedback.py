@@ -110,6 +110,49 @@ def test_get_teacher_feedback_empty(client):
     assert isinstance(response.json(), list)
 
 
+def test_get_teacher_feedback_applies_date_class_and_rating_filters(client, db_session):
+    today_instance = models.ClassInstance(
+        class_id=1,
+        class_date=date.today(),
+        teacher_uuid=STAFF_UUID,
+    )
+    old_instance = models.ClassInstance(
+        class_id=1,
+        class_date=date(2024, 1, 1),
+        teacher_uuid=STAFF_UUID,
+    )
+    db_session.add_all([today_instance, old_instance])
+    db_session.flush()
+    db_session.add_all(
+        [
+            models.ClassFeedback(
+                user_uuid=STUDENT_UUID,
+                attendance_id=101,
+                class_instance_id=today_instance.id,
+                rating="positive",
+            ),
+            models.ClassFeedback(
+                user_uuid=STUDENT_UUID,
+                attendance_id=102,
+                class_instance_id=old_instance.id,
+                rating="negative",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = client.get(
+        f"/feedback/teacher/{STAFF_UUID}",
+        params={"start_date": date.today().isoformat(), "rating": "positive", "class_id": 1},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["rating"] == "positive"
+    assert data[0]["class_instance_id"] == today_instance.id
+
+
 def _seed_feedback_data(db_session):
     ci = models.ClassInstance(class_id=1, class_date="2024-06-01", teacher_uuid=STAFF_UUID)
     db_session.add(ci)
