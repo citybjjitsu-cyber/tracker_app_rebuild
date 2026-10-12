@@ -29,8 +29,21 @@ def resolve_base_url(request) -> str:
 
 
 def _send_email(recipient_email: str, subject: str, html_body: str, text_body: str) -> bool:
-    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD:
-        logging.warning("SMTP not configured — skipping email to %s", recipient_email)
+    missing_settings = [
+        name
+        for name, value in (
+            ("SMTP_HOST", SMTP_HOST),
+            ("SMTP_USER", SMTP_USER),
+            ("SMTP_PASSWORD", SMTP_PASSWORD),
+        )
+        if not value
+    ]
+    if missing_settings:
+        logging.warning(
+            "SMTP not configured; missing %s. Skipping email to %s",
+            ", ".join(missing_settings),
+            recipient_email,
+        )
         return False
 
     msg = MIMEMultipart("alternative")

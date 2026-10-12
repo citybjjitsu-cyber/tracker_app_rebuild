@@ -237,6 +237,56 @@ def test_send_invite(client, headers):
     assert "expires_at" in data
 
 
+def test_send_invite_is_persisted_when_email_delivery_fails(client, headers, db_session):
+    with patch("app.routers.auth.send_invite_email", return_value=False):
+        response = client.post(
+            "/auth/send-invite",
+            json={
+                "email": "delivery-failed@test.com",
+                "first_name": "Delivery",
+                "last_name": "Failed",
+            },
+            headers=headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "Invite created but email delivery failed"
+    invite = db_session.query(models.InviteToken).one()
+    user = db_session.query(models.User).filter(models.User.user_uuid == invite.user_uuid).one()
+    assert user.email == "delivery-failed@test.com"
+    assert invite.consumed_at is None
+
+
+def test_list_invites_returns_pending_invites(client, headers, db_session):
+    with patch("app.routers.auth.send_invite_email", return_value=False):
+        client.post(
+            "/auth/send-invite",
+            json={
+                "email": "pending@test.com",
+                "first_name": "Pending",
+                "last_name": "User",
+            },
+            headers=headers,
+        )
+
+    response = client.get("/admin/invites", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()[0]["user_email"] == "pending@test.com"
+
+
+def test_test_email_returns_gateway_error_when_delivery_fails(client, headers):
+    with patch("app.routers.admin.send_test_email", return_value=False):
+        response = client.post(
+            "/admin/test-email",
+            json={"email": "recipient@test.com"},
+            headers=headers,
+        )
+
+    assert response.status_code == 502
+    assert "SMTP not configured or failed" in response.json()["detail"]
+
+
 def test_send_invite_requires_admin(client):
     login_resp = client.post(
         "/auth/login",

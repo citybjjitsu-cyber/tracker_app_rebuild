@@ -51,7 +51,7 @@ import {
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function AdminPage() {
-  const { user, isAdmin, isAuthenticated, isLoading, login, logout } = useAuth();
+  const { user, isAdmin, isLiteAdmin, isAuthenticated, isLoading, login, logout } = useAuth();
   const { colors, chartBaseOptions } = useChartColors();
   const [activeTab, setActiveTab] = useState('attendance-overview');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -152,6 +152,7 @@ export default function AdminPage() {
   const [classEditForm, setClassEditForm] = useState({ class_name: '', day: '', time: '', points: 0, gym_id: '', class_type_id: '' });
   const [isImportingCsv, setIsImportingCsv] = useState(false);
   const [invites, setInvites] = useState<InviteRecord[]>([]);
+  const [inviteLoadError, setInviteLoadError] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [inviteFirstName, setInviteFirstName] = useState('');
   const [inviteLastName, setInviteLastName] = useState('');
@@ -224,10 +225,18 @@ export default function AdminPage() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'invites') {
+    if (activeTab === 'invites' && isLiteAdmin) {
       loadInvites();
     }
-  }, [activeTab]);
+  }, [activeTab, isLiteAdmin]);
+
+  useEffect(() => {
+    if (isLiteAdmin && !isAdmin) {
+      // The auth role arrives after the initial render, so select the only permitted tab.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveTab('invites');
+    }
+  }, [isAdmin, isLiteAdmin]);
 
   async function loadNews() {
     try {
@@ -790,11 +799,13 @@ export default function AdminPage() {
   };
 
   async function loadInvites() {
+    setInviteLoadError('');
     try {
       const data = await inviteApi.list();
       setInvites(data);
     } catch (error) {
       console.error('Error loading invites:', error);
+      setInviteLoadError('Unable to load pending invites. Please refresh and try again.');
     }
   };
 
@@ -887,8 +898,9 @@ export default function AdminPage() {
     { id: 'database', label: 'Database' },
     { id: 'csv', label: 'CSV Import/Export' },
   ];
+  const visibleTabs = isAdmin ? tabs : tabs.filter((tab) => tab.id === 'invites');
 
-  if (isLoading || !isAuthenticated || !isAdmin) {
+  if (isLoading || !isAuthenticated || !isLiteAdmin) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
         <div className="w-full max-w-md glass-panel rounded-xl p-8">
@@ -925,7 +937,7 @@ export default function AdminPage() {
         {user && <ProfileHeader user={user} onLogout={() => logout()} className="mb-6" />}
 
       <div className="flex gap-4 mb-6 border-b border-outline-variant/20 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -3138,7 +3150,14 @@ export default function AdminPage() {
                 <CardTitle>Pending Invites</CardTitle>
               </CardHeader>
               <CardContent>
-                {invites.length === 0 ? (
+                {inviteLoadError ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-red-500 dark:text-red-400">{inviteLoadError}</p>
+                    <Button variant="outline" size="sm" onClick={loadInvites}>
+                      Retry
+                    </Button>
+                  </div>
+                ) : invites.length === 0 ? (
                   <p className="text-sm text-slate-500 dark:text-slate-400">No invites sent yet.</p>
                 ) : (
                   <div className="space-y-2">
