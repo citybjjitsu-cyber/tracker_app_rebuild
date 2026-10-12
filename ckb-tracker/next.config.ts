@@ -26,7 +26,6 @@ const nextConfig: NextConfig = {
 
     const apiRoutes = [
       'auth',
-      'admin',
       'attendance',
       'classes',
       'class-instances',
@@ -69,6 +68,18 @@ const nextConfig: NextConfig = {
     ]);
 
     rewrites.push(
+      {
+        source: '/admin/invites',
+        destination: `${apiUrl}/admin/invites`,
+      },
+      {
+        source: '/admin/invites/:path*',
+        destination: `${apiUrl}/admin/invites/:path*`,
+      },
+      {
+        source: '/admin/test-email',
+        destination: `${apiUrl}/admin/test-email`,
+      },
       ...kioskApiRoutes.map((route) => ({
         source: `/kiosk/${route}`,
         destination: `${apiUrl}/kiosk/${route}`,

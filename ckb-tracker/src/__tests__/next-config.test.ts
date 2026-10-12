@@ -22,8 +22,12 @@ describe('Next.js API proxy rewrites', () => {
       destination: 'https://api.example.com/classes/',
     }));
     expect(beforeFiles).toContainEqual(expect.objectContaining({
-      source: '/admin/:path*',
-      destination: 'https://api.example.com/admin/:path*',
+      source: '/admin/invites',
+      destination: 'https://api.example.com/admin/invites',
+    }));
+    expect(beforeFiles).toContainEqual(expect.objectContaining({
+      source: '/admin/test-email',
+      destination: 'https://api.example.com/admin/test-email',
     }));
     expect(config.skipTrailingSlashRedirect).toBe(true);
   });
