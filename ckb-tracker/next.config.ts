@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
 
     const apiRoutes = [
       'auth',
+      'admin',
       'attendance',
       'classes',
       'class-instances',
