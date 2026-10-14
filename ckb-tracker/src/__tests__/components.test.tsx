@@ -11,8 +11,10 @@ import {
   CardTitle,
 } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Select'
+import { UserCombobox } from '@/components/ui/UserCombobox'
 import { GlassPanel } from '@/components/ui/GlassPanel'
 import { RetryState } from '@/components/ui/RetryState'
+import type { User } from '@/types'
 
 describe('Avatar', () => {
   it('renders initials when no image URL', () => {
@@ -147,6 +149,37 @@ describe('Select', () => {
   it('displays error message', () => {
     render(<Select options={options} error="Required" />)
     expect(screen.getByText('Required')).toBeInTheDocument()
+  })
+})
+
+describe('UserCombobox', () => {
+  const users = [
+    { user_uuid: '2', first_name: 'Zoe', last_name: 'Adams', email: 'zoe@example.com', rank: 'White' },
+    { user_uuid: '1', first_name: 'Alice', last_name: 'Brown', email: 'alice@example.com', rank: 'Blue' },
+  ] as User[]
+
+  it('sorts users alphabetically and filters by text', async () => {
+    const user = userEvent.setup()
+    render(<UserCombobox users={users} value="" onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole('combobox'))
+    const options = screen.getAllByRole('option')
+    expect(options[0]).toHaveTextContent('Zoe Adams')
+    expect(options[1]).toHaveTextContent('Alice Brown')
+
+    await user.type(screen.getByRole('combobox'), 'alice')
+    expect(screen.getByRole('option')).toHaveTextContent('Alice Brown')
+    expect(screen.queryByText('Zoe Adams')).not.toBeInTheDocument()
+  })
+
+  it('returns the selected user UUID', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<UserCombobox users={users} value="" onChange={onChange} />)
+
+    await user.click(screen.getByRole('combobox'))
+    await user.click(screen.getByRole('option', { name: /Alice Brown/ }))
+    expect(onChange).toHaveBeenCalledWith('1')
   })
 })
 
