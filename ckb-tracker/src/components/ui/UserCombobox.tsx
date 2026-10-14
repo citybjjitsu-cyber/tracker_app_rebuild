@@ -13,9 +13,9 @@ interface UserComboboxProps {
 }
 
 function compareUsers(a: User, b: User) {
-  const lastName = a.last_name.localeCompare(b.last_name, undefined, { sensitivity: 'base' });
-  if (lastName !== 0) return lastName;
-  return a.first_name.localeCompare(b.first_name, undefined, { sensitivity: 'base' });
+  const firstName = a.first_name.localeCompare(b.first_name, undefined, { sensitivity: 'base' });
+  if (firstName !== 0) return firstName;
+  return a.last_name.localeCompare(b.last_name, undefined, { sensitivity: 'base' });
 }
 
 export function UserCombobox({

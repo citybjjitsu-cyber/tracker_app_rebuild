@@ -955,8 +955,8 @@ export default function AdminPage() {
   const filteredUsers = users
     .filter(u => `${u.first_name} ${u.last_name} ${u.email} ${u.rank}`.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
-      const lastName = a.last_name.localeCompare(b.last_name, undefined, { sensitivity: 'base' });
-      return lastName || a.first_name.localeCompare(b.first_name, undefined, { sensitivity: 'base' });
+      const firstName = a.first_name.localeCompare(b.first_name, undefined, { sensitivity: 'base' });
+      return firstName || a.last_name.localeCompare(b.last_name, undefined, { sensitivity: 'base' });
     });
 
   const tabs = [

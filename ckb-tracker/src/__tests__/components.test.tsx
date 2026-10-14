@@ -164,8 +164,8 @@ describe('UserCombobox', () => {
 
     await user.click(screen.getByRole('combobox'))
     const options = screen.getAllByRole('option')
-    expect(options[0]).toHaveTextContent('Zoe Adams')
-    expect(options[1]).toHaveTextContent('Alice Brown')
+    expect(options[0]).toHaveTextContent('Alice Brown')
+    expect(options[1]).toHaveTextContent('Zoe Adams')
 
     await user.type(screen.getByRole('combobox'), 'alice')
     expect(screen.getByRole('option')).toHaveTextContent('Alice Brown')
