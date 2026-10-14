@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
       'attendance',
       'classes',
       'class-instances',
+      'class-types',
       'comments',
       'curricula',
       'dashboard',
