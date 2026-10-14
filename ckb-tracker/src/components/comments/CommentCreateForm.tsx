@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
+import { UserCombobox } from '@/components/ui/UserCombobox';
 import { Avatar } from '@/components/ui/Avatar';
 import type { User } from '@/types';
 
@@ -45,19 +45,12 @@ export function CommentCreateForm({ users, currentUser, onSubmit }: CommentCreat
       <CardContent>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Student</label>
-            <select
-              className="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md px-3 py-2"
+            <UserCombobox
+              users={studentUsers}
               value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-            >
-              <option value="">Select a student...</option>
-              {studentUsers.map(u => (
-                <option key={u.user_uuid} value={u.user_uuid}>
-                  {u.first_name} {u.last_name} ({u.rank})
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedUser}
+              label="Student"
+            />
           </div>
 
           {selectedUserObj && (

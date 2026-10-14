@@ -14,6 +14,7 @@ import type { WeeklyScheduleClass, Attendance, User, ClassFeedback, Comment } fr
 import { CommentFeed } from '@/components/comments/CommentFeed';
 import { CommentCreateForm } from '@/components/comments/CommentCreateForm';
 import { RetryState } from '@/components/ui/RetryState';
+import { UserCombobox } from '@/components/ui/UserCombobox';
 import { getDayName, getSlidingWindowDates, getWeekStart, toDateString } from '@/lib/teacherSchedule';
 
 type FeedbackFilters = {
@@ -658,18 +659,12 @@ export default function TeacherPage() {
                   <details>
                     <summary className="cursor-pointer font-label text-on-surface-variant hover:text-on-surface transition-colors">+ Add Student Manually</summary>
                     <div className="mt-2 p-3 bg-surface-container-low rounded-lg flex gap-2">
-                      <select
-                        className="flex-1 border border-outline-variant/20 bg-surface text-on-surface rounded-md p-2"
+                      <UserCombobox
+                        users={users}
                         value={manualStudentUuid}
-                        onChange={(e) => setManualStudentUuid(e.target.value)}
-                      >
-                        <option value="">Select a student...</option>
-                        {users.map((u) => (
-                          <option key={u.user_uuid} value={u.user_uuid}>
-                            {u.first_name} {u.last_name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setManualStudentUuid}
+                        className="flex-1"
+                      />
                       <Button
                         size="sm"
                         onClick={() => handleAddStudent(manualStudentUuid)}

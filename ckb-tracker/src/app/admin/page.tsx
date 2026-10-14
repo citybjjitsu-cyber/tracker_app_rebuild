@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Avatar } from '@/components/ui/Avatar';
+import { UserCombobox } from '@/components/ui/UserCombobox';
 import { RankBadge } from '@/components/ui/Badge';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { useAuth } from '@/hooks/useAuth';
@@ -951,9 +952,12 @@ export default function AdminPage() {
     }
   };
 
-  const filteredUsers = users.filter(u =>
-    `${u.first_name} ${u.last_name} ${u.email} ${u.rank}`.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(u => `${u.first_name} ${u.last_name} ${u.email} ${u.rank}`.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      const lastName = a.last_name.localeCompare(b.last_name, undefined, { sensitivity: 'base' });
+      return lastName || a.first_name.localeCompare(b.first_name, undefined, { sensitivity: 'base' });
+    });
 
   const tabs = [
     { id: 'attendance-overview', label: 'Attendance Overview' },
@@ -2649,24 +2653,18 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle>Performance Analytics</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Select Student</label>
-                <select
-                  className="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-md px-3 py-2 w-full max-w-md"
-                  onChange={(e) => {
-                    const student = users.find(u => u.user_uuid === e.target.value);
+              <CardContent>
+                <div className="mb-4">
+                <UserCombobox
+                  users={users}
+                  value={selectedStudentAnalytics?.user_uuid || ''}
+                  onChange={(userUuid) => {
+                    const student = users.find(u => u.user_uuid === userUuid);
                     if (student) loadStudentAnalytics(student);
                   }}
-                  defaultValue=""
-                >
-                  <option value="">Select a student...</option>
-                  {users.map((u) => (
-                    <option key={u.user_uuid} value={u.user_uuid}>
-                      {u.first_name} {u.last_name} ({u.rank})
-                    </option>
-                  ))}
-                </select>
+                  label="Select Student"
+                  className="w-full max-w-md"
+                />
               </div>
 
               {selectedStudentAnalytics && (
