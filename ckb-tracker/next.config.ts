@@ -57,16 +57,26 @@ const nextConfig: NextConfig = {
       'setup',
     ];
 
-    const rewrites = apiRoutes.flatMap((route) => [
+    const rewrites = [
       {
-        source: `/${route}`,
-        destination: `${apiUrl}/${route}/`,
+        source: '/terms/term-targets',
+        destination: `${apiUrl}/terms/term-targets/`,
       },
       {
-        source: `/${route}/:path*`,
-        destination: `${apiUrl}/${route}/:path*`,
+        source: '/terms/term-targets/',
+        destination: `${apiUrl}/terms/term-targets/`,
       },
-    ]);
+      ...apiRoutes.flatMap((route) => [
+        {
+          source: `/${route}`,
+          destination: `${apiUrl}/${route}/`,
+        },
+        {
+          source: `/${route}/:path*`,
+          destination: `${apiUrl}/${route}/:path*`,
+        },
+      ]),
+    ];
 
     rewrites.push(
       {

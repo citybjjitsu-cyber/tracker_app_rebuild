@@ -26,6 +26,10 @@ describe('Next.js API proxy rewrites', () => {
       destination: 'https://api.example.com/class-types/',
     }));
     expect(beforeFiles).toContainEqual(expect.objectContaining({
+      source: '/terms/term-targets/',
+      destination: 'https://api.example.com/terms/term-targets/',
+    }));
+    expect(beforeFiles).toContainEqual(expect.objectContaining({
       source: '/admin/invites',
       destination: 'https://api.example.com/admin/invites',
     }));
