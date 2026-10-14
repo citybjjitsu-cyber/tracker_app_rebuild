@@ -153,6 +153,8 @@ export default function AdminPage() {
   const [isImportingCsv, setIsImportingCsv] = useState(false);
   const [invites, setInvites] = useState<InviteRecord[]>([]);
   const [inviteLoadError, setInviteLoadError] = useState('');
+  const [userLoadError, setUserLoadError] = useState('');
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [inviteFirstName, setInviteFirstName] = useState('');
   const [inviteLastName, setInviteLastName] = useState('');
@@ -262,33 +264,104 @@ export default function AdminPage() {
   }, [cameraStream]);
 
   async function loadAllData() {
-    try {
-      const [usersData, classesData, rolesData, termsData, targetsData, curriculaData, lessonsData, gymsData, typesData, tiersData] = await Promise.all([
-        usersApi.list(showInactive),
-        classesApi.list(),
-        rolesApi.list(),
-        termsApi.list(),
-        termTargetsApi.list(),
-        curriculaApi.list(),
-        lessonsApi.list(),
-        gymLocationsApi.list(),
-        classTypesApi.list(),
-        rankTiersApi.list(),
-      ]);
-      setUsers(usersData);
-      setClasses(classesData);
-      setRoles(rolesData);
-      setTerms(termsData);
-      setTargets(targetsData);
-      setCurricula(curriculaData);
-      setLessons(lessonsData);
-      setGymLocations(gymsData);
-      setClassTypes(typesData);
-      setRankTiers(tiersData);
-      setStudentStats({ totalStudents: usersData.length, totalClasses: classesData.length });
-    } catch (error) {
-      console.error('Error loading data:', error);
+    setUserLoadError('');
+    setIsLoadingUsers(true);
+
+    const results = await Promise.allSettled([
+      usersApi.list(showInactive),
+      classesApi.list(),
+      rolesApi.list(),
+      termsApi.list(),
+      termTargetsApi.list(),
+      curriculaApi.list(),
+      lessonsApi.list(),
+      gymLocationsApi.list(),
+      classTypesApi.list(),
+      rankTiersApi.list(),
+    ]);
+
+    const [usersResult, classesResult, rolesResult, termsResult, targetsResult, curriculaResult, lessonsResult, gymsResult, typesResult, tiersResult] = results;
+    const failedRequests: string[] = [];
+
+    if (usersResult.status === 'fulfilled') {
+      setUsers(usersResult.value);
+    } else {
+      setUsers([]);
+      failedRequests.push('users');
+      console.error('Error loading users:', usersResult.reason);
     }
+
+    if (classesResult.status === 'fulfilled') {
+      setClasses(classesResult.value);
+    } else {
+      failedRequests.push('classes');
+      console.error('Error loading classes:', classesResult.reason);
+    }
+
+    if (rolesResult.status === 'fulfilled') {
+      setRoles(rolesResult.value);
+    } else {
+      failedRequests.push('roles');
+      console.error('Error loading roles:', rolesResult.reason);
+    }
+
+    if (termsResult.status === 'fulfilled') {
+      setTerms(termsResult.value);
+    } else {
+      failedRequests.push('terms');
+      console.error('Error loading terms:', termsResult.reason);
+    }
+
+    if (targetsResult.status === 'fulfilled') {
+      setTargets(targetsResult.value);
+    } else {
+      failedRequests.push('term targets');
+      console.error('Error loading term targets:', targetsResult.reason);
+    }
+
+    if (curriculaResult.status === 'fulfilled') {
+      setCurricula(curriculaResult.value);
+    } else {
+      failedRequests.push('curricula');
+      console.error('Error loading curricula:', curriculaResult.reason);
+    }
+
+    if (lessonsResult.status === 'fulfilled') {
+      setLessons(lessonsResult.value);
+    } else {
+      failedRequests.push('lessons');
+      console.error('Error loading lessons:', lessonsResult.reason);
+    }
+
+    if (gymsResult.status === 'fulfilled') {
+      setGymLocations(gymsResult.value);
+    } else {
+      failedRequests.push('gym locations');
+      console.error('Error loading gym locations:', gymsResult.reason);
+    }
+
+    if (typesResult.status === 'fulfilled') {
+      setClassTypes(typesResult.value);
+    } else {
+      failedRequests.push('class types');
+      console.error('Error loading class types:', typesResult.reason);
+    }
+
+    if (tiersResult.status === 'fulfilled') {
+      setRankTiers(tiersResult.value);
+    } else {
+      failedRequests.push('rank tiers');
+      console.error('Error loading rank tiers:', tiersResult.reason);
+    }
+
+    if (usersResult.status === 'fulfilled' && classesResult.status === 'fulfilled') {
+      setStudentStats({ totalStudents: usersResult.value.length, totalClasses: classesResult.value.length });
+    }
+
+    if (failedRequests.length > 0) {
+      setUserLoadError(`Some admin data could not be loaded: ${failedRequests.join(', ')}. Please retry.`);
+    }
+    setIsLoadingUsers(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -1174,6 +1247,14 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent>
+                {userLoadError && (
+                  <div className="flex items-center justify-between gap-4 mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 p-3">
+                    <p className="text-sm text-red-600 dark:text-red-400">{userLoadError}</p>
+                    <Button variant="outline" size="sm" onClick={loadAllData}>
+                      Retry
+                    </Button>
+                  </div>
+                )}
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                   {showInactive
                     ? `Total Members: ${studentStats.totalStudents} (${users.filter(u => u.is_current).length} active, ${users.filter(u => !u.is_current).length} inactive)`
@@ -1181,7 +1262,13 @@ export default function AdminPage() {
                   }
                 </p>
                 <div className="space-y-2">
-                  {filteredUsers.map((u) => (
+                  {isLoadingUsers ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Loading members...</p>
+                  ) : filteredUsers.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {userLoadError ? 'Members could not be loaded.' : 'No members found.'}
+                    </p>
+                  ) : filteredUsers.map((u) => (
                     <div
                       key={u.user_uuid}
                       className={`flex items-center justify-between p-3 rounded-lg cursor-pointer ${selectedUser?.user_uuid === u.user_uuid ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'} ${!u.is_current ? 'opacity-50' : ''}`}
