@@ -80,6 +80,10 @@ const nextConfig: NextConfig = {
         source: '/admin/test-email',
         destination: `${apiUrl}/admin/test-email`,
       },
+      {
+        source: '/admin/users/:path*',
+        destination: `${apiUrl}/admin/users/:path*`,
+      },
       ...kioskApiRoutes.map((route) => ({
         source: `/kiosk/${route}`,
         destination: `${apiUrl}/kiosk/${route}`,
