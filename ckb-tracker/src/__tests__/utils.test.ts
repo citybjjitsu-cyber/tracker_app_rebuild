@@ -7,6 +7,9 @@ import {
   getDaysAgo,
   debounce,
   DAYS_OF_WEEK,
+  formatTimeInTimezone,
+  getTodayDateString,
+  toDateStringInTimezone,
 } from '@/lib/utils'
 
 describe('cn', () => {
@@ -58,6 +61,22 @@ describe('formatTime', () => {
 
   it('handles empty string', () => {
     expect(formatTime('')).toBe('')
+  })
+})
+
+describe('timezone formatting', () => {
+  it('converts a UTC timestamp to the supplied timezone', () => {
+    expect(formatTimeInTimezone('2026-01-15T00:00:00Z', 'Pacific/Auckland')).toMatch(/1:00 pm/i)
+  })
+
+  it('handles New Zealand daylight saving through the IANA timezone rules', () => {
+    const timestamp = new Date('2026-01-15T00:00:00Z')
+    expect(toDateStringInTimezone(timestamp, 'Pacific/Auckland')).toBe('2026-01-15')
+    expect(formatTimeInTimezone('2026-01-15T00:00:00Z', 'Pacific/Auckland')).toMatch(/1:00 pm/i)
+  })
+
+  it('returns a YYYY-MM-DD date for the resolved timezone', () => {
+    expect(getTodayDateString()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })
 

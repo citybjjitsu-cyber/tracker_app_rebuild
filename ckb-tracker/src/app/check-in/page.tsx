@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { usersApi, classesApi, attendanceApi, kioskApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
-import { cn, formatDate, debounce, DAYS_OF_WEEK } from '@/lib/utils';
+import { cn, formatDate, debounce, DAYS_OF_WEEK, getAppTimezone, toDateStringInTimezone } from '@/lib/utils';
 import type { User, ClassSchedule, Attendance } from '@/types';
 import { 
   Camera, 
@@ -93,7 +93,7 @@ export default function CheckInPage() {
     return DAYS_OF_WEEK.map((_, i) => {
       const d = new Date(sunday);
       d.setDate(sunday.getDate() + i);
-      return d.toISOString().split('T')[0];
+      return toDateStringInTimezone(d, getAppTimezone());
     });
   }, []);
 

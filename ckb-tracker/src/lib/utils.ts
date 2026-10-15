@@ -5,12 +5,80 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const FALLBACK_TIMEZONE = 'UTC';
+
+export function getBrowserTimezone(): string | undefined {
+  if (typeof Intl === 'undefined') return undefined;
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getAppTimezone(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_TIMEZONE;
+  if (configured) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: configured }).format();
+      return configured;
+    } catch {
+      // Fall through to the browser timezone when deployment configuration is invalid.
+    }
+  }
+  return getBrowserTimezone() || FALLBACK_TIMEZONE;
+}
+
+export function parseUtcDateTime(value: string | Date): Date {
+  if (value instanceof Date) return value;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(`${value}T12:00:00Z`);
+  if (/Z$|[+-]\d{2}:?\d{2}$/.test(value)) return new Date(value);
+  return new Date(`${value}Z`);
+}
+
+export function toDateStringInTimezone(date: Date, timeZone = getAppTimezone()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+export function getTodayDateString(timeZone = getAppTimezone()): string {
+  return toDateStringInTimezone(new Date(), timeZone);
+}
+
+export function formatDateTime(value: string | Date, options: Intl.DateTimeFormatOptions = {}): string {
+  return new Intl.DateTimeFormat(undefined, { timeZone: getAppTimezone(), ...options }).format(parseUtcDateTime(value));
+}
+
+export function formatTimeInTimezone(value: string | Date, timeZone = getAppTimezone()): string {
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone,
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parseUtcDateTime(value));
+}
+
 export function formatDate(date: string | Date): string {
-  const d = new Date(date);
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [year, month, day] = date.split('-').map(Number);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, month - 1, day)));
+  }
+  const d = parseUtcDateTime(date);
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: getAppTimezone(),
   });
 }
 

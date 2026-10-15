@@ -12,12 +12,12 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
 from app.database import Base
+from app.timezone import utc_now
 
 
 def _utcnow():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return utc_now()
 
 
 class User(Base):

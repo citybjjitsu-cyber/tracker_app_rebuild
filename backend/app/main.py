@@ -192,7 +192,7 @@ app.add_middleware(
     allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX", r"https://ckb-tracker.*\.vercel\.app"),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token", "X-Client-Timezone"],
 )
 
 

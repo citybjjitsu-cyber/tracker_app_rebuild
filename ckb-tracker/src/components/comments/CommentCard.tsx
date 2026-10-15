@@ -2,6 +2,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import type { Comment, User } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
+import { parseUtcDateTime } from '@/lib/utils';
 
 interface CommentCardProps {
   comment: Comment;
@@ -36,7 +37,7 @@ export function CommentCard({ comment, currentUser, onReply, isReplying, canRepl
               </span>
             )}
             <span className="text-xs text-slate-400 dark:text-slate-500">
-              {formatDistanceToNow(new Date(comment.created_at))} ago
+              {formatDistanceToNow(parseUtcDateTime(comment.created_at))} ago
             </span>
           </div>
           {comment.rating && (
