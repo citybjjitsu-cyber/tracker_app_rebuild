@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { KioskStaffLogin } from './KioskStaffLogin';
 import { newsApi } from '@/lib/api';
+import { formatDateTime } from '@/lib/utils';
 import { Shield, Search, Newspaper, LogIn } from 'lucide-react';
 import type { News } from '@/types';
 
@@ -99,7 +100,7 @@ export function KioskLocked() {
                 className="p-4 bg-[var(--card)] rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/50 hover:bg-[var(--primary)]/5 transition-all group"
               >
                 <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">
-                  {new Date(item.created_at).toLocaleDateString()}
+                  {formatDateTime(item.created_at, { year: 'numeric', month: 'short', day: 'numeric' })}
                 </span>
                 <h4 className="font-bold font-headline text-[var(--foreground)] mt-2 mb-1 group-hover:text-[var(--primary)] transition-colors">
                   {item.title}

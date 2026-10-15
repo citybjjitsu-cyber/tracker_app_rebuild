@@ -9,6 +9,7 @@ from app.routers.auth import get_current_user
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, CSV_IMPORT_LIMIT
 from app.services.audit import create_audit_log
 from app.services.attendance import ensure_class_instance
+from app.timezone import local_today
 
 router = APIRouter()
 
@@ -79,7 +80,7 @@ def create_attendance(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    today = date.today()
+    today = local_today(request)
 
     existing = _existing_attendance(db, attendance.user_uuid, attendance.class_id, today)
 
@@ -164,7 +165,7 @@ def check_in(
     class_id = data.class_id
     class_instance_id = data.class_instance_id
 
-    target_date = data.check_in_date or date.today()
+    target_date = data.check_in_date or local_today(request)
 
     existing = _existing_attendance(db, user_uuid, class_id, target_date)
 
@@ -214,7 +215,7 @@ def bulk_check_in(
     errors = []
 
     for item in data.classes:
-        target_date = item.check_in_date or date.today()
+        target_date = item.check_in_date or local_today(request)
         existing = _existing_attendance(db, data.user_uuid, item.class_id, target_date)
 
         if existing:
@@ -265,7 +266,7 @@ def direct_attendance(
     teacher_uuid = data.get("teacher_uuid")
     attendance_date_str = data.get("attendance_date")
 
-    today = date.fromisoformat(attendance_date_str) if attendance_date_str else date.today()
+    today = date.fromisoformat(attendance_date_str) if attendance_date_str else local_today(request)
 
     existing = _existing_attendance(db, user_uuid, class_id, today)
     if existing:

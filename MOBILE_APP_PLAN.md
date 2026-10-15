@@ -93,7 +93,7 @@ Add:
 - Auth initialization is guarded against a stale in-flight request overwriting a successful login during route transitions.
 - The reported phone and desktop navigation flows were rechecked after deployment and are working without immediate logout.
 - Cookie attributes, access-token expiry, and the full physical-device matrix still require explicit verification on iPhone Safari and Android Chrome.
-- Cross-site production cookies now default to `SameSite=None` when `ENVIRONMENT=production`; the Render override must be checked so it does not force `Lax` for the current Vercel/Render deployment.
+- The live Vercel-to-Render browser flow uses the same-origin Vercel proxy with `COOKIE_SECURE=True` and `COOKIE_SAMESITE=Lax`; verify these values remain aligned after deployment changes.
 - A same-site custom API hostname remains the preferred long-term browser/PWA solution if a project domain is available.
 
 The browser-session implementation is complete for the current web flow. PWA installability and Capacitor packaging are now complete; the native app uses a separate bearer-token adapter with Keychain/Keystore-backed refresh storage rather than relying on WebView cookies.
@@ -275,21 +275,21 @@ Do not infer a backend problem from a generic UI warning alone; confirm the requ
 
 If all data endpoints fail in the same way, fix this section's shared configuration/authentication cause first. Do not add individual Retry buttons as a substitute for fixing a broken session or API origin.
 
-#### 5E.3.1 Same-origin browser transport remediation
+#### 5E.3.1 Same-origin browser transport remediation (Completed)
 
-The deployed Vercel-to-Render browser flow currently returns `401` for `/auth/me`, `/auth/refresh`, and protected data requests while public dashboard responses succeed. This indicates that cross-site cookie transport is not reliable enough for the mobile app. Remediate it with a same-origin Vercel proxy before treating authentication as production-ready:
+The deployed Vercel-to-Render browser flow previously returned `401` for protected requests because cross-site cookie transport was unreliable. The same-origin Vercel proxy is now deployed and is the required browser transport:
 
 - Keep `NEXT_PUBLIC_API_URL` as the Render backend target for the Vercel rewrite destination.
-- Add rewrites for every browser API route, including auth, attendance, classes, dashboard, users, roles, feedback, comments, themes, database, uploads, and related resources. Kiosk rewrites must be explicit API endpoint paths; a broad `/kiosk/:path*` rewrite collides with the frontend `/kiosk/select` and `/kiosk/confirm` pages.
+- Add rewrites for every browser API route, including auth, attendance, classes, dashboard, users, roles, feedback, comments, themes, database, uploads, and related resources. Admin rewrites are limited to `/admin/invites` and `/admin/test-email` so the frontend `/admin` page is never proxied. Kiosk rewrites must be explicit API endpoint paths; a broad `/kiosk/:path*` rewrite collides with the frontend `/kiosk/select` and `/kiosk/confirm` pages.
 - Set `NEXT_PUBLIC_API_PROXY=true` in Vercel so the browser API client uses relative paths while Vercel forwards requests to Render.
 - Keep `withCredentials`/`credentials: 'include'` enabled for all cookie-authenticated requests.
 - Preserve `/auth/refresh` as the browser-visible path so the refresh cookie path remains valid.
 - Update the frontend CSP to allow same-origin API requests and the chosen font source.
-- After the proxy is deployed, change Render `COOKIE_SAMESITE` from `None` to `Lax`; keep `COOKIE_SECURE=True` and the existing JWT secret.
+- Keep Render `COOKIE_SAMESITE=Lax` and `COOKIE_SECURE=True` for the same-origin browser flow.
 - Do not cache authenticated API responses or service-worker data.
 - Preserve kiosk session ownership: `/kiosk/verify-pin-for-user` validates the selected student's PIN without issuing student auth cookies or replacing the memory-only kiosk staff token.
 
-Verify the remediation in a fresh browser session: login returns cookies, `/auth/me` succeeds after reload, refresh succeeds, attendance/admin requests are authenticated, logout clears the session, and the same flow works in the installed iPhone PWA.
+Verify the deployed flow in a fresh browser session: login returns cookies, `/auth/me` succeeds after reload, refresh succeeds, attendance/admin requests are authenticated, `/admin` remains a frontend page while `/admin/invites` and `/admin/test-email` reach Render, logout clears the session, and the same flow works in the installed iPhone PWA.
 
 #### 5E.4 Verify endpoint contracts and labelled data
 
@@ -411,7 +411,30 @@ Observed layout issues to resolve:
 
 - Physical mobile and desktop behavior was verified after the navigation and safe-area changes.
 - Mobile navigation, offline/error messaging, responsive layouts, role-aware routes, and kiosk flows behaved as expected.
-- Phase 5F exit criteria are satisfied. Capacitor wrapper planning is the next phase.
+- Phase 5F exit criteria are satisfied. Kiosk idempotency and the coordinated data-model design gate are the next work before further production schema changes.
+
+### Phase 5G: Kiosk Check-In Idempotency Hardening (Next Phase)
+
+The kiosk currently handles sequential duplicate submissions at the application level, but the confirmation UI treats an `already_present` response as a new successful check-in. There is also no database uniqueness constraint, so concurrent or replayed requests can create duplicate attendance rows. This phase must be completed before treating kiosk check-in as production-safe for the mobile/PWA release.
+
+The database constraint should not be deployed in isolation from the multi-gym, class-instance, and teacher-assignment design in Phases 6B-6E. The implementation may be split into several forward-only migrations, but the attendance identity and historical scope must be agreed before the production data migration is run.
+
+- Add and deploy a migration enforcing uniqueness for the approved gym/class-instance/student attendance identity after auditing and reconciling any existing duplicates.
+- Preserve one canonical attendance row per duplicate group and document how status, confirmation metadata, feedback, audit history, and points are reconciled.
+- Make bulk, single, and direct attendance creation paths use the same duplicate-safe service and return a stable `already_checked_in` result.
+- Handle uniqueness conflicts atomically so concurrent requests return the existing attendance instead of failing or creating a second row.
+- Update kiosk confirmation to distinguish newly created rows from already-present rows and prevent repeated submissions while a request is active.
+- Verify confirmed attendance, points, trends, dashboard totals, feedback, and progress remain correct when a duplicate request is retried.
+- Add backend coverage for sequential retries, duplicate class IDs, concurrent writes, direct attendance, database constraint enforcement, and duplicate confirmation.
+- Add kiosk frontend/E2E coverage for rapid confirmation, network retry, already-present responses, and a single final attendance result.
+
+#### 5G Exit criteria
+
+- Repeated or concurrent kiosk submissions produce at most one attendance row for the approved gym/class-instance/student/date identity.
+- The kiosk clearly reports an already-completed check-in without presenting it as a new attendance event.
+- Confirmed attendance contributes exactly once to points and analytics.
+- Existing attendance data is reconciled before the uniqueness migration is enabled in each environment.
+- The deployed kiosk flow passes on desktop and physical mobile browsers.
 
 ## Phase 6: Capacitor App Wrapper
 
@@ -462,10 +485,25 @@ Before changing the deployed database or importing a large member base, document
 - Decide whether minors can have independent logins and which actions require a guardian.
 - Include the guardian/dependent path in invitations, portal access, attendance, comments, notifications, and account recovery.
 
-#### 6B.3 Exit criteria
+#### 6B.3 Teaching, educational content, and conversation scope
+
+- Decide whether `gym_locations` represents an organisation, a gym tenant, a physical location, or a combination; introduce separate organisation, gym, and location concepts if needed.
+- Classify teacher relationships as global identity, gym membership, gym-scoped role, recurring class roster, and dated occurrence assignment rather than storing only one teacher on a class instance.
+- Treat every roster as gym-scoped; a teacher's roster at one gym must not imply roster access, availability, or assignment authority at another gym.
+- Define whether a class may have multiple teachers, primary/assistant roles, rotating rosters, effective dates, teacher availability, leave, substitutions, declined assignments, and unstaffed occurrences.
+- Define who may create, view, reply to, edit, archive, and delete student feedback and progress conversations in each gym.
+- Keep class feedback distinct from threaded conversations: feedback is a student's optional response to an attended class; a conversation is an explicitly scoped teacher/student thread.
+- Decide whether feedback is visible to all teachers assigned to the occurrence, only the primary teacher, gym staff, or another audience, and whether one feedback record is allowed per attendance.
+- Link conversations to an explicit gym and, where useful, a class, class instance, attendance record, rank review, or general progress topic. Do not rely only on a target user and client-supplied role.
+- Define whether curricula, lessons, class types, rank systems, terms, targets, news, themes, kiosk settings, reports, uploads, invites, and audit records are platform-wide, organisation-wide, gym-scoped, or inherited from a parent record.
+- Decide whether educational content can be shared across gyms, copied/forked by a gym, versioned, published, archived, and historically snapshotted on an occurrence.
+- Resolve whether terms are teaching periods, promotion periods, reporting windows, or separate concepts. Replace or formally deprecate the current term-target path if rank-tier targets are the actual progress mechanism.
+- Define precedence for global, gym, program, term, rank-tier, and student-specific targets, and snapshot the target and points policy used for historical progress.
+
+#### 6B.4 Exit criteria
 
 - Every table and protected endpoint has a documented scope and privacy owner.
-- The organisation/gym/location model, family policy, retention policy, and account lifecycle states are approved before migration.
+- The organisation/gym/location model, family policy, teacher roster model, feedback/conversation model, educational-content scope, target precedence, retention policy, and account lifecycle states are approved before migration.
 - Cross-gym and cross-user privacy tests are written before new membership data is imported.
 
 ### Phase 6C: Multi-Gym Data Isolation and Scoped Roles (Required Before Onboarding)
@@ -480,7 +518,19 @@ Before importing or inviting a large member base, establish gym-scoped access co
 - Add unique constraints preventing duplicate active memberships and duplicate active role assignments.
 - Backfill all existing users, roles, classes, schedules, and related records into the current gym without changing existing behaviour.
 
-#### 6C.2 Authorization and request context
+#### 6C.2 Teacher rosters and substitutions
+
+- Add recurring schedule teacher assignments with effective dates, assignment role, ordering/priority, and gym-membership validation.
+- Add an Admin dashboard roster tab for each gym to view and manage recurring teacher rosters, availability, leave, substitutions, and unstaffed classes without editing individual future occurrences one by one.
+- Require the active gym context and gym-scoped Admin permission for roster management; never expose or modify another gym's roster through a client-supplied gym ID.
+- Add occurrence-level teacher assignments so a dated class can inherit its normal roster while supporting multiple teachers, leave, substitutes, declined assignments, and ad hoc changes.
+- Record whether an occurrence assignment came from the recurring roster, a substitution, or a manual override, together with audit metadata.
+- Define teacher availability, leave, substitution approval, and notification rules without making routine roster maintenance depend on editing every future class instance.
+- Ensure a teacher working at multiple gyms has independent rosters, permissions, schedules, and active-gym context at each gym.
+- Make weekly schedule responses occurrence-aware: return concrete dates, effective teachers, class-instance status, timezone, lesson, and cancellation or reschedule state.
+- Route attendance and feedback to the actual occurrence assignment while retaining the scheduled roster for historical and operational reporting.
+
+#### 6C.3 Authorization and request context
 
 - Require every authenticated request to operate within a server-validated gym context; never trust a client-supplied gym ID by itself.
 - Allow a user with multiple memberships to select or switch gyms, but only among gyms assigned to that user.
@@ -489,7 +539,7 @@ Before importing or inviting a large member base, establish gym-scoped access co
 - Distinguish platform-level administration from gym-level administration and keep Admin controls unavailable in the mobile app.
 - Preserve kiosk isolation and ensure kiosk staff tokens cannot be used to access another gym.
 
-#### 6C.3 Migration and verification
+#### 6C.4 Migration and verification
 
 - Create and rehearse forward-only Alembic migrations against a production-like database copy before touching Render.
 - Back up the deployed database and record the current schema, user roles, gym records, and authorization behaviour.
@@ -498,11 +548,14 @@ Before importing or inviting a large member base, establish gym-scoped access co
 - Add frontend and mobile tests for gym selection, switching, session refresh, logout, and blocked cross-gym URLs or API requests.
 - Verify existing single-gym users and kiosk flows continue to work during and after migration.
 
-#### 6C.4 Exit criteria
+#### 6C.5 Exit criteria
 
 - Every existing user has an explicit gym membership and the current production data remains intact.
 - Every role-sensitive API endpoint enforces the active gym membership and gym-scoped role server-side.
 - A multi-gym test user can safely be a Teacher in one gym and a Student in another, with no cross-gym data leakage.
+- A teacher can be assigned to recurring classes at multiple gyms, substituted for a dated occurrence, and removed or placed on leave without changing historical assignments.
+- Admins can manage each gym's roster from the roster dashboard tab without seeing or changing another gym's assignments.
+- A class occurrence can have its actual teacher roster resolved independently from the recurring schedule.
 - Migration, backfill, authorization, mobile switching, and regression tests pass before bulk onboarding begins.
 - Phase 6C is signed off before importing or inviting the wider member base.
 
@@ -528,12 +581,30 @@ Implement the approved identity and lifecycle rules before inviting users. Keep 
 
 Make schedules and attendance reliable across multiple gyms, devices, time zones, and concurrent requests before relying on the mobile app for operational records.
 
+#### 6E.0 Immediate timezone fallback
+
+- Store timestamps as UTC and treat existing naive API timestamps as UTC while the API is migrated to explicit UTC offsets.
+- Resolve the operational timezone in this order: database site setting, `SITE_TIMEZONE` environment variable, validated browser timezone, then UTC.
+- Use the resolved timezone for attendance dates, check-in date calculations, reports, and timestamp display; daylight saving must come from the IANA timezone database rather than a manual toggle.
+- Send the browser IANA timezone as `X-Client-Timezone` only as a fallback and validate it server-side.
+- Add regression coverage for UTC+12/UTC+13 transitions and local midnight boundaries.
+
+#### 6E.0.1 Later admin Site Settings
+
+- Add a global `Site Settings` tab to the admin page for the IANA timezone, locale, and optional 12/24-hour display preference.
+- Add admin-only read/update endpoints and persist settings in the database.
+- Make the database setting authoritative over the environment and browser fallback.
+- Audit settings changes and preserve the configured timezone used by future historical attendance/reporting records.
+
 #### 6E.1 Schedule model
 
 - Store an IANA timezone and local operating settings for each gym or location.
 - Replace free-form schedule assumptions with validated local start time, duration, recurrence, concrete class instances, and UTC timestamps.
 - Support cancellations, reschedules, holidays/blackout dates, instructor assignments, capacity, and future enrollment rules where required.
 - Ensure weekly schedule APIs derive dates from the selected gym timezone rather than the server timezone.
+- Separate class/program identity, recurring schedule series, concrete class occurrences, and occurrence exceptions.
+- Support recurring teacher rosters and occurrence-level teacher overrides for leave, substitutions, cancellations, reschedules, and multiple instructors.
+- Preserve the scheduled teacher roster, actual teacher assignment, lesson, class name, points, and timezone as historical snapshots where reports or feedback depend on them.
 
 #### 6E.2 Attendance model
 
@@ -543,12 +614,24 @@ Make schedules and attendance reliable across multiple gyms, devices, time zones
 - Preserve correction and cancellation history instead of relying on destructive deletion.
 - Snapshot class name, points, instructor, and relevant gym settings so historical reports do not change when configuration changes.
 - Remove or secure write paths that bypass duplicate protection, including direct attendance operations.
+- Include the gym and concrete class-instance identity in the attendance uniqueness decision; do not rely on a recurring class ID alone when occurrences or locations can change.
+- Define whether attendance and feedback are attributed to the scheduled teacher, actual teacher, or both when substitutions occur.
 
-#### 6E.3 Exit criteria
+#### 6E.3 Feedback, conversations, and progress history
+
+- Enforce that feedback belongs to the authenticated student and the selected attendance record; derive student, gym, class instance, and teacher context server-side.
+- Prevent duplicate feedback for the same attendance unless an explicit edit or revision policy is approved.
+- Scope feedback queries and reports to the active gym and authorized teacher assignments rather than accepting arbitrary user or teacher IDs from the client.
+- Model progress conversations separately from class feedback, with explicit participants, gym scope, context, reply permissions, lifecycle state, and deletion/retention rules.
+- Preserve the historical teacher, lesson, points policy, rank target, and gym context used when feedback or progress records were created.
+
+#### 6E.4 Exit criteria
 
 - Concurrent kiosk, teacher, and mobile requests cannot create duplicate attendance.
 - Timezone, daylight-saving, cancellation, reschedule, and date-boundary tests pass for every supported gym.
 - Reports correctly distinguish pending, confirmed, corrected, cancelled, and historical attendance.
+- Feedback reaches the correct authorized teachers for each occurrence, including substitute and multi-teacher cases.
+- Feedback and conversation records cannot cross gym or participant boundaries, and historical progress remains stable after roster or target changes.
 
 ### Phase 6F: Audit, Reporting, Notifications, and Retention (Required Before Public Rollout)
 
@@ -613,12 +696,24 @@ Before creating or configuring Google Play Console or Apple App Store Connect ac
 - Keep the feature available only in the Admin web dashboard; do not expose bulk onboarding or Admin controls in the mobile app.
 - Enforce gym/tenant scoping so a future multi-gym rollout cannot import or invite users into another gym.
 
-#### 6G.4 Exit criteria
+#### 6G.4 Pending invite lifecycle cleanup
+
+The current admin list is an operational pending-invite view, but the backend currently excludes only consumed invites. Add explicit lifecycle filtering and cleanup so the list does not retain completed or unusable invitations:
+
+- Remove an invite from the pending list immediately after the user accepts it and the server records `consumed_at`.
+- Exclude expired invites from the pending list using the server's current UTC time; do not rely on the browser to decide whether an invite is expired.
+- Preserve accepted and expired invite records for audit/history, rather than deleting them from the database.
+- Return a clear status or reason for accepted, expired, revoked, and delivery-failed records when an Admin requests onboarding history.
+- Keep resend behavior explicit: expired invites may be regenerated, while an accepted invite must not be resent as a new onboarding token without an approved account-recovery flow.
+- Add backend tests for acceptance, expiry boundaries, list filtering, resend behavior, and audit retention, plus frontend tests for the empty and filtered pending states.
+
+#### 6G.5 Exit criteria
 
 - A labelled CSV can be previewed, corrected, approved, and imported without duplicate or unintended accounts.
 - Every imported user receives a secure invite or a clear failure reason, and no secret values are stored in the CSV or logs.
 - A user can accept the invite, set a password and PIN, log in from mobile, and be deactivated by an Admin when required.
 - Admins can see and recover every onboarding outcome without database intervention.
+- The pending list contains only unconsumed, unexpired invites, while accepted and expired records remain available in history/audit views.
 - The bulk onboarding flow passes backend, frontend, lint, build, and relevant end-to-end tests before the mobile functionality phase begins.
 - Phase 6G is signed off before creating store accounts or starting Phase 7 release distribution work.
 

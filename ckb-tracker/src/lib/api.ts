@@ -69,6 +69,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (browserTimezone) config.headers['X-Client-Timezone'] = browserTimezone;
+  }
   const csrfToken = typeof window !== 'undefined' ? sessionStorage.getItem('csrf_token') : null;
   if (csrfToken && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase() || '')) {
     config.headers['X-CSRF-Token'] = csrfToken;

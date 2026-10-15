@@ -2,6 +2,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import type { Comment, User } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
+import { parseUtcDateTime } from '@/lib/utils';
 
 interface CommentThreadProps {
   replies: Comment[];
@@ -45,7 +46,7 @@ export function CommentThread({ replies, currentUser, onReply, isReplyingTo, dep
                     : 'Unknown'}
                 </span>
                 <span className="text-xs text-slate-400 dark:text-slate-500">
-                  {formatDistanceToNow(new Date(reply.created_at))} ago
+                  {formatDistanceToNow(parseUtcDateTime(reply.created_at))} ago
                 </span>
               </div>
               <p className="mt-1 break-words text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{reply.content}</p>

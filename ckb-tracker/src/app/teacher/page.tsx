@@ -8,7 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { classesApi, attendanceApi, feedbackApi, usersApi, commentsApi } from '@/lib/api';
-import { formatDate, cn } from '@/lib/utils';
+import { formatDate, formatTimeInTimezone, cn, getTodayDateString } from '@/lib/utils';
 import { GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WeeklyScheduleClass, Attendance, User, ClassFeedback, Comment } from '@/types';
 import { CommentFeed } from '@/components/comments/CommentFeed';
@@ -107,7 +107,7 @@ export default function TeacherPage() {
       }
 
       if (classesData.length > 0) {
-        const todayDate = toDateString(new Date());
+        const todayDate = getTodayDateString();
         const todayClasses = classesData.filter(c => c.scheduled_date === todayDate);
         if (todayClasses.length > 0) {
           setSelectedClass(todayClasses[0].id);
@@ -615,7 +615,7 @@ export default function TeacherPage() {
                             {att.user?.first_name} {att.user?.last_name}
                           </p>
                           <p className="text-sm text-on-surface-variant">
-                            Checked in: {new Date(att.created_at).toLocaleTimeString()}
+                            Checked in: {formatTimeInTimezone(att.created_at)}
                           </p>
                         </div>
                       </div>

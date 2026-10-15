@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { newsApi } from '@/lib/api';
+import { formatDateTime } from '@/lib/utils';
 import { Newspaper, ArrowLeft } from 'lucide-react';
 import type { News } from '@/types';
 
@@ -71,7 +72,7 @@ export default function NewsPage() {
                 className="w-full text-left p-5"
               >
                 <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">
-                  {new Date(item.created_at).toLocaleDateString('en-US', {
+                  {formatDateTime(item.created_at, {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
