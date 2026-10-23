@@ -276,7 +276,12 @@ def kiosk_attendance_status(
 ):
     target_date = data.attendance_date or local_today(request)
     records = (
-        db.query(models.Attendance)
+        db.query(
+            models.Attendance.id,
+            models.Attendance.class_id,
+            models.Attendance.attendance_date,
+            models.Attendance.status,
+        )
         .filter(
             models.Attendance.user_uuid == data.user_uuid,
             models.Attendance.class_id.in_(data.class_ids),
