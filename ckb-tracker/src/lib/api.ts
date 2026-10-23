@@ -49,6 +49,13 @@ export interface BulkCheckInResponse {
   errors: BulkCheckInError[];
 }
 
+export interface KioskAttendanceStatus {
+  class_id: number;
+  attendance_date: string;
+  status: 'pending' | 'confirmed' | string;
+  attendance_id: number;
+}
+
 // Staff kiosk token — stored in memory only
 let kioskStaffToken: string | null = null;
 
@@ -423,6 +430,13 @@ export const attendanceApi = {
   },
   bulkCheckIn: async (userUuid: string, classes: { class_id: number; check_in_date?: string }[]) => {
     const response = await api.post<BulkCheckInResponse>('/attendance/bulk-check-in', { user_uuid: userUuid, classes });
+    return response.data;
+  },
+  kioskStatus: async (userUuid: string, classIds: number[]) => {
+    const response = await api.post<KioskAttendanceStatus[]>('/attendance/kiosk-status', {
+      user_uuid: userUuid,
+      class_ids: classIds,
+    });
     return response.data;
   },
   bulkConfirm: async (ids: number[]) => {

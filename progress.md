@@ -11,7 +11,10 @@ This file is a historical implementation log. The current operational facts are:
 - The current mobile work is an installable Next.js PWA with a static shell and online-only authenticated data. Capacitor packaging and native bearer-token authentication are implemented and validated on a physical phone and desktop browser.
 - Normal login opens the Student Portal for Admin, Teacher, and Student roles; the root route remains the separate staff-authenticated kiosk experience.
 - Kiosk frontend pages are excluded from the same-origin API proxy; only explicit `/kiosk/*` API endpoints are rewritten to Render.
+- Admin API proxying is explicit for `/admin/invites` and `/admin/test-email`; the `/admin` dashboard remains a Vercel/Next.js page.
 - Student PIN confirmation does not issue student cookies or tokens, so the in-memory kiosk staff session remains authoritative.
+- Timezone fallback is implemented: UTC timestamps are displayed in the configured `NEXT_PUBLIC_SITE_TIMEZONE`, browser IANA timezone, or UTC; attendance dates use backend `SITE_TIMEZONE`, browser `X-Client-Timezone`, or UTC.
+- Daylight saving is handled by IANA timezone data, with no manual offset or DST toggle. A database-backed Admin Site Settings tab for timezone, locale, and time format remains planned work.
 
 See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_phases.md` for current plans and operating procedures.
 
@@ -40,6 +43,22 @@ See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_p
 - Stopped `/kiosk/verify-pin-for-user` from replacing kiosk staff cookies with student tokens after successful PIN confirmation.
 - Made Bearer authentication take precedence over cookies when both are present, protecting the memory-only kiosk session from stale browser cookies.
 - Added proxy and authentication regression tests; 165 backend tests pass and the frontend production build succeeds.
+
+## RECENT UPDATES (October 12, 2026) - Admin Proxy and Invite Diagnostics
+
+- Added explicit Vercel rewrites for the admin invite list and test-email API calls without proxying the frontend `/admin` page.
+- Added frontend retry/error feedback when pending invites cannot be loaded and aligned Lite-Admin access with the backend permissions.
+- Added SMTP missing-setting diagnostics and regression coverage for invite persistence when email delivery fails.
+- Documented the remaining onboarding follow-up: remove accepted and expired invites from the pending view while retaining audit/history records.
+
+## RECENT UPDATES (October 24, 2026) - Attendance Identity Hardening
+
+- Approved attendance uniqueness as `(gym_id, class_instance_id, user_uuid, attendance_date)`.
+- Added server-side gym and dated class-instance resolution across single, bulk, direct, teacher, and kiosk attendance creation paths.
+- Added a forward-only Alembic migration that backfills gym scope, reconciles duplicate blockers, and replaces the previous user/class/date index.
+- Added class-instance uniqueness for `(class_id, class_date)` and concurrency-safe occurrence creation.
+- Updated kiosk confirmation to distinguish new check-ins from already-present retries.
+- Production data reconciliation, migration deployment, and physical kiosk retry validation remain open.
 
 ## Project Overview
 Martial Arts Attendance Tracking System - A full-stack application for managing student attendance, class scheduling, curriculum/lesson management, teacher assignments, and providing analytics dashboards for students, teachers, and administrators.

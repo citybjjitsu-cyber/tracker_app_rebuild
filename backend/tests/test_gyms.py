@@ -17,13 +17,11 @@ def override_deps(client, db_session):
 def test_list_gyms(client):
     resp = client.get("/gym-locations/")
     assert resp.status_code == 200
-    assert resp.json() == []
+    assert resp.json() == [{"id": 1, "name": "Test Gym", "address": None}]
 
 
 def test_create_gym(client):
-    resp = client.post(
-        "/gym-locations/", json={"name": "Main Gym", "address": "123 Main St"}
-    )
+    resp = client.post("/gym-locations/", json={"name": "Main Gym", "address": "123 Main St"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == "Main Gym"

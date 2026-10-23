@@ -23,9 +23,11 @@ The configuration is in `backend/render.yaml`:
 - Python: 3.12
 - Database: PostgreSQL 16
 - Kiosk idle timeout: `KIOSK_IDLE_MINUTES=240`
+- Operational timezone: optional `SITE_TIMEZONE` IANA value; when absent, attendance requests may use the validated browser `X-Client-Timezone` header and then UTC
+- Timezone database: Python `tzdata` dependency supplies IANA daylight-saving rules in local and Render environments
 - Upload directory: `/opt/render/project/src/backend/uploads`
 
-Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration. During the temporary direct Vercel-to-Render browser deployment, production uses `COOKIE_SECURE=True` and `COOKIE_SAMESITE=None`; CSRF protection remains enabled for cookie-authenticated state-changing requests. The target mobile architecture uses a same-origin Vercel proxy, after which `COOKIE_SAMESITE=Lax` is preferred.
+Secret values are supplied through the Render dashboard. Required categories include the database connection, JWT secret, CORS origins, allowed hosts, SMTP credentials, and upload configuration. The live same-origin Vercel-to-Render browser deployment uses `COOKIE_SECURE=True` and `COOKIE_SAMESITE=Lax`; CSRF protection remains enabled for cookie-authenticated state-changing requests.
 
 After the same-origin proxy deployment, verify the Render environment values before mobile testing. The current web flow has been rechecked on desktop and iPhone: login, `/auth/me`, refresh, protected attendance, teacher, check-in, and admin requests succeed. Keep the deployment record and sanitized route outcomes with the readiness checklist.
 
@@ -33,9 +35,11 @@ The 2026-10-03 mobile verification checkpoint passed the local automated baselin
 
 ## Vercel Configuration
 
-The frontend root directory is `ckb-tracker`. `NEXT_PUBLIC_API_URL` remains the Render API target used by the Vercel rewrite. After proxy code is deployed, set `NEXT_PUBLIC_API_PROXY=true` for Production and Preview; the browser then uses relative API paths while Vercel forwards them to Render. `ckb-tracker/vercel.json` disables native Vercel Git integration because deployment is controlled through GitHub Actions.
+The frontend root directory is `ckb-tracker`. `NEXT_PUBLIC_API_URL` remains the Render API target used by the Vercel rewrite. `NEXT_PUBLIC_API_PROXY=true` is required for Production and Preview; the browser then uses relative API paths while Vercel forwards them to Render. `ckb-tracker/vercel.json` disables native Vercel Git integration because deployment is controlled through GitHub Actions.
 
-The proxy must preserve the original route paths, especially `/auth/refresh`, and must not cache authenticated responses. Kiosk routes require special care: proxy only explicit backend endpoints such as `/kiosk/unlock`, `/kiosk/lock`, and `/kiosk/verify-pin-for-user`; never proxy the frontend pages `/kiosk`, `/kiosk/select`, or `/kiosk/confirm`. After enabling it, change Render `COOKIE_SAMESITE` to `Lax`, redeploy both services, clear the installed PWA/site data, and verify `/auth/me`, `/auth/refresh`, attendance, teacher, admin, and kiosk requests.
+The proxy must preserve the original route paths, especially `/auth/refresh`, and must not cache authenticated responses. Admin API rewrites are explicit for `/admin/invites` and `/admin/test-email`; never use a broad `/admin/:path*` rewrite because it hides the frontend `/admin` page. Kiosk routes also require special care: proxy only explicit backend endpoints such as `/kiosk/unlock`, `/kiosk/lock`, and `/kiosk/verify-pin-for-user`; never proxy the frontend pages `/kiosk`, `/kiosk/select`, or `/kiosk/confirm`. Verify `/auth/me`, `/auth/refresh`, attendance, teacher, admin, and kiosk requests after deployment.
+
+Set `NEXT_PUBLIC_SITE_TIMEZONE` when a deployment needs a consistent display timezone. If it is not set, the frontend uses the browser's IANA timezone, while the backend uses `SITE_TIMEZONE`, then `X-Client-Timezone`, then UTC. The planned Admin Site Settings tab will eventually replace environment configuration as the authoritative site-level setting.
 
 ## GitHub Actions
 
@@ -82,6 +86,8 @@ The command creates the application roles, the initial admin, and the kiosk serv
 5. Manually dispatch the deployment workflow and select the intended environment.
 6. Verify `/health`, login/logout, kiosk unlock/lock, student check-in, teacher attendance, and admin access.
 7. Record the commit and deployment versions.
+
+For timezone changes, verify a check-in near local midnight, a displayed attendance timestamp, and a daylight-saving transition date. Confirm that `SITE_TIMEZONE` and `NEXT_PUBLIC_SITE_TIMEZONE` are either aligned or intentionally left unset for browser fallback.
 
 For the PWA installability phase, verify that `/manifest.webmanifest`, `/icon-192.svg`, and `/icon-512.svg` are served by the deployed frontend and that install guidance appears only in supported browser contexts. No authenticated API responses may be added to a cache.
 

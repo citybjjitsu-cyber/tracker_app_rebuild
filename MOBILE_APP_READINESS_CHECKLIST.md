@@ -23,6 +23,9 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Add role-aware mobile navigation to the check-in route.
 - [x] Add safe-area spacing for mobile navigation, page content, and offline status.
 - [x] Complete physical-device Phase 5F validation at 320/375/390/430px-equivalent widths.
+- [x] Implement configurable timezone fallback using UTC timestamps, browser IANA timezone detection, and IANA daylight-saving rules.
+- [ ] Set and verify `SITE_TIMEZONE` and `NEXT_PUBLIC_SITE_TIMEZONE` for each deployed environment, or explicitly approve browser fallback.
+- [ ] Add and validate the Admin `Site Settings` tab for database-backed timezone, locale, and time-format configuration.
 
 ## Production Test Controls
 
@@ -32,6 +35,7 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [ ] Record the Vercel and Render deployment versions before each release.
 - [ ] Confirm the previous deployment can be restored.
 - [x] Verify production `COOKIE_SECURE=True` and `COOKIE_SAMESITE=Lax` for the same-origin Vercel proxy deployment.
+- [x] Verify the Vercel proxy preserves the `/admin` frontend page while forwarding only the admin API paths.
 
 ## Required Smoke Tests
 
@@ -75,6 +79,19 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Future personal themes are deferred until a token audit, contrast review, catalog model, and per-user preference design are complete.
 - Mobile navigation policy: all authenticated user roles return to `/portal` after check-in; kiosk/tablet mode remains a separate staff-controlled flow.
 
+## Next Phase: Kiosk Check-In Idempotency
+
+- [x] Approve the attendance identity as `(gym_id, class_instance_id, user_uuid, attendance_date)`.
+- [x] Add application-level resolution of gym and dated class-instance identity for all attendance creation paths.
+- [x] Add a forward-only migration that backfills gym scope and replaces the old user/class/date uniqueness index.
+- [x] Make kiosk confirmation distinguish newly created attendance from an already-present retry.
+- [ ] Audit production and development attendance data for duplicate `(gym_id, class_instance_id, user_uuid, attendance_date)` rows.
+- [ ] Reconcile duplicate rows and deploy the database uniqueness migration.
+- [x] Make every attendance creation path concurrency-safe and consistently return `already_checked_in`.
+- [x] Update kiosk selection and confirmation to distinguish new check-ins from retries and prevent duplicate submissions.
+- [ ] Verify duplicate retries do not inflate confirmed attendance, points, trends, feedback, or progress analytics.
+- [ ] Run desktop and physical-mobile kiosk smoke tests, including rapid repeat confirmation and network retry scenarios.
+
 ## Phase 5A Checkpoint (2026-10-03)
 
 - Bulk check-in retries return the existing attendance record in `already_present` and never create a second record.
@@ -107,11 +124,12 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 
 ### Phase 5E Deployment Record
 
-- Frontend fix commit: `8e29baa`.
+- Frontend proxy fixes: `8e29baa`, `ce4f0fa`, and `7cf3f36`.
 - Vercel: `NEXT_PUBLIC_API_URL` remains the Render API target and `NEXT_PUBLIC_API_PROXY=true` enables same-origin rewrites.
 - Render: `COOKIE_SECURE=True`, `COOKIE_SAMESITE=Lax`, and the Vercel origin remains configured in `CORS_ORIGINS`.
 - Validation result: login, protected analytics, attendance, teacher, check-in, and admin flows work on desktop and iPhone.
 - Kiosk proxy safeguard: only explicit kiosk API endpoints are rewritten; `/kiosk/select` and `/kiosk/confirm` remain frontend routes.
+- Admin proxy safeguard: only `/admin/invites` and `/admin/test-email` are rewritten; `/admin` remains a Next.js frontend route.
 - Kiosk session safeguard: selected-user PIN verification does not overwrite the kiosk staff cookies or memory-only Bearer token.
 
 ### Kiosk Follow-up Verification
@@ -119,6 +137,12 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [ ] Deploy the kiosk rewrite/session fix to Vercel and Render.
 - [ ] Smoke-test unlock, student search, PIN confirmation, `/kiosk/select`, class loading, confirmation, attendance submission, and lock on desktop and a physical mobile browser.
 - [ ] Confirm the browser network trace shows `/kiosk/select` served by Vercel/Next.js rather than Render/Uvicorn.
+
+### Invite List Follow-up
+
+- [ ] Filter the pending invite API to unconsumed and unexpired records while retaining accepted/expired records for history and audit.
+- [ ] Verify an accepted invite disappears from the pending list after password/PIN setup.
+- [ ] Verify an expired invite disappears from the pending list without deleting its audit/history record.
 
 ## Deliberately Deferred
 
@@ -128,6 +152,7 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Authentication storage changes.
 - Database migrations for mobile-only features.
 - Native camera, push notification, biometric, or deep-link integrations.
+- Database-backed Admin Site Settings for timezone, locale, and time format; the current fallback remains available until this is implemented.
 
 ## Phase 5F Implementation Checkpoint (2026-10-05)
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useKiosk } from '../KioskContext';
-import { classesApi } from '@/lib/api';
+import { attendanceApi, classesApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -18,13 +18,20 @@ export default function KioskSelectPage() {
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState<Record<number, 'pending' | 'confirmed'>>({});
 
   const loadClasses = useCallback(async () => {
     setIsLoading(true);
     setLoadError(false);
     try {
       const data = await classesApi.list();
+      const statuses = await attendanceApi.kioskStatus(identifiedUser?.user_uuid || '', data.map(cls => cls.id));
       setClasses(data);
+      setAttendanceStatus(
+        Object.fromEntries(
+          statuses.map(status => [status.class_id, status.status as 'pending' | 'confirmed']),
+        ),
+      );
     } catch (error) {
       setClasses([]);
       setLoadError(true);
@@ -32,7 +39,7 @@ export default function KioskSelectPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [identifiedUser]);
 
   useEffect(() => {
     if (!identifiedUser) {
@@ -51,6 +58,8 @@ export default function KioskSelectPage() {
   const todayClasses = classes
     .filter(c => c.day?.toLowerCase() === todayDayName.toLowerCase())
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  const availableTodayClasses = todayClasses.filter(cls => !attendanceStatus[cls.id]);
 
   const handleConfirm = useCallback(() => {
     if (selectedClassIds.length === 0) return;
@@ -117,16 +126,20 @@ export default function KioskSelectPage() {
       ) : (
         <div className="space-y-3 mb-8">
           <p className="text-sm font-bold text-[var(--muted-foreground)] uppercase tracking-wider mb-4">
-            Select your classes
+            {availableTodayClasses.length > 0 ? 'Select your classes' : 'Today\'s classes'}
           </p>
           {todayClasses.map(cls => {
             const isSelected = selectedClassIds.includes(cls.id);
+            const existingStatus = attendanceStatus[cls.id];
             return (
               <button
                 key={cls.id}
+                disabled={Boolean(existingStatus)}
                 onClick={() => { toggleClass(cls.id); resetIdleTimer(); }}
                 className={`w-full flex items-center gap-4 p-5 rounded-xl border-2 transition-all text-left ${
-                  isSelected
+                  existingStatus
+                    ? 'bg-[var(--muted)]/60 border-[var(--border)] opacity-75 cursor-not-allowed'
+                    : isSelected
                     ? 'bg-[var(--primary)]/10 border-[var(--primary)]'
                     : 'bg-[var(--card)] border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--muted)]'
                 }`}
@@ -136,7 +149,9 @@ export default function KioskSelectPage() {
                     ? 'bg-[var(--primary)] text-white'
                     : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
                 }`}>
-                  {isSelected ? (
+                  {existingStatus ? (
+                    <Check className="w-5 h-5" />
+                  ) : isSelected ? (
                     <Check className="w-5 h-5" />
                   ) : (
                     <span className="text-lg font-bold">{cls.class_name.charAt(0)}</span>
@@ -148,6 +163,11 @@ export default function KioskSelectPage() {
                   </p>
                   <p className="text-sm text-[var(--muted-foreground)]">
                     {cls.time}
+                    {existingStatus && (
+                      <span className="block text-xs font-bold uppercase tracking-wide text-[var(--primary)] mt-1">
+                        Already checked in · {existingStatus}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className={`text-sm font-bold px-4 py-2 rounded-lg transition-all ${
@@ -155,7 +175,7 @@ export default function KioskSelectPage() {
                     ? 'bg-[var(--primary)] text-white'
                     : 'bg-[var(--muted)] text-[var(--muted-foreground)]'
                 }`}>
-                  {isSelected ? 'Selected' : 'Check In'}
+                  {existingStatus ? 'Unavailable' : isSelected ? 'Selected' : 'Check In'}
                 </div>
               </button>
             );
@@ -179,6 +199,11 @@ export default function KioskSelectPage() {
               ? 'Select Classes to Check In'
               : `Check In to ${selectedClassIds.length} Class${selectedClassIds.length !== 1 ? 'es' : ''}`}
           </Button>
+          {availableTodayClasses.length === 0 && (
+            <p className="text-center text-sm text-[var(--muted-foreground)] mt-3">
+              You are already checked in for every class today.
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -90,6 +90,8 @@ def seed_data(db):
     for user in users_data:
         db.add(user)
 
+    db.add(models.GymLocation(id=1, name="Test Gym"))
+
     user_roles_data = [
         models.UserRole(user_uuid=STAFF_UUID, role_id=1, is_current=True),
         models.UserRole(user_uuid=STUDENT_UUID, role_id=2, is_current=True),
@@ -104,6 +106,7 @@ def seed_data(db):
             class_name="Test Class",
             day="Monday",
             time="10:00",
+            gym_id=1,
             is_current=True,
         ),
     ]

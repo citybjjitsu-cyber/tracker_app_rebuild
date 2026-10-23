@@ -206,6 +206,13 @@ class Lesson(Base):
 
 class ClassInstance(Base):
     __tablename__ = "class_instances"
+    __table_args__ = (
+        UniqueConstraint(
+            "class_id",
+            "class_date",
+            name="uq_class_instances_class_date",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     class_id = Column(Integer, ForeignKey("classes.id"))
@@ -225,14 +232,17 @@ class Attendance(Base):
     __tablename__ = "attendance"
     __table_args__ = (
         UniqueConstraint(
+            "gym_id",
+            "class_instance_id",
             "user_uuid",
-            "class_id",
             "attendance_date",
-            name="uq_attendance_user_class_date",
+            name="uq_attendance_gym_instance_user_date",
         ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
+    # Nullable during the additive migration; all new service-created rows set it.
+    gym_id = Column(Integer, ForeignKey("gym_locations.id"), nullable=True)
     user_uuid = Column(String, ForeignKey("users.user_uuid"))
     class_id = Column(Integer, ForeignKey("classes.id"))
     class_instance_id = Column(Integer, ForeignKey("class_instances.id"))
@@ -245,6 +255,7 @@ class Attendance(Base):
     confirmed_at = Column(DateTime)
 
     user = relationship("User", back_populates="attendance", foreign_keys=[user_uuid])
+    gym = relationship("GymLocation")
     class_schedule = relationship("ClassSchedule", back_populates="attendance")
     class_instance = relationship("ClassInstance", back_populates="attendance")
     feedback = relationship(

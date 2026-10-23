@@ -354,6 +354,7 @@ class ClassInstanceResponse(ClassInstanceBase):
 class AttendanceBase(BaseModel):
     user_uuid: str = Field(min_length=1, max_length=64)
     class_id: int
+    gym_id: Optional[int] = None
     class_instance_id: Optional[int] = None
     teacher_uuid: Optional[str] = Field(default=None, min_length=1, max_length=64)
 
@@ -389,6 +390,19 @@ class BulkCheckInResponse(BaseModel):
     errors: List[BulkCheckInError] = Field(default_factory=list)
 
 
+class KioskAttendanceStatusRequest(BaseModel):
+    user_uuid: str = Field(min_length=1, max_length=64)
+    class_ids: List[int] = Field(min_length=1)
+    attendance_date: Optional[date] = None
+
+
+class KioskAttendanceStatus(BaseModel):
+    class_id: int
+    attendance_date: date
+    status: str
+    attendance_id: int
+
+
 class AttendanceCreate(AttendanceBase):
     pass
 
@@ -400,6 +414,8 @@ class AttendanceUpdate(BaseModel):
 
 class AttendanceResponse(AttendanceBase):
     id: int
+    gym_id: int
+    class_instance_id: int
     user_role_id: Optional[int] = None
     attendance_date: date
     created_at: datetime
