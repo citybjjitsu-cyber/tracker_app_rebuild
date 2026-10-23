@@ -160,7 +160,8 @@ export interface Attendance {
   id: number;
   user_uuid: string;
   class_id: number;
-  class_instance_id?: number;
+  gym_id: number;
+  class_instance_id: number;
   teacher_uuid?: string;
   user_role_id?: number;
   attendance_date: string;

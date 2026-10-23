@@ -1,5 +1,8 @@
 from datetime import date, timedelta
 
+from app.timezone import local_today
+from app import models
+
 
 def test_bulk_check_in_success(client, headers):
     response = client.post(
@@ -14,6 +17,57 @@ def test_bulk_check_in_success(client, headers):
     assert data["created"][0]["status"] == "pending"
     assert data["created"][0]["user_uuid"] == "student-uuid-0000-0000-000000000002"
     assert len(data["errors"]) == 0
+    assert data["created"][0]["gym_id"] == 1
+    assert data["created"][0]["class_instance_id"] is not None
+
+
+def test_kiosk_status_blocks_pending_and_confirmed_checkins(client, headers):
+    empty = client.post(
+        "/attendance/kiosk-status",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "class_ids": [1],
+        },
+        headers=headers,
+    )
+    assert empty.status_code == 200
+    assert empty.json() == []
+
+    created = client.post(
+        "/attendance/bulk-check-in",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "classes": [{"class_id": 1}],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 200
+    attendance_id = created.json()["created"][0]["id"]
+
+    pending = client.post(
+        "/attendance/kiosk-status",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "class_ids": [1],
+        },
+        headers=headers,
+    )
+    assert pending.json()[0]["status"] == "pending"
+    assert pending.json()[0]["attendance_id"] == attendance_id
+
+    confirmed = client.post(f"/attendance/{attendance_id}/confirm", headers=headers)
+    assert confirmed.status_code == 200
+
+    status = client.post(
+        "/attendance/kiosk-status",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "class_ids": [1],
+        },
+        headers=headers,
+    )
+    assert status.status_code == 200
+    assert status.json()[0]["status"] == "confirmed"
 
 
 def test_bulk_check_in_unauthenticated(client):
@@ -78,8 +132,38 @@ def test_bulk_check_in_multiple_same_class(client, headers):
     assert len(data["errors"]) == 1
 
 
+def test_attendance_identity_uses_dated_class_instance_and_gym(client, headers, db_session):
+    db_session.add(models.GymLocation(id=2, name="Second Test Gym"))
+    db_session.add(
+        models.ClassSchedule(
+            id=2,
+            class_uuid="class-uuid-0000-0000-000000000002",
+            class_name="Second Gym Class",
+            day="Monday",
+            time="11:00",
+            gym_id=2,
+            is_current=True,
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        "/attendance/bulk-check-in",
+        json={
+            "user_uuid": "student-uuid-0000-0000-000000000002",
+            "classes": [{"class_id": 1}, {"class_id": 2}],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    created = response.json()["created"]
+    assert len(created) == 2
+    assert {(item["gym_id"], item["class_instance_id"]) for item in created} == {(1, 1), (2, 2)}
+
+
 def test_bulk_check_in_with_explicit_date(client, headers):
-    future_date = (date.today() + timedelta(days=7)).isoformat()
+    future_date = (local_today() + timedelta(days=7)).isoformat()
     response = client.post(
         "/attendance/bulk-check-in",
         json={
@@ -96,8 +180,9 @@ def test_bulk_check_in_with_explicit_date(client, headers):
 
 
 def test_bulk_check_in_future_date_no_duplicate_today(client, headers):
-    future_date = (date.today() + timedelta(days=7)).isoformat()
-    today_str = date.today().isoformat()
+    today = local_today()
+    future_date = (today + timedelta(days=7)).isoformat()
+    today_str = today.isoformat()
 
     client.post(
         "/attendance/bulk-check-in",
@@ -138,7 +223,8 @@ def test_bulk_check_in_future_date_no_duplicate_today(client, headers):
 
 
 def test_bulk_check_in_mixed_dates(client, headers):
-    future_date = (date.today() + timedelta(days=3)).isoformat()
+    today = local_today()
+    future_date = (today + timedelta(days=3)).isoformat()
     response = client.post(
         "/attendance/bulk-check-in",
         json={
@@ -154,7 +240,7 @@ def test_bulk_check_in_mixed_dates(client, headers):
     data = response.json()
     assert len(data["created"]) == 2
     dates = {a["attendance_date"] for a in data["created"]}
-    assert date.today().isoformat() in dates
+    assert today.isoformat() in dates
     assert future_date in dates
 
 
@@ -272,7 +358,7 @@ def test_get_class_attendance_by_date(client, headers):
         headers=headers,
     )
 
-    today_str = date.today().isoformat()
+    today_str = local_today().isoformat()
     response = client.get(f"/attendance/class/1?date={today_str}", headers=headers)
     assert response.status_code == 200
     data = response.json()

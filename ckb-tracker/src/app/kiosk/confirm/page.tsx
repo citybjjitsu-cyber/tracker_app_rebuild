@@ -7,7 +7,7 @@ import { classesApi, attendanceApi } from '@/lib/api';
 import { Avatar } from '@/components/ui/Avatar';
 import { RankBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle2, ChevronLeft, Loader2, X } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, X } from 'lucide-react';
 import type { ClassSchedule } from '@/types';
 
 export default function KioskConfirmPage() {
@@ -15,6 +15,9 @@ export default function KioskConfirmPage() {
   const { identifiedUser, selectedClassIds, resetSession, resetIdleTimer, setLoading, isLoading, error, setError } = useKiosk();
   const [classes, setClasses] = useState<ClassSchedule[]>([]);
   const [success, setSuccess] = useState(false);
+  const [wasAlreadyPresent, setWasAlreadyPresent] = useState(false);
+  const [alreadyPresentCount, setAlreadyPresentCount] = useState(0);
+  const [createdCount, setCreatedCount] = useState(0);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -43,7 +46,13 @@ export default function KioskConfirmPage() {
     setLoading(true);
     setError('');
     try {
-      await attendanceApi.bulkCheckIn(identifiedUser.user_uuid, selectedClassIds.map(id => ({ class_id: id })));
+      const result = await attendanceApi.bulkCheckIn(
+        identifiedUser.user_uuid,
+        selectedClassIds.map(id => ({ class_id: id })),
+      );
+      setWasAlreadyPresent(result.created.length === 0 && result.already_present.length > 0);
+      setAlreadyPresentCount(result.already_present.length);
+      setCreatedCount(result.created.length);
       setSuccess(true);
       successTimerRef.current = setTimeout(() => {
         resetSession();
@@ -69,10 +78,14 @@ export default function KioskConfirmPage() {
         </div>
         <div className="text-center">
           <h2 className="text-4xl font-black font-headline text-[var(--foreground)] mb-2">
-            Checked In!
+            {wasAlreadyPresent ? 'Already Checked In' : 'Checked In!'}
           </h2>
           <p className="text-lg text-[var(--muted-foreground)]">
-            You&apos;re signed in to {selectedClassIds.length} class{selectedClassIds.length !== 1 ? 'es' : ''}
+            {wasAlreadyPresent
+              ? 'These classes were already recorded for today.'
+              : alreadyPresentCount > 0
+                ? `You're signed in to ${createdCount} new class${createdCount !== 1 ? 'es' : ''}; ${alreadyPresentCount} already recorded.`
+                : `You're signed in to ${selectedClassIds.length} class${selectedClassIds.length !== 1 ? 'es' : ''}`}
           </p>
         </div>
         {identifiedUser && (

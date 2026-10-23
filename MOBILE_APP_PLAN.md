@@ -419,6 +419,8 @@ The kiosk currently handles sequential duplicate submissions at the application 
 
 The database constraint should not be deployed in isolation from the multi-gym, class-instance, and teacher-assignment design in Phases 6B-6E. The implementation may be split into several forward-only migrations, but the attendance identity and historical scope must be agreed before the production data migration is run.
 
+**Approved attendance identity:** `(gym_id, class_instance_id, user_uuid, attendance_date)`. Gym and class-instance values are resolved server-side from the selected dated occurrence; clients do not define the attendance scope.
+
 - Add and deploy a migration enforcing uniqueness for the approved gym/class-instance/student attendance identity after auditing and reconciling any existing duplicates.
 - Preserve one canonical attendance row per duplicate group and document how status, confirmation metadata, feedback, audit history, and points are reconciled.
 - Make bulk, single, and direct attendance creation paths use the same duplicate-safe service and return a stable `already_checked_in` result.
@@ -595,6 +597,9 @@ Make schedules and attendance reliable across multiple gyms, devices, time zones
 - Add admin-only read/update endpoints and persist settings in the database.
 - Make the database setting authoritative over the environment and browser fallback.
 - Audit settings changes and preserve the configured timezone used by future historical attendance/reporting records.
+- Keep this work separate from the immediate fallback fix so timezone support remains available without waiting for the Admin UI.
+- Add a preview of the resolved timezone and current UTC offset before saving, while storing the IANA identifier rather than a fixed offset.
+- Apply the setting consistently to kiosk check-in dates, schedules, teacher attendance, dashboards, reports, notifications, and native mobile web content.
 
 #### 6E.1 Schedule model
 
