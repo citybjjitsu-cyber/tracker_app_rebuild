@@ -21,10 +21,13 @@ def upgrade() -> None:
             """
             INSERT INTO class_instances
                 (class_id, class_date, teacher_uuid, created_at, updated_at)
-            SELECT DISTINCT
+            SELECT
                 a.class_id,
                 a.attendance_date,
-                a.teacher_uuid,
+                CASE
+                    WHEN COUNT(DISTINCT a.teacher_uuid) = 1 THEN MIN(a.teacher_uuid)
+                    ELSE NULL
+                END,
                 CURRENT_TIMESTAMP,
                 CURRENT_TIMESTAMP
             FROM attendance a
@@ -34,6 +37,7 @@ def upgrade() -> None:
                 AND ci.class_date = a.attendance_date
             WHERE a.class_instance_id IS NULL
               AND ci.id IS NULL
+            GROUP BY a.class_id, a.attendance_date
             """
         )
     )
