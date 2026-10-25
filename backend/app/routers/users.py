@@ -3,6 +3,7 @@ import io
 from fastapi import (
     APIRouter,
     Depends,
+    Header,
     HTTPException,
     UploadFile,
     File,
@@ -20,6 +21,7 @@ import uuid
 import os
 from PIL import Image
 from app.routers.auth import get_current_user, get_admin_user, get_teacher_user
+from app.services.authorization import has_platform_role, require_active_membership, resolve_active_membership
 from app.auth.limiter import (
     limiter,
     REGISTRATION_LIMIT,
@@ -46,6 +48,24 @@ def get_db():
         db.close()
 
 
+def get_active_user_membership(
+    gym_id: Optional[int] = Header(default=None, alias="X-Gym-Id"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return resolve_active_membership(db, str(user.user_uuid), gym_id)
+
+
+def require_target_membership(
+    db: Session,
+    user_uuid: str,
+    actor: models.User,
+    membership: models.GymMembership,
+) -> None:
+    if not has_platform_role(db, str(actor.user_uuid)):
+        require_active_membership(db, user_uuid, int(membership.gym_id))
+
+
 @router.post("/", response_model=schemas.UserResponse)
 @limiter.limit(REGISTRATION_LIMIT)
 def create_user(
@@ -53,6 +73,7 @@ def create_user(
     user: schemas.UserCreate,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
@@ -107,6 +128,15 @@ def create_user(
     if student_role:
         user_role = models.UserRole(user_uuid=user_uuid, role_id=student_role.id)
         db.add(user_role)
+        db.add(
+            models.GymMembership(
+                user_uuid=user_uuid,
+                gym_id=membership.gym_id,
+                status="active",
+                is_primary=True,
+                created_by=str(admin.user_uuid),
+            )
+        )
         db.commit()
 
     client_host = request.client.host if request.client else "unknown"
@@ -189,8 +219,17 @@ def list_users(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
     include_inactive: bool = False,
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     query = db.query(models.User).options(joinedload(models.User.rank_tier))
+    query = query.filter(
+        models.User.user_uuid.in_(
+            db.query(models.GymMembership.user_uuid).filter(
+                models.GymMembership.gym_id == membership.gym_id,
+                models.GymMembership.status == "active",
+            )
+        )
+    )
     if not include_inactive:
         query = query.filter(models.User.is_current)
     return query.all()
@@ -203,12 +242,19 @@ def search_users(
     query: str,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     return (
         db.query(models.User)
         .options(joinedload(models.User.rank_tier))
         .filter(
             models.User.is_current,
+            models.User.user_uuid.in_(
+                db.query(models.GymMembership.user_uuid).filter(
+                    models.GymMembership.gym_id == membership.gym_id,
+                    models.GymMembership.status == "active",
+                )
+            ),
             (models.User.first_name.ilike(f"%{query}%"))
             | (models.User.last_name.ilike(f"%{query}%"))
             | (models.User.email.ilike(f"%{query}%")),
@@ -223,8 +269,21 @@ def export_users_csv(
     request: Request,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
-    users = db.query(models.User).filter(models.User.is_current).all()
+    users = (
+        db.query(models.User)
+        .filter(
+            models.User.is_current,
+            models.User.user_uuid.in_(
+                db.query(models.GymMembership.user_uuid).filter(
+                    models.GymMembership.gym_id == membership.gym_id,
+                    models.GymMembership.status == "active",
+                )
+            ),
+        )
+        .all()
+    )
 
     output = io.StringIO()
     fieldnames = [
@@ -273,6 +332,7 @@ async def import_users_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a CSV")
@@ -304,7 +364,20 @@ async def import_users_csv(
                 skipped += 1
                 continue
 
-            existing_user = db.query(models.User).filter(models.User.email == email, models.User.is_current).first()
+            existing_user = (
+                db.query(models.User)
+                .filter(
+                    models.User.email == email,
+                    models.User.is_current,
+                    models.User.user_uuid.in_(
+                        db.query(models.GymMembership.user_uuid).filter(
+                            models.GymMembership.gym_id == membership.gym_id,
+                            models.GymMembership.status == "active",
+                        )
+                    ),
+                )
+                .first()
+            )
 
             rank = row.get("rank", "White").strip() or "White"
             if rank not in ["White", "Blue", "Purple", "Brown", "Black"]:
@@ -355,6 +428,15 @@ async def import_users_csv(
                 if student_role:
                     user_role = models.UserRole(user_uuid=user_uuid, role_id=student_role.id)
                     db.add(user_role)
+                db.add(
+                    models.GymMembership(
+                        user_uuid=user_uuid,
+                        gym_id=membership.gym_id,
+                        status="active",
+                        is_primary=True,
+                        created_by=str(user.user_uuid),
+                    )
+                )
 
                 created += 1
 
@@ -379,7 +461,19 @@ def get_user(
     user_uuid: str,
     db: Session = Depends(get_db),
     auth_user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
+    if user_uuid != str(auth_user.user_uuid) and not has_platform_role(db, str(auth_user.user_uuid)):
+        if (
+            not db.query(models.GymMembership)
+            .filter(
+                models.GymMembership.user_uuid == user_uuid,
+                models.GymMembership.gym_id == membership.gym_id,
+                models.GymMembership.status == "active",
+            )
+            .first()
+        ):
+            raise HTTPException(status_code=404, detail="User not found")
     user = (
         db.query(models.User)
         .options(joinedload(models.User.rank_tier))
@@ -399,7 +493,9 @@ def update_user(
     user: schemas.UserUpdate,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
+    require_target_membership(db, user_uuid, admin, membership)
     db_user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -499,7 +595,9 @@ async def upload_photo(
     offset_y: Optional[float] = Form(0.0),
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
+    require_target_membership(db, user_uuid, admin, membership)
     user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -575,7 +673,9 @@ def delete_photo(
     user_uuid: str,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
+    require_target_membership(db, user_uuid, admin, membership)
     user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -606,8 +706,10 @@ def update_photo_position(
     offset_y: float = 0.0,
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_admin_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     """Update just the photo position offsets without uploading a new photo."""
+    require_target_membership(db, user_uuid, admin, membership)
     user = db.query(models.User).filter(models.User.user_uuid == user_uuid, models.User.is_current).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

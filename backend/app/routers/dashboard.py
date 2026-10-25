@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 from app import models, schemas
 from datetime import date, timedelta
@@ -6,7 +6,8 @@ from collections import defaultdict
 from typing import Optional
 from app.database import SessionLocal
 from app.auth.limiter import limiter, DASHBOARD_LIMIT
-from app.routers.auth import get_admin_user
+from app.routers.auth import get_admin_user, get_current_user
+from app.services.authorization import has_platform_role, resolve_active_membership
 
 router = APIRouter()
 
@@ -19,14 +20,31 @@ def get_db():
         db.close()
 
 
+def get_active_user_membership(
+    gym_id: Optional[int] = Header(default=None, alias="X-Gym-Id"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return resolve_active_membership(db, str(user.user_uuid), gym_id)
+
+
 @router.get("/stats/{user_uuid}", response_model=schemas.DashboardStats)
 @limiter.limit(DASHBOARD_LIMIT)
-def get_dashboard_stats(request: Request, user_uuid: str, db: Session = Depends(get_db)):
+def get_dashboard_stats(
+    request: Request,
+    user_uuid: str,
+    db: Session = Depends(get_db),
+    auth_user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
+):
+    if user_uuid != str(auth_user.user_uuid) and not has_platform_role(db, str(auth_user.user_uuid)):
+        raise HTTPException(status_code=403, detail="Dashboard access denied")
     attendance = (
         db.query(models.Attendance)
         .filter(
             models.Attendance.user_uuid == user_uuid,
             models.Attendance.status == "confirmed",
+            models.Attendance.gym_id == membership.gym_id,
         )
         .all()
     )
@@ -94,7 +112,16 @@ def get_dashboard_stats(request: Request, user_uuid: str, db: Session = Depends(
 
 @router.get("/attendance-trend/{user_uuid}")
 @limiter.limit(DASHBOARD_LIMIT)
-def get_attendance_trend(request: Request, user_uuid: str, days: int = 90, db: Session = Depends(get_db)):
+def get_attendance_trend(
+    request: Request,
+    user_uuid: str,
+    days: int = 90,
+    db: Session = Depends(get_db),
+    auth_user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
+):
+    if user_uuid != str(auth_user.user_uuid) and not has_platform_role(db, str(auth_user.user_uuid)):
+        raise HTTPException(status_code=403, detail="Attendance trend access denied")
     today = date.today()
     start_date = today - timedelta(days=days)
 
@@ -104,6 +131,7 @@ def get_attendance_trend(request: Request, user_uuid: str, days: int = 90, db: S
             models.Attendance.user_uuid == user_uuid,
             models.Attendance.status == "confirmed",
             models.Attendance.attendance_date >= start_date,
+            models.Attendance.gym_id == membership.gym_id,
         )
         .all()
     )
@@ -132,6 +160,7 @@ def get_attendance_overview(
     class_ids: Optional[str] = None,
     db: Session = Depends(get_db),
     _admin: models.User = Depends(get_admin_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     """
     Admin-only endpoint. Returns aggregated attendance across all students, filterable
@@ -175,6 +204,7 @@ def get_attendance_overview(
         models.Attendance.status == "confirmed",
         models.Attendance.attendance_date >= start_d,
         models.Attendance.attendance_date <= end_d,
+        models.Attendance.gym_id == membership.gym_id,
     )
     if parsed_class_ids:
         query = query.filter(models.Attendance.class_id.in_(parsed_class_ids))

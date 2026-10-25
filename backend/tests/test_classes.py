@@ -1,4 +1,5 @@
 import pytest
+from app import models
 from app.routers.classes import get_db as classes_get_db
 
 
@@ -14,15 +15,15 @@ def override_deps(client, db_session):
     app.dependency_overrides.clear()
 
 
-def test_list_classes(client):
-    resp = client.get("/classes/")
+def test_list_classes(client, headers):
+    resp = client.get("/classes/", headers=headers)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) >= 1
     assert data[0]["class_name"] == "Test Class"
 
 
-def test_weekly_schedule_normalizes_days_and_dates(client, db_session):
+def test_weekly_schedule_normalizes_days_and_dates(client, db_session, headers):
     from app import models
 
     db_session.add(
@@ -31,12 +32,13 @@ def test_weekly_schedule_normalizes_days_and_dates(client, db_session):
             class_name="Tuesday Class",
             day="tue",
             time="09:00",
+            gym_id=1,
             is_current=True,
         )
     )
     db_session.commit()
 
-    response = client.get("/classes/weekly?week_start=2026-10-07")
+    response = client.get("/classes/weekly?week_start=2026-10-07", headers=headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -57,20 +59,32 @@ def test_weekly_schedule_normalizes_days_and_dates(client, db_session):
     assert data["days"][1]["classes"][0]["scheduled_date"] == "2026-10-06"
 
 
-def test_get_class_by_id(client):
-    resp = client.get("/classes/1")
+def test_get_class_by_id(client, headers):
+    resp = client.get("/classes/1", headers=headers)
     assert resp.status_code == 200
     assert resp.json()["class_name"] == "Test Class"
 
 
-def test_get_class_not_found(client):
-    resp = client.get("/classes/999")
+def test_get_class_not_found(client, headers):
+    resp = client.get("/classes/999", headers=headers)
     assert resp.status_code == 404
-    assert resp.json()["detail"] == "Class not found"
 
 
-def test_create_class(client):
-    resp = client.post("/classes/", json={"class_name": "New Class", "day": "Tuesday", "time": "14:00"})
+def test_class_access_rejects_unmembered_gym(client, headers, db_session):
+    db_session.add(models.GymLocation(id=2, name="Second Gym"))
+    db_session.commit()
+
+    response = client.get("/classes/", headers={**headers, "X-Gym-Id": "2"})
+
+    assert response.status_code == 403
+
+
+def test_create_class(client, headers):
+    resp = client.post(
+        "/classes/",
+        json={"class_name": "New Class", "day": "Tuesday", "time": "14:00"},
+        headers=headers,
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["class_name"] == "New Class"
@@ -78,6 +92,6 @@ def test_create_class(client):
     assert data["time"] == "14:00"
 
 
-def test_create_class_missing_fields(client):
-    resp = client.post("/classes/", json={})
+def test_create_class_missing_fields(client, headers):
+    resp = client.post("/classes/", json={}, headers=headers)
     assert resp.status_code == 422

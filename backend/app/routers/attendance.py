@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
@@ -10,6 +10,7 @@ from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, CSV_IMPORT_LIMIT
 from app.services.audit import create_audit_log
 from app.services.attendance import resolve_class_instance
 from app.timezone import local_today
+from app.services.authorization import require_active_membership, resolve_active_membership
 
 router = APIRouter()
 
@@ -20,6 +21,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def get_active_membership(
+    gym_id: Optional[int] = Header(default=None, alias="X-Gym-Id"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return resolve_active_membership(db, str(user.user_uuid), gym_id)
 
 
 def _existing_attendance(
@@ -100,8 +109,10 @@ def create_attendance(
     attendance: schemas.AttendanceCreate,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     today = local_today(request)
+    require_active_membership(db, attendance.user_uuid, int(membership.gym_id))
 
     db_attendance, created = _create_attendance(
         db,
@@ -143,10 +154,14 @@ def get_user_attendance(
     user_uuid: str,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     return (
         db.query(models.Attendance)
-        .filter(models.Attendance.user_uuid == user_uuid)
+        .filter(
+            models.Attendance.user_uuid == user_uuid,
+            models.Attendance.gym_id == membership.gym_id,
+        )
         .order_by(models.Attendance.attendance_date.desc())
         .all()
     )
@@ -160,11 +175,15 @@ def get_class_attendance(
     date: Optional[str] = None,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     query = (
         db.query(models.Attendance)
         .options(joinedload(models.Attendance.user))
-        .filter(models.Attendance.class_id == class_id)
+        .filter(
+            models.Attendance.class_id == class_id,
+            models.Attendance.gym_id == membership.gym_id,
+        )
     )
     if date:
         query = query.filter(models.Attendance.attendance_date == date)
@@ -178,12 +197,14 @@ def check_in(
     data: schemas.CheckInRequest,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     user_uuid = data.user_uuid
     class_id = data.class_id
     class_instance_id = data.class_instance_id
 
     target_date = data.check_in_date or local_today(request)
+    require_active_membership(db, user_uuid, int(membership.gym_id))
 
     db_attendance, created = _create_attendance(
         db,
@@ -224,10 +245,12 @@ def bulk_check_in(
     data: schemas.BulkCheckInRequest,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     created = []
     already_present = []
     errors = []
+    require_active_membership(db, data.user_uuid, int(membership.gym_id))
 
     for item in data.classes:
         target_date = item.check_in_date or local_today(request)
@@ -273,6 +296,7 @@ def kiosk_attendance_status(
     data: schemas.KioskAttendanceStatusRequest,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     target_date = data.attendance_date or local_today(request)
     records = (
@@ -286,6 +310,7 @@ def kiosk_attendance_status(
             models.Attendance.user_uuid == data.user_uuid,
             models.Attendance.class_id.in_(data.class_ids),
             models.Attendance.attendance_date == target_date,
+            models.Attendance.gym_id == membership.gym_id,
         )
         .all()
     )
@@ -307,6 +332,7 @@ def direct_attendance(
     data: dict,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     user_uuid = data.get("user_uuid")
     class_id = data.get("class_id")
@@ -317,6 +343,7 @@ def direct_attendance(
     attendance_date_str = data.get("attendance_date")
 
     today = date.fromisoformat(attendance_date_str) if attendance_date_str else local_today(request)
+    require_active_membership(db, user_uuid, int(membership.gym_id))
 
     db_attendance, created = _create_attendance(
         db,
@@ -344,8 +371,16 @@ def confirm_attendance(
     attendance_id: int,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
-    attendance = db.query(models.Attendance).filter(models.Attendance.id == attendance_id).first()
+    attendance = (
+        db.query(models.Attendance)
+        .filter(
+            models.Attendance.id == attendance_id,
+            models.Attendance.gym_id == membership.gym_id,
+        )
+        .first()
+    )
     if not attendance:
         raise HTTPException(status_code=404, detail="Attendance not found")
 
@@ -375,8 +410,16 @@ def cancel_attendance(
     attendance_id: int,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
-    attendance = db.query(models.Attendance).filter(models.Attendance.id == attendance_id).first()
+    attendance = (
+        db.query(models.Attendance)
+        .filter(
+            models.Attendance.id == attendance_id,
+            models.Attendance.gym_id == membership.gym_id,
+        )
+        .first()
+    )
     if not attendance:
         raise HTTPException(status_code=404, detail="Attendance not found")
 
@@ -406,9 +449,17 @@ def bulk_confirm(
     data: dict,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_membership),
 ):
     ids = data.get("ids", [])
-    attendance_list = db.query(models.Attendance).filter(models.Attendance.id.in_(ids)).all()
+    attendance_list = (
+        db.query(models.Attendance)
+        .filter(
+            models.Attendance.id.in_(ids),
+            models.Attendance.gym_id == membership.gym_id,
+        )
+        .all()
+    )
 
     for att in attendance_list:
         att.status = "confirmed"

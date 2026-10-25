@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { kioskApi, setKioskStaffToken, getKioskStaffToken, setOnKioskLock } from '@/lib/api';
+import { kioskApi, membershipsApi, setActiveGymId, setKioskStaffToken, setOnKioskLock } from '@/lib/api';
+import type { KioskGymMembership } from '@/lib/api';
 import type { User } from '@/types';
 
 const DEFAULT_IDLE_TIMEOUT_MS = 240 * 60 * 1000;
@@ -12,6 +13,9 @@ interface KioskContextType {
   unlockedBy: string | null;
   identifiedUser: User | null;
   selectedClassIds: number[];
+  gymMemberships: KioskGymMembership[];
+  activeGymId: number | null;
+  setActiveGymIdForKiosk: (gymId: number) => void;
   isLoading: boolean;
   error: string;
   setError: (error: string) => void;
@@ -34,6 +38,8 @@ export function KioskProvider({ children }: { children: ReactNode }) {
 
   const [identifiedUser, setIdentifiedUser] = useState<User | null>(null);
   const [selectedClassIds, setSelectedClassIds] = useState<number[]>([]);
+  const [gymMemberships, setGymMemberships] = useState<KioskGymMembership[]>([]);
+  const [activeGymId, setActiveGymIdState] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,6 +61,9 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     setKioskStaffToken(null);
     setIdentifiedUser(null);
     setSelectedClassIds([]);
+    setGymMemberships([]);
+    setActiveGymIdState(null);
+    setActiveGymId(null);
     setIsUnlocked(false);
     setUnlockedBy(null);
     setError('');
@@ -71,11 +80,16 @@ export function KioskProvider({ children }: { children: ReactNode }) {
 
   const unlockKiosk = useCallback(async (email: string, password: string) => {
     const data = await kioskApi.unlock(email, password);
+    const memberships = await membershipsApi.me();
+    const selectedGym = memberships.find(item => item.is_primary) || memberships[0];
     setIsUnlocked(true);
     setUnlockedBy(`${data.user.first_name} ${data.user.last_name}`);
     setError('');
     setIdentifiedUser(null);
     setSelectedClassIds([]);
+    setGymMemberships(memberships);
+    setActiveGymIdState(selectedGym?.gym_id ?? null);
+    setActiveGymId(selectedGym?.gym_id ?? null);
     if (data.idle_timeout_minutes) {
       idleTimeoutMs.current = data.idle_timeout_minutes * 60 * 1000;
     }
@@ -86,6 +100,14 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     setSelectedClassIds([]);
     setError('');
   }, []);
+
+  const setActiveGymIdForKiosk = useCallback((gymId: number) => {
+    if (!gymMemberships.some(membership => membership.gym_id === gymId)) return;
+    setActiveGymIdState(gymId);
+    setActiveGymId(gymId);
+    setIdentifiedUser(null);
+    setSelectedClassIds([]);
+  }, [gymMemberships]);
 
   const toggleClass = useCallback((classId: number) => {
     setSelectedClassIds(prev =>
@@ -139,6 +161,9 @@ export function KioskProvider({ children }: { children: ReactNode }) {
         unlockedBy,
         identifiedUser,
         selectedClassIds,
+        gymMemberships,
+        activeGymId,
+        setActiveGymIdForKiosk,
         isLoading,
         error,
         setError,

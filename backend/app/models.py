@@ -9,7 +9,9 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     Date,
+    Index,
     UniqueConstraint,
+    text as sa_text,
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -78,6 +80,69 @@ class UserRole(Base):
 
     user = relationship("User", back_populates="roles")
     role = relationship("Role")
+
+
+class GymMembership(Base):
+    __tablename__ = "gym_memberships"
+    __table_args__ = (
+        Index(
+            "uq_gym_memberships_active_user_gym",
+            "user_uuid",
+            "gym_id",
+            unique=True,
+            postgresql_where=sa_text("status IN ('pending', 'invited', 'active', 'suspended')"),
+            sqlite_where=sa_text("status IN ('pending', 'invited', 'active', 'suspended')"),
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_uuid = Column(String, ForeignKey("users.user_uuid"), nullable=False, index=True)
+    gym_id = Column(Integer, ForeignKey("gym_locations.id"), nullable=False, index=True)
+    status = Column(String, nullable=False, default="pending", index=True)
+    is_primary = Column(Boolean, nullable=False, default=False)
+    effective_date = Column(Date, nullable=False, default=lambda: _utcnow().date())
+    end_date = Column(Date, nullable=True)
+    created_by = Column(String, ForeignKey("users.user_uuid"), nullable=True)
+    status_reason = Column(Text, nullable=True)
+    status_changed_at = Column(DateTime, default=_utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    user = relationship("User", foreign_keys=[user_uuid])
+    gym = relationship("GymLocation")
+    creator = relationship("User", foreign_keys=[created_by])
+    role_assignments = relationship("GymRoleAssignment", back_populates="membership")
+
+
+class GymRoleAssignment(Base):
+    __tablename__ = "gym_role_assignments"
+    __table_args__ = (
+        Index(
+            "uq_gym_role_assignments_active",
+            "membership_id",
+            "role_id",
+            unique=True,
+            postgresql_where=sa_text("status = 'active'"),
+            sqlite_where=sa_text("status = 'active'"),
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    membership_id = Column(Integer, ForeignKey("gym_memberships.id"), nullable=False, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False, index=True)
+    status = Column(String, nullable=False, default="active", index=True)
+    effective_date = Column(Date, nullable=False, default=lambda: _utcnow().date())
+    end_date = Column(Date, nullable=True)
+    assigned_by = Column(String, ForeignKey("users.user_uuid"), nullable=True)
+    revoked_by = Column(String, ForeignKey("users.user_uuid"), nullable=True)
+    reason = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    membership = relationship("GymMembership", back_populates="role_assignments")
+    role = relationship("Role")
+    assigner = relationship("User", foreign_keys=[assigned_by])
+    revoker = relationship("User", foreign_keys=[revoked_by])
 
 
 class GymLocation(Base):

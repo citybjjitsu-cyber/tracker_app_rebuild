@@ -21,8 +21,8 @@ def _login_admin_cookies(client):
     assert resp.status_code == 200
 
 
-def test_get_dashboard_stats(client):
-    response = client.get(f"/dashboard/stats/{STAFF_UUID}")
+def test_get_dashboard_stats(client, headers):
+    response = client.get(f"/dashboard/stats/{STAFF_UUID}", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert "totalClasses" in data
@@ -32,8 +32,8 @@ def test_get_dashboard_stats(client):
     assert data["totalPoints"] == 0
 
 
-def test_get_attendance_trend(client):
-    response = client.get(f"/dashboard/attendance-trend/{STAFF_UUID}", params={"days": 90})
+def test_get_attendance_trend(client, headers):
+    response = client.get(f"/dashboard/attendance-trend/{STAFF_UUID}", params={"days": 90}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -51,6 +51,7 @@ def test_attendance_overview_empty_range(client):
     response = client.get(
         "/dashboard/attendance-overview",
         params={"start_date": today, "end_date": today},
+        headers={"X-Gym-Id": "1"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -73,18 +74,21 @@ def test_attendance_overview_with_data_and_class_filter(client, db_session):
     db_session.add_all(
         [
             models.Attendance(
+                gym_id=1,
                 user_uuid=STUDENT_UUID,
                 class_id=1,
                 attendance_date=today,
                 status="confirmed",
             ),
             models.Attendance(
+                gym_id=1,
                 user_uuid=STAFF_UUID,
                 class_id=1,
                 attendance_date=today,
                 status="confirmed",
             ),
             models.Attendance(
+                gym_id=1,
                 user_uuid=STUDENT_UUID,
                 class_id=1,
                 attendance_date=yesterday,
@@ -92,6 +96,7 @@ def test_attendance_overview_with_data_and_class_filter(client, db_session):
             ),
             # A pending record should be excluded from the confirmed-only overview
             models.Attendance(
+                gym_id=1,
                 user_uuid=PINLESS_UUID,
                 class_id=1,
                 attendance_date=today,
@@ -107,6 +112,7 @@ def test_attendance_overview_with_data_and_class_filter(client, db_session):
             "start_date": yesterday.isoformat(),
             "end_date": today.isoformat(),
         },
+        headers={"X-Gym-Id": "1"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -130,6 +136,7 @@ def test_attendance_overview_with_data_and_class_filter(client, db_session):
             "end_date": today.isoformat(),
             "class_ids": "9999",
         },
+        headers={"X-Gym-Id": "1"},
     )
     assert response2.status_code == 200
     assert response2.json()["totals"]["total_check_ins"] == 0
@@ -142,6 +149,7 @@ def test_attendance_overview_swapped_dates_are_normalized(client):
     response = client.get(
         "/dashboard/attendance-overview",
         params={"start_date": today.isoformat(), "end_date": earlier.isoformat()},
+        headers={"X-Gym-Id": "1"},
     )
     assert response.status_code == 200
     data = response.json()

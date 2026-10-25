@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
 from datetime import date
 from typing import List, Optional
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT, DASHBOARD_LIMIT
-from app.routers.auth import get_teacher_user
+from app.routers.auth import get_current_user, get_teacher_user
 from app.services.attendance import ensure_class_instance
+from app.services.authorization import has_platform_role, resolve_active_membership
 
 router = APIRouter()
 
@@ -26,13 +27,37 @@ def get_db():
         db.close()
 
 
+def get_teacher_gym_membership(
+    gym_id: Optional[int] = Header(default=None, alias="X-Gym-Id"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_teacher_user),
+):
+    return resolve_active_membership(db, str(user.user_uuid), gym_id)
+
+
+def get_active_user_membership(
+    gym_id: Optional[int] = Header(default=None, alias="X-Gym-Id"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return resolve_active_membership(db, str(user.user_uuid), gym_id)
+
+
 @router.post("/", response_model=schemas.FeedbackResponse)
 @limiter.limit(WRITE_LIMIT)
-def submit_feedback(request: Request, feedback: schemas.FeedbackCreate, db: Session = Depends(get_db)):
+def submit_feedback(
+    request: Request,
+    feedback: schemas.FeedbackCreate,
+    db: Session = Depends(get_db),
+    membership: models.GymMembership = Depends(get_active_user_membership),
+):
     attendance = (
         db.query(models.Attendance)
         .options(joinedload(models.Attendance.class_instance))
-        .filter(models.Attendance.id == feedback.attendance_id)
+        .filter(
+            models.Attendance.id == feedback.attendance_id,
+            models.Attendance.gym_id == membership.gym_id,
+        )
         .first()
     )
     if not attendance:
@@ -70,11 +95,21 @@ def submit_feedback(request: Request, feedback: schemas.FeedbackCreate, db: Sess
 
 @router.get("/user/{user_uuid}", response_model=List[schemas.FeedbackResponse])
 @limiter.limit(READ_LIMIT)
-def get_user_feedback(request: Request, user_uuid: str, db: Session = Depends(get_db)):
+def get_user_feedback(
+    request: Request,
+    user_uuid: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
+):
+    if str(user.user_uuid) != user_uuid and not has_platform_role(db, str(user.user_uuid)):
+        raise HTTPException(status_code=403, detail="Feedback access denied")
     return (
         db.query(models.ClassFeedback)
         .options(joinedload(models.ClassFeedback.class_instance))
+        .join(models.Attendance, models.Attendance.id == models.ClassFeedback.attendance_id)
         .filter(models.ClassFeedback.user_uuid == user_uuid)
+        .filter(models.Attendance.gym_id == membership.gym_id)
         .order_by(models.ClassFeedback.created_at.desc())
         .all()
     )
@@ -91,11 +126,14 @@ def get_teacher_feedback(
     rating: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_teacher_user),
+    membership: models.GymMembership = Depends(get_teacher_gym_membership),
 ):
     query = (
         db.query(models.ClassFeedback)
         .options(joinedload(models.ClassFeedback.class_instance))
         .join(models.ClassInstance)
+        .join(models.ClassSchedule, models.ClassSchedule.id == models.ClassInstance.class_id)
+        .filter(models.ClassSchedule.gym_id == membership.gym_id)
     )
     if start_date:
         query = query.filter(models.ClassInstance.class_date >= start_date)
@@ -123,6 +161,7 @@ def get_admin_feedback_list(
     teachers: Optional[str] = Query(None),
     rating: Optional[str] = Query(None),
     db: Session = Depends(get_db),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     query = (
         db.query(models.ClassFeedback)
@@ -130,6 +169,7 @@ def get_admin_feedback_list(
         .join(models.ClassInstance)
         .join(models.User)
         .join(models.ClassSchedule)
+        .filter(models.ClassSchedule.gym_id == membership.gym_id)
     )
 
     if start_date:
@@ -164,8 +204,14 @@ def get_admin_stats(
     teachers: Optional[str] = Query(None),
     rating: Optional[str] = Query(None),
     db: Session = Depends(get_db),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
-    query = db.query(models.ClassFeedback).join(models.ClassInstance)
+    query = (
+        db.query(models.ClassFeedback)
+        .join(models.ClassInstance)
+        .join(models.ClassSchedule, models.ClassSchedule.id == models.ClassInstance.class_id)
+        .filter(models.ClassSchedule.gym_id == membership.gym_id)
+    )
 
     if start_date:
         query = query.filter(models.ClassInstance.class_date >= start_date)

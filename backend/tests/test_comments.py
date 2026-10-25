@@ -10,7 +10,7 @@ def _override_deps(db_session):
     yield
 
 
-def test_create_comment(client):
+def test_create_comment(client, headers):
     response = client.post(
         "/comments/",
         params={"author_uuid": STAFF_UUID},
@@ -19,6 +19,7 @@ def test_create_comment(client):
             "rating": "positive",
             "target_user_uuid": STUDENT_UUID,
         },
+        headers=headers,
     )
     assert response.status_code == 200
     data = response.json()
@@ -27,7 +28,7 @@ def test_create_comment(client):
     assert data["target_user"]["user_uuid"] == STUDENT_UUID
 
 
-def test_get_comment_feed(client):
+def test_get_comment_feed(client, headers):
     client.post(
         "/comments/",
         params={"author_uuid": STAFF_UUID},
@@ -36,8 +37,9 @@ def test_get_comment_feed(client):
             "rating": "positive",
             "target_user_uuid": STUDENT_UUID,
         },
+        headers=headers,
     )
-    response = client.get("/comments/feed", params={"user_uuid": STAFF_UUID})
+    response = client.get("/comments/feed", params={"user_uuid": STAFF_UUID}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -45,7 +47,7 @@ def test_get_comment_feed(client):
     assert data[0]["content"] == "Feed test"
 
 
-def test_get_comment_by_uuid(client):
+def test_get_comment_by_uuid(client, headers):
     create_resp = client.post(
         "/comments/",
         params={"author_uuid": STAFF_UUID},
@@ -54,14 +56,15 @@ def test_get_comment_by_uuid(client):
             "rating": "positive",
             "target_user_uuid": STUDENT_UUID,
         },
+        headers=headers,
     )
     comment_uuid = create_resp.json()["comment_uuid"]
-    response = client.get(f"/comments/{comment_uuid}")
+    response = client.get(f"/comments/{comment_uuid}", headers=headers)
     assert response.status_code == 200
     assert response.json()["comment_uuid"] == comment_uuid
 
 
-def test_update_comment(client):
+def test_update_comment(client, headers):
     create_resp = client.post(
         "/comments/",
         params={"author_uuid": STAFF_UUID},
@@ -70,18 +73,20 @@ def test_update_comment(client):
             "rating": "positive",
             "target_user_uuid": STUDENT_UUID,
         },
+        headers=headers,
     )
     comment_uuid = create_resp.json()["comment_uuid"]
     response = client.put(
         f"/comments/{comment_uuid}",
         params={"author_uuid": STAFF_UUID},
         json={"content": "Updated content"},
+        headers=headers,
     )
     assert response.status_code == 200
     assert response.json()["content"] == "Updated content"
 
 
-def test_delete_comment(client):
+def test_delete_comment(client, headers):
     create_resp = client.post(
         "/comments/",
         params={"author_uuid": STAFF_UUID},
@@ -90,20 +95,23 @@ def test_delete_comment(client):
             "rating": "positive",
             "target_user_uuid": STUDENT_UUID,
         },
+        headers=headers,
     )
     comment_uuid = create_resp.json()["comment_uuid"]
     response = client.delete(
         f"/comments/{comment_uuid}",
         params={"author_uuid": STAFF_UUID},
+        headers=headers,
     )
     assert response.status_code == 200
     assert response.json()["message"] == "Comment deleted"
 
 
-def test_delete_nonexistent_comment(client):
+def test_delete_nonexistent_comment(client, headers):
     response = client.delete(
         "/comments/nonexistent-uuid",
         params={"author_uuid": STAFF_UUID},
+        headers=headers,
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Comment not found"

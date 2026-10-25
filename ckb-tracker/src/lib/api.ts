@@ -58,6 +58,7 @@ export interface KioskAttendanceStatus {
 
 // Staff kiosk token — stored in memory only
 let kioskStaffToken: string | null = null;
+let activeGymId: number | null = null;
 
 export function setKioskStaffToken(token: string | null) {
   kioskStaffToken = token;
@@ -65,6 +66,14 @@ export function setKioskStaffToken(token: string | null) {
 
 export function getKioskStaffToken(): string | null {
   return kioskStaffToken;
+}
+
+export function setActiveGymId(gymId: number | null) {
+  activeGymId = gymId;
+}
+
+export function getActiveGymId(): number | null {
+  return activeGymId;
 }
 
 const api = axios.create({
@@ -89,8 +98,9 @@ api.interceptors.request.use((config) => {
     config.headers['Authorization'] = `Bearer ${kioskToken}`;
   } else {
     const nativeToken = getNativeAccessToken();
-    if (nativeToken) config.headers['Authorization'] = `Bearer ${nativeToken}`;
+      if (nativeToken) config.headers['Authorization'] = `Bearer ${nativeToken}`;
   }
+  if (activeGymId !== null) config.headers['X-Gym-Id'] = String(activeGymId);
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }
@@ -656,6 +666,25 @@ export const kioskApi = {
   },
   updatePin: async (currentPin: string, newPin: string) => {
     const response = await api.put('/kiosk/update-pin', { current_pin: currentPin, new_pin: newPin });
+    return response.data;
+  },
+};
+
+export interface KioskGymMembership {
+  id: number;
+  user_uuid: string;
+  gym_id: number;
+  status: string;
+  is_primary: boolean;
+  effective_date: string;
+  end_date?: string | null;
+  status_reason?: string | null;
+  gym?: GymLocation;
+}
+
+export const membershipsApi = {
+  me: async () => {
+    const response = await api.get<KioskGymMembership[]>('/memberships/me');
     return response.data;
   },
 };

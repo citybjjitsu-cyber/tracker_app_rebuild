@@ -411,24 +411,23 @@ Observed layout issues to resolve:
 
 - Physical mobile and desktop behavior was verified after the navigation and safe-area changes.
 - Mobile navigation, offline/error messaging, responsive layouts, role-aware routes, and kiosk flows behaved as expected.
-- Phase 5F exit criteria are satisfied. Kiosk idempotency and the coordinated data-model design gate are the next work before further production schema changes.
+- Phase 5F exit criteria are satisfied. Phase 5G is now complete; multi-gym authorization and lifecycle design remain the next work.
 
-### Phase 5G: Kiosk Check-In Idempotency Hardening (Next Phase)
+### Phase 5G: Kiosk Check-In Idempotency Hardening (Complete)
 
-The kiosk currently handles sequential duplicate submissions at the application level, but the confirmation UI treats an `already_present` response as a new successful check-in. There is also no database uniqueness constraint, so concurrent or replayed requests can create duplicate attendance rows. This phase must be completed before treating kiosk check-in as production-safe for the mobile/PWA release.
+The kiosk now blocks both pending and confirmed attendance from being selected again. The backend returns the existing attendance record for retries, and the deployed database enforces the approved attendance identity.
 
 The database constraint should not be deployed in isolation from the multi-gym, class-instance, and teacher-assignment design in Phases 6B-6E. The implementation may be split into several forward-only migrations, but the attendance identity and historical scope must be agreed before the production data migration is run.
 
 **Approved attendance identity:** `(gym_id, class_instance_id, user_uuid, attendance_date)`. Gym and class-instance values are resolved server-side from the selected dated occurrence; clients do not define the attendance scope.
 
-- Add and deploy a migration enforcing uniqueness for the approved gym/class-instance/student attendance identity after auditing and reconciling any existing duplicates.
-- Preserve one canonical attendance row per duplicate group and document how status, confirmation metadata, feedback, audit history, and points are reconciled.
-- Make bulk, single, and direct attendance creation paths use the same duplicate-safe service and return a stable `already_checked_in` result.
-- Handle uniqueness conflicts atomically so concurrent requests return the existing attendance instead of failing or creating a second row.
-- Update kiosk confirmation to distinguish newly created rows from already-present rows and prevent repeated submissions while a request is active.
-- Verify confirmed attendance, points, trends, dashboard totals, feedback, and progress remain correct when a duplicate request is retried.
-- Add backend coverage for sequential retries, duplicate class IDs, concurrent writes, direct attendance, database constraint enforcement, and duplicate confirmation.
-- Add kiosk frontend/E2E coverage for rapid confirmation, network retry, already-present responses, and a single final attendance result.
+- The database migration enforces uniqueness for `(gym_id, class_instance_id, user_uuid, attendance_date)`.
+- Historical attendance and class-instance data were audited; no duplicate attendance rows or pre-existing duplicate class instances were found.
+- Migration-generated class instances now group only by `(class_id, class_date)` and do not split on conflicting historical teachers.
+- Bulk, single, direct, teacher, and kiosk attendance creation paths use the duplicate-safe service.
+- Kiosk selection displays pending/confirmed status and disables already-recorded classes.
+- Teacher removal makes the class available again on kiosk and mobile views.
+- Backend and frontend regression coverage passes; deployed desktop and physical-mobile smoke tests are complete.
 
 #### 5G Exit criteria
 
@@ -437,6 +436,12 @@ The database constraint should not be deployed in isolation from the multi-gym, 
 - Confirmed attendance contributes exactly once to points and analytics.
 - Existing attendance data is reconciled before the uniqueness migration is enabled in each environment.
 - The deployed kiosk flow passes on desktop and physical mobile browsers.
+
+#### 5G Closeout (2026-10-24)
+
+- Production migration reached `a1b2c3d4e5f6` after reconciling the historical class-instance backfill.
+- Verified kiosk pending attendance is unavailable on kiosk, phone, and desktop views.
+- Verified teacher removal makes the class selectable again across those views.
 
 ## Phase 6: Capacitor App Wrapper
 
@@ -470,6 +475,10 @@ Create internal iOS and Android builds before submitting to the stores.
 ### Phase 6B: Data Model and Privacy Design Gate (Required Before Migration)
 
 Before changing the deployed database or importing a large member base, document the ownership, privacy, and lifecycle rules for every important record. Decide whether the current `gym_locations` table represents a tenant, a physical location, or both; if one organisation can have multiple locations, introduce separate organisation/gym/location concepts before data is migrated.
+
+The approved scope and privacy baseline is maintained in `MOBILE_APP_PHASE_6B_SCOPE_MATRIX.md`. Phase 6C implementation must translate these decisions into an authorization and migration design before changing the deployed database.
+
+The Phase 6C design baseline is maintained in `MOBILE_APP_PHASE_6C_AUTHORIZATION_DESIGN.md`. It defines the proposed membership/role tables, authorization matrix, invitation flows, migration order, and required cross-gym security tests.
 
 #### 6B.1 Scope and privacy inventory
 
