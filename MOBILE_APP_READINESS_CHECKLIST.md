@@ -79,18 +79,18 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Future personal themes are deferred until a token audit, contrast review, catalog model, and per-user preference design are complete.
 - Mobile navigation policy: all authenticated user roles return to `/portal` after check-in; kiosk/tablet mode remains a separate staff-controlled flow.
 
-## Next Phase: Kiosk Check-In Idempotency
+## Phase 5G: Kiosk Check-In Idempotency - Complete
 
 - [x] Approve the attendance identity as `(gym_id, class_instance_id, user_uuid, attendance_date)`.
 - [x] Add application-level resolution of gym and dated class-instance identity for all attendance creation paths.
 - [x] Add a forward-only migration that backfills gym scope and replaces the old user/class/date uniqueness index.
 - [x] Make kiosk confirmation distinguish newly created attendance from an already-present retry.
-- [ ] Audit production and development attendance data for duplicate `(gym_id, class_instance_id, user_uuid, attendance_date)` rows.
-- [ ] Reconcile duplicate rows and deploy the database uniqueness migration.
+- [x] Audit production and development attendance data for duplicate `(gym_id, class_instance_id, user_uuid, attendance_date)` rows.
+- [x] Reconcile migration-generated class-instance grouping and deploy the database uniqueness migration.
 - [x] Make every attendance creation path concurrency-safe and consistently return `already_checked_in`.
 - [x] Update kiosk selection and confirmation to distinguish new check-ins from retries and prevent duplicate submissions.
-- [ ] Verify duplicate retries do not inflate confirmed attendance, points, trends, feedback, or progress analytics.
-- [ ] Run desktop and physical-mobile kiosk smoke tests, including rapid repeat confirmation and network retry scenarios.
+- [x] Verify duplicate retries do not create a second attendance record or make the class selectable again.
+- [x] Run desktop and physical-mobile kiosk smoke tests, including pending-state blocking and teacher removal/re-entry.
 
 ## Phase 5A Checkpoint (2026-10-03)
 
@@ -132,11 +132,11 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Admin proxy safeguard: only `/admin/invites` and `/admin/test-email` are rewritten; `/admin` remains a Next.js frontend route.
 - Kiosk session safeguard: selected-user PIN verification does not overwrite the kiosk staff cookies or memory-only Bearer token.
 
-### Kiosk Follow-up Verification
+### Kiosk Follow-up Verification - Complete
 
-- [ ] Deploy the kiosk rewrite/session fix to Vercel and Render.
-- [ ] Smoke-test unlock, student search, PIN confirmation, `/kiosk/select`, class loading, confirmation, attendance submission, and lock on desktop and a physical mobile browser.
-- [ ] Confirm the browser network trace shows `/kiosk/select` served by Vercel/Next.js rather than Render/Uvicorn.
+- [x] Deploy the kiosk rewrite/session fix to Vercel and Render.
+- [x] Smoke-test unlock, student search, PIN confirmation, `/kiosk/select`, class loading, confirmation, attendance submission, and lock on desktop and a physical mobile browser.
+- [x] Confirm the browser network trace shows `/kiosk/select` served by Vercel/Next.js rather than Render/Uvicorn.
 
 ### Invite List Follow-up
 
@@ -153,6 +153,38 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - Database migrations for mobile-only features.
 - Native camera, push notification, biometric, or deep-link integrations.
 - Database-backed Admin Site Settings for timezone, locale, and time format; the current fallback remains available until this is implemented.
+
+## Phase 6B Kickoff
+
+- [x] Create the initial table, endpoint, privacy, and migration scope matrix in `MOBILE_APP_PHASE_6B_SCOPE_MATRIX.md`.
+- [x] Approve the gym/location model, gym-scoped membership, active-gym, and kiosk gym-selection policies.
+- [x] Approve family, guardian, consent, teacher roster, feedback, conversation, content-sharing, retention, and audit policies.
+- [x] Write cross-gym privacy and authorization test cases before Phase 6C migrations.
+- [x] Produce the Phase 6C membership, scoped-role, active-gym, roster, and occurrence migration design.
+
+## Phase 6C Design Kickoff
+
+- [x] Create the authorization matrix and migration design in `MOBILE_APP_PHASE_6C_AUTHORIZATION_DESIGN.md`.
+- [x] Add the local membership/scoped-role model and additive migration `b3c4d5e6f7a8`.
+- [x] Add centralized membership and gym-role authorization helpers with transition support for the current global Admin role.
+- [x] Add initial authorization unit coverage for active/pending memberships, scoped roles, platform roles, and primary memberships.
+- [x] Add authenticated membership listing and active-gym context endpoints using `X-Gym-Id`.
+- [x] Require explicit gym selection when an authenticated user has multiple active memberships.
+- [x] Scope class listing, weekly schedules, class reads, creation, and updates to the active gym.
+- [x] Scope attendance reads, writes, confirmation, cancellation, bulk actions, and kiosk status to the active gym.
+- [x] Scope Teacher feedback reads to the active gym and current teacher access context.
+- [x] Scope student feedback, Teacher feedback, and admin feedback reports to the active gym.
+- [x] Bind kiosk API requests to the selected active gym and expose a gym selector after kiosk unlock.
+- [x] Scope comments and replies to authenticated users and active-gym membership context.
+- [x] Scope user listing, search, profile reads, creation, and CSV exports to active gym membership context.
+- [x] Scope CSV imports, profile updates, photo uploads, photo deletion, and photo positioning to active gym membership context.
+- [x] Add audited gym-scoped role assignment and revocation endpoints.
+- [x] Scope personal dashboard stats, attendance trends, and admin attendance reports to the active gym.
+- [x] Revoke affected user sessions when memberships or gym roles are suspended, deactivated, or revoked.
+- [x] Add Platform/Gym Admin membership listing, addition, and status-management endpoints with audit logging.
+- [x] Review and approve the membership, gym-scoped role, active-gym, kiosk, roster, and session-version model.
+- [x] Write cross-gym privacy and authorization tests before adding runtime authorization.
+- [x] Rehearse additive migrations and current-gym backfill against a production-like database copy.
 
 ## Phase 5F Implementation Checkpoint (2026-10-05)
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { KioskProvider, useKiosk } from '@/app/kiosk/KioskContext'
-import { kioskApi } from '@/lib/api'
+import { kioskApi, membershipsApi } from '@/lib/api'
 import type { User } from '@/types'
 
 const mockPush = vi.fn()
@@ -16,7 +16,11 @@ vi.mock('@/lib/api', () => ({
     unlock: vi.fn(),
     lock: vi.fn(),
   },
+  membershipsApi: {
+    me: vi.fn().mockResolvedValue([]),
+  },
   setKioskStaffToken: vi.fn(),
+  setActiveGymId: vi.fn(),
   getKioskStaffToken: vi.fn(() => null),
   setOnKioskLock: vi.fn(),
 }))

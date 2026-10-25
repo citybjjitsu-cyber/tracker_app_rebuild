@@ -34,7 +34,7 @@ def test_list_users(client, headers):
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    assert len(data) >= 3
+    assert len(data) >= 2
 
 
 def test_list_users_unauthenticated(client):
@@ -97,7 +97,7 @@ def test_search_users_empty_query(client, headers):
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    assert len(data) >= 3
+    assert len(data) >= 2
 
 
 def test_update_user_password_reset(client, headers, db_session):

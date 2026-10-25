@@ -12,11 +12,12 @@ def _override_deps(db_session):
     yield
 
 
-def test_submit_feedback(client, db_session):
+def test_submit_feedback(client, db_session, headers):
     ci = models.ClassInstance(class_id=1, class_date=date.today())
     db_session.add(ci)
     db_session.flush()
     att = models.Attendance(
+        gym_id=1,
         user_uuid=STUDENT_UUID,
         class_id=1,
         class_instance_id=ci.id,
@@ -31,6 +32,7 @@ def test_submit_feedback(client, db_session):
             "rating": "thumbs_up",
             "comment": "Great class!",
         },
+        headers=headers,
     )
 
     feedback = db_session.query(models.ClassFeedback).first()
@@ -43,11 +45,12 @@ def test_submit_feedback(client, db_session):
     assert feedback.class_instance_id == ci.id
 
 
-def test_submit_feedback_rejects_duplicate_for_attendance(client, db_session):
+def test_submit_feedback_rejects_duplicate_for_attendance(client, db_session, headers):
     ci = models.ClassInstance(class_id=1, class_date=date.today())
     db_session.add(ci)
     db_session.flush()
     att = models.Attendance(
+        gym_id=1,
         user_uuid=STUDENT_UUID,
         class_id=1,
         class_instance_id=ci.id,
@@ -56,14 +59,15 @@ def test_submit_feedback_rejects_duplicate_for_attendance(client, db_session):
     db_session.flush()
 
     payload = {"attendance_id": att.id, "rating": "positive"}
-    assert client.post("/feedback/", json=payload).status_code == 200
-    duplicate = client.post("/feedback/", json=payload)
+    assert client.post("/feedback/", json=payload, headers=headers).status_code == 200
+    duplicate = client.post("/feedback/", json=payload, headers=headers)
 
     assert duplicate.status_code == 409
 
 
-def test_submit_feedback_repairs_orphan_attendance(client, db_session):
+def test_submit_feedback_repairs_orphan_attendance(client, db_session, headers):
     att = models.Attendance(
+        gym_id=1,
         user_uuid=STUDENT_UUID,
         class_id=1,
         attendance_date=date.today(),
@@ -74,6 +78,7 @@ def test_submit_feedback_repairs_orphan_attendance(client, db_session):
     response = client.post(
         "/feedback/",
         json={"attendance_id": att.id, "rating": "positive"},
+        headers=headers,
     )
 
     assert response.status_code == 200
@@ -82,7 +87,7 @@ def test_submit_feedback_repairs_orphan_attendance(client, db_session):
     assert response.json()["class_instance_id"] == att.class_instance_id
 
 
-def test_get_user_feedback(client, db_session):
+def test_get_user_feedback(client, db_session, headers):
     ci = models.ClassInstance(class_id=1, class_date=date.today())
     db_session.add(ci)
     db_session.flush()
@@ -93,10 +98,20 @@ def test_get_user_feedback(client, db_session):
         rating="positive",
         comment="Nice",
     )
+    db_session.add(
+        models.Attendance(
+            id=1,
+            gym_id=1,
+            user_uuid=STUDENT_UUID,
+            class_id=1,
+            class_instance_id=ci.id,
+            attendance_date=date.today(),
+        )
+    )
     db_session.add(feedback)
     db_session.commit()
 
-    response = client.get(f"/feedback/user/{STUDENT_UUID}")
+    response = client.get(f"/feedback/user/{STUDENT_UUID}", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -186,7 +201,7 @@ def _seed_feedback_data(db_session):
     return ci
 
 
-def test_get_admin_feedback_list(client, db_session):
+def test_get_admin_feedback_list(client, db_session, headers):
     from datetime import date
 
     ci = models.ClassInstance(class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID)
@@ -202,14 +217,14 @@ def test_get_admin_feedback_list(client, db_session):
     db_session.add(fb)
     db_session.commit()
 
-    response = client.get("/feedback/admin/list")
+    response = client.get("/feedback/admin/list", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
     assert len(data) >= 1
 
 
-def test_get_admin_stats(client, db_session):
+def test_get_admin_stats(client, db_session, headers):
     from datetime import date
 
     ci = models.ClassInstance(class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID)
@@ -225,7 +240,7 @@ def test_get_admin_stats(client, db_session):
     db_session.add(fb)
     db_session.commit()
 
-    response = client.get("/feedback/admin/comprehensive-stats")
+    response = client.get("/feedback/admin/comprehensive-stats", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert "totalFeedback" in data
@@ -233,7 +248,7 @@ def test_get_admin_stats(client, db_session):
     assert data["positivePercent"] == 100.0
 
 
-def test_get_admin_feedback_list_with_filters(client, db_session):
+def test_get_admin_feedback_list_with_filters(client, db_session, headers):
     from datetime import date
 
     ci = models.ClassInstance(class_id=1, class_date=date(2024, 6, 1), teacher_uuid=STAFF_UUID)
@@ -257,7 +272,7 @@ def test_get_admin_feedback_list_with_filters(client, db_session):
     db_session.add(fb2)
     db_session.commit()
 
-    response = client.get("/feedback/admin/list", params={"rating": "positive"})
+    response = client.get("/feedback/admin/list", params={"rating": "positive"}, headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert all(f["rating"] == "positive" for f in data)

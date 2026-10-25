@@ -58,7 +58,53 @@ See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_p
 - Added a forward-only Alembic migration that backfills gym scope, reconciles duplicate blockers, and replaces the previous user/class/date index.
 - Added class-instance uniqueness for `(class_id, class_date)` and concurrency-safe occurrence creation.
 - Updated kiosk confirmation to distinguish new check-ins from already-present retries.
-- Production data reconciliation, migration deployment, and physical kiosk retry validation remain open.
+- Production data reconciliation, migration deployment, and physical kiosk retry validation are complete.
+
+## RECENT UPDATES (October 24, 2026) - Phase 5G Closeout
+
+- Corrected the historical class-instance migration so different historical teachers cannot create duplicate instances for the same class/date.
+- Render PostgreSQL reached Alembic revision `a1b2c3d4e5f6` after the corrected migration was deployed.
+- Verified pending and confirmed attendance is unavailable for repeat kiosk, phone, and desktop check-ins.
+- Verified teacher removal makes the class selectable again across kiosk and mobile views.
+
+## RECENT UPDATES (October 24, 2026) - Phase 6B Discovery Started
+
+- Created `MOBILE_APP_PHASE_6B_SCOPE_MATRIX.md` to inventory current data boundaries, endpoint scope gaps, privacy defaults, open policy decisions, and Phase 6C entry requirements.
+- No Phase 6B runtime or database changes were made; the next gate is approval of the organisation/gym/location, membership, family, teacher, content, feedback, and retention policies.
+
+## RECENT UPDATES (October 24, 2026) - Phase 6B Policy Baseline Approved
+
+- Approved gym/location identity, gym-scoped memberships and roles, Platform Admin cross-gym access, and gym-bound kiosk sessions.
+- Approved limited guardian access, independent minor accounts with guardian consent, guardian-managed pickup permissions, and staff-only teacher notes.
+- Approved gym/platform content ownership with permissioned live sharing and copy/fork, occurrence-teacher feedback visibility, and explicit participant conversations.
+- Approved retained operational history with anonymization, append-only gym-scoped audits, gym-targeted invitations, explicit membership lifecycle states, and immediate session revocation after access changes.
+- Approved recurring teacher rosters with occurrence overrides and preservation of scheduled and actual teacher attribution.
+- Phase 6C authorization tests and migration design remain before runtime or schema implementation.
+
+## RECENT UPDATES (October 24, 2026) - Phase 6C Authorization Design Started
+
+- Created `MOBILE_APP_PHASE_6C_AUTHORIZATION_DESIGN.md` with proposed membership and gym-scoped role tables, active-gym and kiosk context, invitation flows, authorization matrix, migration sequence, and security test groups.
+- Recorded teacher attendance permissions: gym-wide attendance visibility in assigned gyms, confirmation/removal authority, and audited confirmed late check-ins.
+- Recorded Platform Admin and Gym Admin membership/role boundaries, immediate session revocation, and historical retention after membership removal.
+- Runtime authorization and production schema rollout remain gated on design review and cross-gym security tests.
+- Added the first local Phase 6C schema slice: `GymMembership`, `GymRoleAssignment`, and migration `b3c4d5e6f7a8`; it backfills the current gym but does not enable cross-gym authorization yet.
+- Added `backend/app/services/authorization.py` with active-membership, scoped-role, and transition-safe Platform Admin checks.
+- Added Phase 6C authorization tests; the targeted backend suite now passes 27 tests with Ruff lint/SAST clean.
+- Added authenticated `/memberships/me` and `/memberships/context` endpoints; multiple active memberships now require an explicit `X-Gym-Id` context.
+- Added membership API coverage; the updated backend authorization suite passes 44 tests and the frontend API suite passes 93 tests.
+- Scoped class listing, weekly schedules, class reads, creation, and updates to the authenticated active gym; the full backend suite passes 184 tests.
+- Scoped attendance reads, writes, confirmation, cancellation, bulk actions, and kiosk status to the authenticated active gym; the full backend suite remains green at 184 tests.
+- Scoped Teacher feedback reads to the active gym and added audited membership administration endpoints for Platform/Gym Admins.
+- The full backend suite now passes 185 tests; Ruff lint/SAST remain clean.
+- Scoped student feedback and admin feedback reports to the active gym, preserving Platform Admin self/administrative access rules.
+- Added kiosk active-gym selection and `X-Gym-Id` propagation for kiosk API requests; the kiosk clears gym context when locked.
+- Scoped comments and replies to authenticated authors/readers and active-gym membership context.
+- Scoped user listing, search, profile reads, creation, and CSV exports to active gym membership context; new users receive an active membership in the selected gym.
+- Scoped CSV imports, profile updates, photo uploads, photo deletion, and photo positioning to active gym membership context.
+- Added audited Platform/Gym Admin role assignment and revocation endpoints for gym memberships.
+- Scoped personal dashboard stats, attendance trends, and admin attendance overview reports to the active gym.
+- Membership suspension/deactivation and gym-role revocation now revoke the affected user's active sessions immediately.
+- Phase 6C implementation and cross-gym validation are complete on `feature/phase-6c-multi-gym-auth`; the full backend suite passes 187 tests.
 
 ## Project Overview
 Martial Arts Attendance Tracking System - A full-stack application for managing student attendance, class scheduling, curriculum/lesson management, teacher assignments, and providing analytics dashboards for students, teachers, and administrators.

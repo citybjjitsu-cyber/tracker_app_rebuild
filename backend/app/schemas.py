@@ -191,6 +191,53 @@ class GymLocationResponse(GymLocationBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class GymMembershipResponse(BaseModel):
+    id: int
+    user_uuid: str
+    gym_id: int
+    status: str
+    is_primary: bool
+    effective_date: date
+    end_date: Optional[date] = None
+    status_reason: Optional[str] = None
+    gym: Optional[GymLocationResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GymMembershipCreate(BaseModel):
+    user_uuid: str = Field(min_length=1, max_length=64)
+    gym_id: int
+    status: str = Field(default="active", pattern="^(pending|invited|active)$")
+
+
+class GymMembershipStatusUpdate(BaseModel):
+    status: str = Field(pattern="^(active|suspended|deactivated|archived)$")
+    reason: Optional[str] = Field(default=None, max_length=500)
+
+
+class GymRoleAssignmentResponse(BaseModel):
+    id: int
+    membership_id: int
+    role_id: int
+    status: str
+    effective_date: date
+    end_date: Optional[date] = None
+    reason: Optional[str] = None
+    role: Optional[RoleResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GymRoleAssignmentCreate(BaseModel):
+    role_id: int
+
+
+class ActiveGymContextResponse(BaseModel):
+    membership: GymMembershipResponse
+    roles: List[GymRoleAssignmentResponse]
+
+
 class ClassTypeBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
 

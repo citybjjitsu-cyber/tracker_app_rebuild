@@ -12,7 +12,15 @@ import type { User } from '@/types';
 
 function KioskContent() {
   const router = useRouter();
-  const { isUnlocked, unlockedBy, lockKiosk, identifyUser } = useKiosk();
+  const {
+    isUnlocked,
+    unlockedBy,
+    lockKiosk,
+    identifyUser,
+    gymMemberships,
+    activeGymId,
+    setActiveGymIdForKiosk,
+  } = useKiosk();
   const [step, setStep] = useState<'welcome' | 'search' | 'pin'>('welcome');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [pinValue, setPinValue] = useState('');
@@ -122,6 +130,20 @@ function KioskContent() {
           </span>
         </div>
         <div className="flex items-center gap-3">
+          {gymMemberships.length > 0 && (
+            <select
+              aria-label="Active gym"
+              value={activeGymId ?? ''}
+              onChange={event => setActiveGymIdForKiosk(Number(event.target.value))}
+              className="max-w-[180px] rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-xs font-bold text-[var(--foreground)]"
+            >
+              {gymMemberships.map(membership => (
+                <option key={membership.gym_id} value={membership.gym_id}>
+                  {membership.gym?.name || `Gym ${membership.gym_id}`}
+                </option>
+              ))}
+            </select>
+          )}
           <span className="text-xs text-[var(--muted-foreground)]">
             {unlockedBy}
           </span>

@@ -25,6 +25,7 @@ from app.routers import (
     attendance,
     terms,
     gyms,
+    memberships,
     class_types,
     roles,
     curricula,
@@ -248,6 +249,7 @@ app.include_router(class_instances.router, prefix="/class-instances", tags=["Cla
 app.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])
 app.include_router(terms.router, prefix="/terms", tags=["Terms"])
 app.include_router(gyms.router, prefix="/gym-locations", tags=["Gym Locations"])
+app.include_router(memberships.router, prefix="/memberships", tags=["Memberships"])
 app.include_router(class_types.router, prefix="/class-types", tags=["Class Types"])
 app.include_router(roles.router, prefix="/roles", tags=["Roles"])
 app.include_router(curricula.router, prefix="/curricula", tags=["Curricula"])

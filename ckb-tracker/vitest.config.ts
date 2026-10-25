@@ -7,6 +7,8 @@ export default defineConfig({
     setupFiles: ['./src/__tests__/setup.ts'],
     globals: true,
     exclude: ['e2e/**', 'node_modules/**'],
+    fileParallelism: false,
+    maxWorkers: 1,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

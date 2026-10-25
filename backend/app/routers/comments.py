@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from app.database import SessionLocal
@@ -6,6 +6,8 @@ from app import models, schemas
 from typing import List, Optional
 from datetime import datetime, timezone
 from app.auth.limiter import limiter, WRITE_LIMIT, READ_LIMIT
+from app.routers.auth import get_current_user
+from app.services.authorization import has_platform_role, require_active_membership, resolve_active_membership
 
 router = APIRouter()
 
@@ -16,6 +18,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def get_active_user_membership(
+    gym_id: Optional[int] = Header(default=None, alias="X-Gym-Id"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return resolve_active_membership(db, str(user.user_uuid), gym_id)
 
 
 def _format_dt(dt) -> Optional[str]:
@@ -113,7 +123,11 @@ def create_comment(
     comment: schemas.CommentCreate,
     author_uuid: str = Query(...),
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
+    if str(user.user_uuid) != author_uuid and not has_platform_role(db, str(user.user_uuid)):
+        raise HTTPException(status_code=403, detail="Comment author does not match authenticated user")
     if comment.parent_comment_id:
         parent = db.query(models.Comment).filter(models.Comment.id == comment.parent_comment_id).first()
         if not parent:
@@ -133,6 +147,7 @@ def create_comment(
                 detail="target_user_uuid is required for top-level posts",
             )
 
+        require_active_membership(db, comment.target_user_uuid, int(membership.gym_id))
         target_user = db.query(models.User).filter(models.User.user_uuid == comment.target_user_uuid).first()
         if not target_user:
             raise HTTPException(status_code=404, detail="Target user not found")
@@ -165,7 +180,11 @@ def get_comment_feed(
     user_uuid: str = Query(...),
     role: Optional[str] = Query(None),
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
+    if str(user.user_uuid) != user_uuid and not has_platform_role(db, str(user.user_uuid)):
+        raise HTTPException(status_code=403, detail="Comment feed access denied")
     query = (
         db.query(models.Comment)
         .options(
@@ -222,7 +241,13 @@ def get_comment_feed(
 
 @router.get("/{comment_uuid}", response_model=schemas.CommentResponse)
 @limiter.limit(READ_LIMIT)
-def get_comment(request: Request, comment_uuid: str, db: Session = Depends(get_db)):
+def get_comment(
+    request: Request,
+    comment_uuid: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
+):
     comment = (
         db.query(models.Comment)
         .options(
@@ -235,6 +260,8 @@ def get_comment(request: Request, comment_uuid: str, db: Session = Depends(get_d
 
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.target_user_uuid:
+        require_active_membership(db, comment.target_user_uuid, int(membership.gym_id))
 
     all_ids = {comment.id}
     _collect_reply_ids(comment.id, db, all_ids)
@@ -261,12 +288,16 @@ def update_comment(
     update_data: schemas.CommentUpdate,
     author_uuid: str = Query(...),
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     comment = db.query(models.Comment).filter(models.Comment.comment_uuid == comment_uuid).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
-    if comment.author_uuid != author_uuid:
+    if comment.author_uuid != author_uuid or (
+        str(user.user_uuid) != author_uuid and not has_platform_role(db, str(user.user_uuid))
+    ):
         raise HTTPException(status_code=403, detail="Not authorized to edit this comment")
 
     comment.content = update_data.content
@@ -288,12 +319,16 @@ def delete_comment(
     comment_uuid: str,
     author_uuid: str = Query(...),
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
 ):
     comment = db.query(models.Comment).filter(models.Comment.comment_uuid == comment_uuid).first()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
-    if comment.author_uuid != author_uuid:
+    if comment.author_uuid != author_uuid or (
+        str(user.user_uuid) != author_uuid and not has_platform_role(db, str(user.user_uuid))
+    ):
         raise HTTPException(status_code=403, detail="Not authorized to delete this comment")
 
     if comment.parent_comment_id is None:
