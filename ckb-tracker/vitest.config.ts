@@ -9,7 +9,6 @@ export default defineConfig({
     exclude: ['e2e/**', 'node_modules/**'],
     fileParallelism: false,
     maxWorkers: 1,
-    minWorkers: 1,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
