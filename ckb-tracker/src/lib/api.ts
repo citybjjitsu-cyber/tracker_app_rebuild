@@ -3,6 +3,7 @@ import type {
   User,
   ClassSchedule,
   ClassInstance,
+  ClassTeacherRoster,
   Attendance,
   ClassFeedback,
   Role,
@@ -666,6 +667,32 @@ export const kioskApi = {
   },
   updatePin: async (currentPin: string, newPin: string) => {
     const response = await api.put('/kiosk/update-pin', { current_pin: currentPin, new_pin: newPin });
+    return response.data;
+  },
+};
+
+export const teacherRostersApi = {
+  list: async (params?: { class_id?: number; include_inactive?: boolean }) => {
+    const response = await api.get<ClassTeacherRoster[]>('/class-teacher-rosters/', { params });
+    return response.data;
+  },
+  create: async (data: {
+    class_id: number;
+    teacher_uuid: string;
+    start_date?: string;
+    end_date?: string;
+    assignment_role?: string;
+    priority?: number;
+  }) => {
+    const response = await api.post<ClassTeacherRoster>('/class-teacher-rosters/', data);
+    return response.data;
+  },
+  update: async (id: number, data: Partial<ClassTeacherRoster>) => {
+    const response = await api.put<ClassTeacherRoster>(`/class-teacher-rosters/${id}`, data);
+    return response.data;
+  },
+  remove: async (id: number) => {
+    const response = await api.delete(`/class-teacher-rosters/${id}`);
     return response.data;
   },
 };

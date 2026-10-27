@@ -284,6 +284,7 @@ class ClassScheduleResponse(ClassScheduleBase):
 
 class WeeklyScheduleClassResponse(ClassScheduleResponse):
     scheduled_date: date
+    effective_teacher_uuid: Optional[str] = None
 
 
 class WeeklyScheduleDayResponse(BaseModel):
@@ -394,6 +395,40 @@ class ClassInstanceResponse(ClassInstanceBase):
     lesson: Optional[LessonResponse] = None
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClassTeacherRosterBase(BaseModel):
+    class_id: int
+    teacher_uuid: str = Field(min_length=1, max_length=64)
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    assignment_role: str = Field(default="primary", min_length=1, max_length=30)
+    priority: int = Field(default=0, ge=0, le=100)
+
+
+class ClassTeacherRosterCreate(ClassTeacherRosterBase):
+    pass
+
+
+class ClassTeacherRosterUpdate(BaseModel):
+    teacher_uuid: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    assignment_role: Optional[str] = Field(default=None, min_length=1, max_length=30)
+    priority: Optional[int] = Field(default=None, ge=0, le=100)
+    is_current: Optional[bool] = None
+
+
+class ClassTeacherRosterResponse(ClassTeacherRosterBase):
+    id: int
+    gym_id: int
+    is_current: bool
+    created_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    teacher: Optional[UserResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 

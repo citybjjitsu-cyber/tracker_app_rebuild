@@ -19,6 +19,10 @@ Open `http://localhost:3000`.
 
 Set `NEXT_PUBLIC_API_URL` in `.env.local` to the backend URL. For local development, use `http://localhost:8000`; otherwise the client defaults to the configured deployed API URL.
 
+The frontend resolves its display timezone from `NEXT_PUBLIC_SITE_TIMEZONE`, then the browser's IANA timezone, then UTC. The browser timezone is also sent as `X-Client-Timezone` so the backend can calculate an attendance date when `SITE_TIMEZONE` is not configured. Use IANA names such as `Pacific/Auckland`, not fixed UTC offsets. Daylight saving is handled automatically by the IANA timezone database.
+
+For Vercel deployments, set `NEXT_PUBLIC_API_PROXY=true`. Browser API calls then use same-origin paths and Vercel forwards them to Render. Admin API rewrites are limited to `/admin/invites` and `/admin/test-email`; the frontend `/admin` page and kiosk pages remain Next.js routes.
+
 ## Commands
 
 ```bash
@@ -50,17 +54,18 @@ The frontend test thresholds are configured in `vitest.config.ts`:
 
 ## Mobile Status
 
-The application is currently responsive web software, not yet a PWA or native mobile app. The teacher schedule has mobile and desktop layouts, Monday-first week navigation, normalized day labels, and focused automated tests. Physical-device testing is still pending.
+The application is responsive web software with an installable PWA and thin Capacitor Android/iOS wrappers. The Student Portal is the default destination after normal login for every role, while the root route remains the staff-authenticated kiosk. The teacher schedule and Student Portal have mobile layouts, and native authentication uses secure platform storage. Physical-device matrix testing and store release preparation are still pending.
 
-The following are intentionally not implemented yet:
+The following remain intentionally deferred:
 
-- `manifest.webmanifest` and install prompts
-- Service-worker caching or offline writes
+- Offline authenticated writes or attendance background sync
 - Push notifications
-- Capacitor, iOS, or Android projects
-- Native secure storage, biometric unlock, camera, or deep links
+- Server-side unread/read notification tracking
+- Native push notifications, biometric unlock, and deep links
 
 See the repository-level `MOBILE_APP_PLAN.md` and `MOBILE_APP_READINESS_CHECKLIST.md`.
+
+The planned Admin Site Settings tab will allow administrators to set the site timezone, locale, and time display preference without changing deployment environment variables.
 
 ## Deployment
 

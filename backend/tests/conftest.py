@@ -23,6 +23,7 @@ from app.routers.attendance import get_db as att_get_db
 from app.routers.auth import get_db as auth_get_db
 from app.routers.admin import get_db as admin_get_db
 from app.routers.memberships import get_db as memberships_get_db
+from app.routers.rosters import get_db as rosters_get_db
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -172,6 +173,7 @@ def client(db_session):
     app.dependency_overrides[auth_get_db] = override_get_db
     app.dependency_overrides[admin_get_db] = override_get_db
     app.dependency_overrides[memberships_get_db] = override_get_db
+    app.dependency_overrides[rosters_get_db] = override_get_db
 
     # Ensure staff user has Admin role for auth-gated endpoints
     admin_role = db_session.query(models.Role).filter(models.Role.name == "Admin").first()

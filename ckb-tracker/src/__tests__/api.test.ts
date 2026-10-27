@@ -316,6 +316,31 @@ describe('classInstancesApi', () => {
   })
 })
 
+describe('teacherRostersApi', () => {
+  it('lists recurring rosters for the active gym', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+
+    vi.mocked(axios.default.get).mockResolvedValue({ data: [{ id: 1, class_id: 5, teacher_uuid: 'teacher-1' }] })
+    const result = await apiModule.teacherRostersApi.list({ class_id: 5 })
+
+    expect(axios.default.get).toHaveBeenCalledWith('/class-teacher-rosters/', { params: { class_id: 5 } })
+    expect(result[0].teacher_uuid).toBe('teacher-1')
+  })
+
+  it('creates a recurring roster', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+    const payload = { class_id: 5, teacher_uuid: 'teacher-1', assignment_role: 'primary', priority: 1 }
+
+    vi.mocked(axios.default.post).mockResolvedValue({ data: { id: 1, ...payload } })
+    const result = await apiModule.teacherRostersApi.create(payload)
+
+    expect(axios.default.post).toHaveBeenCalledWith('/class-teacher-rosters/', payload)
+    expect(result.id).toBe(1)
+  })
+})
+
 describe('feedbackApi', () => {
   it('submit calls POST /feedback/ with rating and comment', async () => {
     const axios = await import('axios')

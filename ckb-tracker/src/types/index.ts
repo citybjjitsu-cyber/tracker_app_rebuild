@@ -98,6 +98,7 @@ export interface ClassSchedule {
 
 export interface WeeklyScheduleClass extends ClassSchedule {
   scheduled_date: string;
+  effective_teacher_uuid?: string;
 }
 
 export interface WeeklyScheduleDay {
@@ -123,6 +124,22 @@ export interface ClassInstance {
   class_schedule?: ClassSchedule;
   teacher?: User;
   lesson?: Lesson;
+}
+
+export interface ClassTeacherRoster {
+  id: number;
+  gym_id: number;
+  class_id: number;
+  teacher_uuid: string;
+  start_date?: string;
+  end_date?: string;
+  assignment_role: string;
+  priority: number;
+  is_current: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+  teacher?: User;
 }
 
 export interface GymLocation {

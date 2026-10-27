@@ -22,6 +22,7 @@ from app.routers import (
     users,
     classes,
     class_instances,
+    rosters,
     attendance,
     terms,
     gyms,
@@ -246,6 +247,7 @@ async def log_requests(request: Request, call_next):
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(classes.router, prefix="/classes", tags=["Classes"])
 app.include_router(class_instances.router, prefix="/class-instances", tags=["Class Instances"])
+app.include_router(rosters.router, prefix="/class-teacher-rosters", tags=["Teacher Rosters"])
 app.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])
 app.include_router(terms.router, prefix="/terms", tags=["Terms"])
 app.include_router(gyms.router, prefix="/gym-locations", tags=["Gym Locations"])

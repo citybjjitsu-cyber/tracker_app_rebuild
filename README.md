@@ -6,7 +6,7 @@ Martial arts school attendance tracking, student progress monitoring, and gym ma
 
 ## Current Status
 
-CKB Tracker is currently a responsive web application. Mobile work is in the foundation stage: the teacher schedule has responsive mobile and desktop layouts, shared date/day helpers, and focused automated tests. PWA installability, offline behavior, push notifications, Capacitor, and native iOS/Android projects have not been added yet. See `MOBILE_APP_PLAN.md` and `MOBILE_APP_READINESS_CHECKLIST.md` for the mobile roadmap.
+CKB Tracker is a responsive web application with an installable PWA and thin Capacitor Android/iOS wrappers. Normal users open in the Student Portal, while the root route remains the staff-authenticated kiosk. Authenticated data is online-only; native store signing, broader device testing, and notifications remain planned work. See `MOBILE_APP_PLAN.md` and `MOBILE_APP_READINESS_CHECKLIST.md` for the mobile roadmap.
 
 The repository currently has one Render-backed application environment represented by `ckb-tracker-api-dev.onrender.com`; a separate production Render service/database is not defined in `backend/render.yaml`. Because there is no separate staging environment, deployments must be treated as production changes even though the application currently has no active users.
 
@@ -406,6 +406,8 @@ Kiosk staff access uses a bearer access token held in JavaScript memory. The cur
 | `/points-adjustments` | Admin | Attendance points adjustments |
 | `/admin/*` | Admin/Lite-Admin | Invites, resets, activation, and administrative operations |
 
+Admin invite API requests exposed through the production Vercel proxy are `GET /admin/invites`, `DELETE /admin/invites/{invite_id}`, and `POST /admin/test-email`. The frontend `/admin` page itself is not proxied; only these API requests are forwarded to Render.
+
 ---
 
 ## Frontend Routes
@@ -423,9 +425,13 @@ Kiosk staff access uses a bearer access token held in JavaScript memory. The cur
 | `/kiosk/confirm` | Kiosk | PIN re-entry + confirmation |
 | `/check-in` | JWT | Tablet check-in flow |
 | `/portal` | JWT | Student portal (attendance, progress) |
-| `/teacher` | Teacher | Teacher dashboard |
-| `/admin` | Admin | Admin dashboard (users, classes, data) |
+| `/teacher` | Teacher | Teacher dashboard, including searchable manual student attendance entry |
+| `/admin` | Admin | Admin dashboard (users, classes, data) with searchable student selectors |
 | `/(protected)` | JWT | Various protected routes |
+
+### Student Selection Behavior
+
+Student selectors use a shared searchable combobox. Results are ordered by first name, then last name, and can be narrowed by typing a student's name, email address, or rank. This behavior is available in the Teacher Dashboard manual attendance entry, Admin Performance Analytics, and teacher comment creation. The Admin User Admin member list keeps its existing name/email/rank search while ordering members by first name, then last name.
 
 ### Kiosk Security Model
 
@@ -472,6 +478,8 @@ npm run dev
 ```
 
 Set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `.env.local` (defaults to Render production URL otherwise).
+
+For Vercel deployments, set `NEXT_PUBLIC_API_PROXY=true` so browser requests use same-origin paths. The Vercel rewrite forwards API requests to Render while leaving frontend routes such as `/admin`, `/kiosk/select`, and `/kiosk/confirm` on Next.js.
 
 ### Running Tests
 
@@ -575,11 +583,13 @@ New students receive an invite email with a tokenized link to `/accept-invite?to
 3. **User** clicks link → invite token validated against server-side hash (SHA-256)
 4. **User** sets password (8+ chars, complexity rules) and kiosk PIN (4-8 digits)
 5. **Server** hashes both with bcrypt, marks invite consumed, auto-logs in user
-6. Token expires after 7 days; admin can resend via `/auth/resend-invite`
+6. Token expires after 7 days; admin can resend via `/auth/resend-invite`. Failed SMTP delivery still creates the invite record and returns a delivery-failure message, so SMTP must be configured in the backend environment.
 
 Forgot password/PIN flows follow the same tokenized email pattern (1-hour expiry).
 
-**Note:** SQLite stores datetimes as naive (no timezone). Comparisons with timezone-aware `datetime.now(timezone.utc)` crash with `TypeError`. All SQLite-bound timestamps use `_utcnow()` which returns naive UTC via `datetime.now(timezone.utc).replace(tzinfo=None)`.
+**Timezone note:** Database timestamps are stored as naive UTC for SQLite/PostgreSQL compatibility. The frontend treats existing naive API timestamps as UTC when displaying them. Attendance dates use the timezone resolution order `SITE_TIMEZONE` → validated browser timezone (`X-Client-Timezone`) → UTC. The `tzdata` package provides IANA timezone and daylight-saving rules; do not add a manual DST offset or toggle. The future Admin Site Settings tab will make the database-configured site timezone authoritative.
+
+For frontend deployments, `NEXT_PUBLIC_SITE_TIMEZONE` may be set to the same IANA timezone as `SITE_TIMEZONE`. If it is absent, the browser timezone is used for display. The current fallback is intentionally configurable and is not hardcoded to New Zealand.
 
 ## Security Features
 

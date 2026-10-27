@@ -185,6 +185,11 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Review and approve the membership, gym-scoped role, active-gym, kiosk, roster, and session-version model.
 - [x] Write cross-gym privacy and authorization tests before adding runtime authorization.
 - [x] Rehearse additive migrations and current-gym backfill against a production-like database copy.
+- [x] Deploy migration `b3c4d5e6f7a8` to Render development and verify Alembic head plus membership tables.
+- [x] Verify portal, Check In, Teacher Dashboard, attendance history, and kiosk flows after the migration.
+- [x] Implement gym-scoped recurring teacher rosters and occurrence-level assignment resolution with migration `c4d5e6f7a8`.
+- [x] Add Admin Console recurring roster management and backend/frontend roster contract coverage.
+- [ ] Deploy and verify the roster migration, consume effective teacher assignments in the Teacher Dashboard, and complete historical teacher attribution tests.
 
 ## Phase 5F Implementation Checkpoint (2026-10-05)
 
