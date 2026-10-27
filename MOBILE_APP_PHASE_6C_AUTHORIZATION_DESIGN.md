@@ -1,12 +1,12 @@
 # Phase 6C Authorization and Migration Design
 
-Status: Implementation slice in progress
+Status: Authorization baseline deployed; roster work remains
 Depends on: `MOBILE_APP_PHASE_6B_SCOPE_MATRIX.md`
-Gate: Review before runtime authorization or production schema changes
+Gate: Complete authorization baseline; roster and occurrence implementation remains before Phase 6C sign-off
 
-The first additive schema slice is represented by Alembic revision `b3c4d5e6f7a8`. It adds membership and gym-scoped role tables and backfills the current gym without enabling cross-gym authorization yet.
+The additive schema slice is represented by Alembic revision `b3c4d5e6f7a8`. It adds membership and gym-scoped role tables and backfills the current gym. It is deployed in Render development and verified at Alembic head.
 
-The current runtime slice adds active-gym scoping to class, attendance, feedback, feedback reports, comments, dashboard reports, user reads/search, exports, imports, profile mutations, photos, plus audited membership and role assignment management and kiosk gym selection. Broader report/export minimization remains outstanding.
+The current runtime slice adds active-gym scoping to class, attendance, feedback, feedback reports, comments, dashboard reports, user reads/search, exports, imports, profile mutations, photos, plus audited membership and role assignment management and kiosk gym selection. Recurring teacher rosters and occurrence-level assignments remain before final Phase 6C sign-off.
 
 ## Design Goals
 

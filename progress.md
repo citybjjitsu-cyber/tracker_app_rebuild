@@ -104,7 +104,14 @@ See `MOBILE_APP_PLAN.md`, `MOBILE_APP_READINESS_CHECKLIST.md`, and `deployment_p
 - Added audited Platform/Gym Admin role assignment and revocation endpoints for gym memberships.
 - Scoped personal dashboard stats, attendance trends, and admin attendance overview reports to the active gym.
 - Membership suspension/deactivation and gym-role revocation now revoke the affected user's active sessions immediately.
-- Phase 6C implementation and cross-gym validation are complete on `feature/phase-6c-multi-gym-auth`; the full backend suite passes 187 tests.
+- Phase 6C authorization baseline and cross-gym validation are complete on `feature/phase-6c-multi-gym-auth`; recurring teacher rosters and occurrence assignments remain before final phase sign-off.
+
+## RECENT UPDATES (October 25, 2026) - Phase 6C Development Deployment Verified
+
+- Render development database migration `b3c4d5e6f7a8` completed successfully.
+- Verified `gym_memberships` and `gym_role_assignments` exist and Alembic reports `b3c4d5e6f7a8` as head.
+- Resolved deployment 500s caused by the frontend/backend schema mismatch; Portal, Check In, attendance history, Teacher Dashboard, and kiosk flows are operational again.
+- Phase 6C authorization baseline is deployed; recurring teacher rosters, occurrence-level assignments, and roster dashboard work remain open.
 
 ## Project Overview
 Martial Arts Attendance Tracking System - A full-stack application for managing student attendance, class scheduling, curriculum/lesson management, teacher assignments, and providing analytics dashboards for students, teachers, and administrators.

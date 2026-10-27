@@ -36,4 +36,6 @@ npm run cap:open:ios
 
 Native builds use the bearer-token session adapter: login returns access and refresh tokens, refresh rotates and securely replaces both tokens, and logout revokes bearer credentials before clearing secure storage. Browser authentication remains cookie-based and unchanged.
 
-Native authentication and the responsive app experience have been tested successfully on a physical phone and desktop browser, including login, refresh rotation, logout, session expiry, role-aware routes, kiosk flows, and recovery behavior. Platform-specific signing, release builds, and broader device-matrix validation remain before store distribution.
+Native authentication and the responsive app experience have been tested successfully on a physical phone and desktop browser, including login, refresh rotation, logout, session expiry, role-aware routes, kiosk flows, recovery behavior, mobile-friendly day dropdowns, and the Student Portal mobile layout. Normal logins open the Student Portal for every role; Admin and Teacher dashboards remain available through navigation. Platform-specific signing, release builds, and broader device-matrix validation remain before store distribution.
+
+Timezone behavior is shared with the web app: native web content uses `NEXT_PUBLIC_SITE_TIMEZONE` when configured, otherwise the device/browser IANA timezone, and finally UTC. Native clients must not apply fixed UTC offsets or manual daylight-saving adjustments. Site-wide timezone and locale controls are planned for the Admin Site Settings tab.

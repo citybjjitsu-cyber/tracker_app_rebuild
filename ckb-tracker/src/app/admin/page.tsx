@@ -27,6 +27,7 @@ import {
   feedbackApi,
   dashboardApi,
   classInstancesApi,
+  teacherRostersApi,
   newsApi,
   rankTiersApi,
   pointsAdjustmentsApi,
@@ -37,7 +38,7 @@ import {
 import type { AttendanceOverview } from '@/lib/api';
 import { cn, formatDate, DAYS_OF_WEEK, getRankColor } from '@/lib/utils';
 import { Camera, Plus, Shield, X, Edit3, UserX, UserCheck } from 'lucide-react';
-import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, ClassInstance, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
+import type { User, ClassSchedule, Role, Term, TermTarget, Curriculum, Lesson, GymLocation, ClassType, Rank, News, ClassInstance, ClassTeacherRoster, FeedbackStats, AttendanceTrend, DashboardStats, ClassFeedback, RankTier, PointsAdjustment, UserProgress, InviteRecord } from '@/types';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -108,13 +109,15 @@ export default function AdminPage() {
   const [classTypeForm, setClassTypeForm] = useState({ name: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [studentStats, setStudentStats] = useState<{ totalStudents: number; totalClasses: number }>({ totalStudents: 0, totalClasses: 0 });
-  const [lessonSubTab, setLessonSubTab] = useState<'curricula' | 'lessons' | 'assign' | 'teachers'>('curricula');
+  const [lessonSubTab, setLessonSubTab] = useState<'curricula' | 'lessons' | 'assign' | 'teachers' | 'roster'>('curricula');
   const [passwordForm, setPasswordForm] = useState({ password: '', confirm_password: '' });
   const [photoMethod, setPhotoMethod] = useState<'upload' | 'camera'>('upload');
   const [classInstanceForm, setClassInstanceForm] = useState({ class_id: '', date: '', lesson_id: '', teacher_uuid: '' });
   const [classInstances, setClassInstances] = useState<ClassInstance[]>([]);
   const [teachers, setTeachers] = useState<User[]>([]);
   const [teacherAssignmentForm, setTeacherAssignmentForm] = useState({ class_id: '', date: '', teacher_uuid: '' });
+  const [teacherRosters, setTeacherRosters] = useState<ClassTeacherRoster[]>([]);
+  const [teacherRosterForm, setTeacherRosterForm] = useState({ class_id: '', teacher_uuid: '', start_date: '', end_date: '', assignment_role: 'primary', priority: '0' });
 
   const [dbStats, setDbStats] = useState<Record<string, unknown> | null>(null);
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
@@ -198,6 +201,9 @@ export default function AdminPage() {
     if (activeTab === 'lessons' || activeTab === 'assign') {
       loadClassInstances();
       loadTeachers();
+    }
+    if (activeTab === 'lessons' || activeTab === 'assign') {
+      loadTeacherRosters();
     }
   }, [activeTab]);
 
@@ -914,6 +920,46 @@ export default function AdminPage() {
       setIsLoadingOverview(false);
     }
   }
+
+  async function loadTeacherRosters() {
+    try {
+      setTeacherRosters(await teacherRostersApi.list());
+    } catch (error) {
+      console.error('Error loading recurring rosters:', error);
+    }
+  }
+
+  const handleCreateTeacherRoster = async () => {
+    if (!teacherRosterForm.class_id || !teacherRosterForm.teacher_uuid) return;
+    setIsProcessing(true);
+    try {
+      await teacherRostersApi.create({
+        class_id: Number(teacherRosterForm.class_id),
+        teacher_uuid: teacherRosterForm.teacher_uuid,
+        start_date: teacherRosterForm.start_date || undefined,
+        end_date: teacherRosterForm.end_date || undefined,
+        assignment_role: teacherRosterForm.assignment_role,
+        priority: Number(teacherRosterForm.priority) || 0,
+      });
+      await loadTeacherRosters();
+      setTeacherRosterForm({ class_id: '', teacher_uuid: '', start_date: '', end_date: '', assignment_role: 'primary', priority: '0' });
+    } catch (error) {
+      console.error('Error creating recurring roster:', error);
+      alert('Failed to create recurring roster');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRemoveTeacherRoster = async (rosterId: number) => {
+    try {
+      await teacherRostersApi.remove(rosterId);
+      await loadTeacherRosters();
+    } catch (error) {
+      console.error('Error removing recurring roster:', error);
+      alert('Failed to remove recurring roster');
+    }
+  };
 
   const searchFeedback = async () => {
     setIsLoadingFeedback(true);
@@ -2306,6 +2352,13 @@ export default function AdminPage() {
             >
               👨‍🏫 Teacher Assignments
             </Button>
+            <Button
+              variant={lessonSubTab === 'roster' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setLessonSubTab('roster')}
+            >
+              🔁 Recurring Roster
+            </Button>
           </div>
 
           {lessonSubTab === 'curricula' && (
@@ -2501,6 +2554,94 @@ export default function AdminPage() {
                         </div>
                       );
                     })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {lessonSubTab === 'roster' && (
+            <div className="grid grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Recurring Teacher Roster</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-slate-500">
+                    Assign a teacher to every occurrence of a recurring class. Use the date fields to limit the assignment to a teaching period.
+                  </p>
+                  <Select
+                    label="Class"
+                    value={teacherRosterForm.class_id}
+                    onChange={(e) => setTeacherRosterForm({ ...teacherRosterForm, class_id: e.target.value })}
+                    options={[{ value: '', label: 'Select...' }, ...classes.map(c => ({ value: c.id.toString(), label: `${c.class_name} (${c.day || 'unscheduled'})` }))]}
+                  />
+                  <Select
+                    label="Teacher"
+                    value={teacherRosterForm.teacher_uuid}
+                    onChange={(e) => setTeacherRosterForm({ ...teacherRosterForm, teacher_uuid: e.target.value })}
+                    options={[{ value: '', label: 'Select...' }, ...teachers.map(t => ({ value: t.user_uuid, label: `${t.first_name} ${t.last_name} (${t.rank})` }))]}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Start date (optional)"
+                      type="date"
+                      value={teacherRosterForm.start_date}
+                      onChange={(e) => setTeacherRosterForm({ ...teacherRosterForm, start_date: e.target.value })}
+                    />
+                    <Input
+                      label="End date (optional)"
+                      type="date"
+                      value={teacherRosterForm.end_date}
+                      onChange={(e) => setTeacherRosterForm({ ...teacherRosterForm, end_date: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Assignment role"
+                      value={teacherRosterForm.assignment_role}
+                      onChange={(e) => setTeacherRosterForm({ ...teacherRosterForm, assignment_role: e.target.value })}
+                    />
+                    <Input
+                      label="Priority"
+                      type="number"
+                      min="0"
+                      value={teacherRosterForm.priority}
+                      onChange={(e) => setTeacherRosterForm({ ...teacherRosterForm, priority: e.target.value })}
+                    />
+                  </div>
+                  <Button onClick={handleCreateTeacherRoster} disabled={isProcessing}>
+                    Save Recurring Roster
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Gym Rosters</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {teacherRosters.map((roster) => {
+                      const cls = classes.find(c => c.id === roster.class_id);
+                      const teacher = roster.teacher || teachers.find(t => t.user_uuid === roster.teacher_uuid);
+                      return (
+                        <div key={roster.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+                          <div>
+                            <p className="font-medium">{cls?.class_name || `Class ${roster.class_id}`} ({cls?.day || 'unscheduled'})</p>
+                            <p className="text-slate-500">
+                              {teacher ? `${teacher.first_name} ${teacher.last_name}` : roster.teacher_uuid}
+                              {' · '}{roster.assignment_role}
+                              {(roster.start_date || roster.end_date) && ` · ${roster.start_date || 'open'} to ${roster.end_date || 'open'}`}
+                            </p>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => handleRemoveTeacherRoster(roster.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      );
+                    })}
+                    {teacherRosters.length === 0 && <p className="text-sm text-slate-500">No recurring rosters configured for this gym.</p>}
                   </div>
                 </CardContent>
               </Card>

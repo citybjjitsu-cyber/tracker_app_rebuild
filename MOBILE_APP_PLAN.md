@@ -154,14 +154,14 @@ Offline attendance writes, authenticated page caching, API caching, and backgrou
 - Keep kiosk, student, teacher, and admin surfaces on the same fixed theme so screenshots, support instructions, and device testing remain predictable.
 - Use `/portal` as the single authenticated mobile home: students, teachers, and admins return there after check-in and normal login. Desktop-only teacher/admin routes may remain available, but mobile navigation should not vary by role.
 
-#### Future theme personalization (deferred)
+#### Future gym branding (deferred)
 
-- Reintroduce personalization as a small, code-defined catalog of approved themes rather than arbitrary admin-entered CSS JSON.
-- Store a stable theme identifier (for example `default-dark`, `ocean`, or `forest`) separately from theme token definitions.
-- Start with local device preference, then persist the selected identifier in user profile preferences so it can sync across devices.
-- Keep kiosk mode on the fixed branded theme even if personal themes are later available in the phone app.
-- Add admin controls only for enabling/disabling approved catalog entries; admins should not edit raw CSS values.
-- Before reintroducing light mode, audit all hard-coded colors, component states, images, charts, dialogs, and contrast requirements.
+- Reintroduce customization as gym-owned branding, not user personalization. There are no personal theme preferences, device theme preferences, or user profile theme identifiers.
+- Store an explicit branding profile for each gym, including a stable approved theme identifier and validated color tokens. Do not revive arbitrary admin-entered CSS or JSON.
+- Load the branding profile from the server-selected active gym context. A user who belongs to multiple gyms sees the branding for the gym currently selected, and branding must change when the gym changes.
+- Keep the kiosk locked state on the fixed CKB-branded theme. Apply the selected gym's branding only after the staff session and gym context have been validated.
+- Allow Gym Admins to manage branding only for their gym and Platform Admins to manage branding across gyms. Ordinary members may only read branding for their active gym.
+- Before enabling light-mode or additional presentation options, audit all hard-coded colors, component states, images, charts, dialogs, and contrast requirements.
 
 ## Phase 5: Mobile API Improvements
 
@@ -517,7 +517,7 @@ The Phase 6C design baseline is maintained in `MOBILE_APP_PHASE_6C_AUTHORIZATION
 - The organisation/gym/location model, family policy, teacher roster model, feedback/conversation model, educational-content scope, target precedence, retention policy, and account lifecycle states are approved before migration.
 - Cross-gym and cross-user privacy tests are written before new membership data is imported.
 
-### Phase 6C: Multi-Gym Data Isolation and Scoped Roles (Required Before Onboarding)
+### Phase 6C: Multi-Gym Data Isolation and Scoped Roles (Authorization Baseline Deployed; Roster Work Remaining)
 
 Before importing or inviting a large member base, establish gym-scoped access control. A user identity remains global, but their membership and permissions must be evaluated separately for each gym. This supports users who are teachers at one gym and students at another without exposing teacher or administrative data across gyms.
 
@@ -569,6 +569,110 @@ Before importing or inviting a large member base, establish gym-scoped access co
 - A class occurrence can have its actual teacher roster resolved independently from the recurring schedule.
 - Migration, backfill, authorization, mobile switching, and regression tests pass before bulk onboarding begins.
 - Phase 6C is signed off before importing or inviting the wider member base.
+
+#### 6C Production Checkpoint (2026-10-25)
+
+- Authorization baseline and migration `b3c4d5e6f7a8` are deployed to Render development.
+- Render database revision is `b3c4d5e6f7a8`; `gym_memberships` and `gym_role_assignments` exist.
+- Portal, Check In, attendance history, Teacher Dashboard, and kiosk flows were verified after migration.
+- Phase 6C remains open for production verification of recurring teacher rosters, occurrence-level assignments, and the roster dashboard after the implementation below.
+
+#### 6C Roster Implementation Checkpoint (2026-10-27)
+
+- Added gym-scoped recurring teacher rosters with additive migration `c4d5e6f7a8`.
+- Added active-gym roster CRUD endpoints with Gym Admin/Platform Admin authorization and same-gym active Teacher membership validation.
+- Added effective teacher resolution to weekly schedule responses: dated occurrence override first, then the matching recurring roster.
+- Secured class-instance reads and writes with active-gym context and administrative authorization for occurrence changes.
+- Added an Admin Console `Lessons -> Recurring Roster` view for creating, reviewing, and removing recurring assignments.
+- Added backend roster, authorization, occurrence, and weekly-resolution tests plus frontend roster API contract tests.
+- Production migration, recurring roster conflict policy, teacher dashboard consumption of effective assignments, and full historical attribution verification remain open before Phase 6C sign-off.
+
+### Phase 6C.6: Gym Branding and Mobile Media Reliability (Required Before Phase 6H)
+
+This phase follows the multi-gym authorization baseline because both branding and uploaded assets must be scoped to the validated active gym. It must be completed before the full mobile functionality test in Phase 6H, which already includes photo upload, camera, positioning, and deletion checks.
+
+#### 6C.6.1 Gym branding ownership and model
+
+- Treat branding as gym configuration only. Do not add user-based themes or personal theme preferences.
+- Keep `gym_locations` as the current gym tenant boundary unless the approved organisation/location design later introduces separate organisation and physical-location records.
+- Add a one-to-one `gym_brandings` record keyed by `gym_id`, rather than extending the global `WebsiteTheme` activation model.
+- Store explicit, validated values for `primary_color`, `secondary_color`, `accent_color`, `background_color`, `foreground_color`, an optional approved theme identifier, and a logo asset reference.
+- Keep a CKB fallback profile for missing, disabled, or unavailable gym branding.
+- Preserve the existing global `WebsiteTheme` tables only for compatibility or future platform-level approved catalogs; do not use their global `is_active` state for gym branding.
+
+#### 6C.6.2 Branding authorization and API
+
+- Return branding for the server-validated active gym through an endpoint such as `GET /branding/active`.
+- Provide gym-scoped read and update endpoints for authorized Admins; never trust a client-supplied gym ID without validating membership and role.
+- Permit Gym Admins to edit only their active gym and Platform Admins to manage all gyms.
+- Audit branding changes, logo replacement, logo deletion, and permission failures.
+- Reject arbitrary CSS, unsafe URLs, unsupported fonts, invalid hex colors, and combinations that fail required contrast checks.
+
+#### 6C.6.3 Branding frontend and presentation
+
+- Add a Gym Branding or Theme Creator tab to the Admin web dashboard with logo upload, color inputs, hex fields, reset-to-default, validation feedback, and a live preview.
+- Add a branding provider near the application layout that loads the active gym profile after gym context resolution.
+- Apply only approved branding values to the existing CSS variable/token layer and replace hard-coded brand colors where required.
+- Clear or replace branding immediately when the active gym changes; never display the previous gym's logo or colors after a switch.
+- Keep locked kiosk screens on the fixed CKB theme. After authenticated kiosk unlock and gym selection, apply gym branding only if the operational kiosk experience requires it.
+- Provide a CKB logo/initials fallback when no gym logo is configured or an asset cannot be loaded.
+
+#### 6C.6.4 Photo and logo storage design
+
+- Treat profile photos and gym logos as uploaded assets with separate asset types and lifecycle rules.
+- Move durable storage away from the Render web-service filesystem. Use an object-storage provider, such as S3-compatible storage or the existing Supabase Storage infrastructure, rather than relying on `UPLOADS_DIR` alone.
+- Store an asset key and metadata in the database, not image bytes. Recommended metadata includes owner type/id, `gym_id`, asset type, MIME type, byte size, dimensions, checksum, and created/replaced/deleted timestamps.
+- Keep profile photos private and serve them through an authorized endpoint or short-lived signed URL. Gym logos may be readable for the active gym's presentation but must still be gym-scoped and protected from unauthorized management.
+- Delete or retire replaced assets and prevent asset keys from being reused across gyms.
+- Add a real persistent-storage configuration only if local filesystem storage remains temporarily necessary; verify the configured mount path against the deployment environment.
+
+#### 6C.6.5 Mobile photo upload repair
+
+- Normalize selected phone images to a canonical JPEG or WebP before upload where the browser can decode them, resize them to a bounded maximum dimension, and retain backend size and dimension limits.
+- Test iPhone HEIC/HEIF library selection explicitly. If the browser cannot convert the file, either add a supported server-side conversion path or return a clear unsupported-format message; do not silently fail.
+- Validate image MIME type and decoded image content on the backend, not only the filename extension, and use canonical generated filenames.
+- Replace mouse-only positioning handlers with pointer events and `touch-action: none` so photo positioning works on iPhone Safari and Android Chrome.
+- Revoke temporary object URLs after confirmation or cancellation and surface specific upload, authorization, and network errors instead of a generic failure alert.
+- Preserve the existing offset fields or migrate them into asset metadata without changing the current avatar response contract until all clients are migrated.
+
+#### 6C.6.6 Verification and exit criteria
+
+- A Gym Admin cannot read, replace, or delete another gym's branding or logo.
+- A multi-gym user sees the correct branding after each validated gym switch, with no stale previous-gym presentation.
+- Invalid colors, unsafe asset references, oversized files, invalid images, and unauthorized asset access are rejected.
+- iPhone and Android photo-library uploads work for supported formats, including large images after normalization.
+- Touch photo positioning, camera capture, replacement, deletion, cancel, and error recovery work on physical devices.
+- Uploaded photos and logos survive backend restarts and deployments, and replaced assets are cleaned up or retired.
+- Backend tests, frontend tests, lint, production build, and relevant mobile Playwright/device tests pass before Phase 6H sign-off.
+
+### Phase 6C.7: Per-Gym Teacher Dashboard Visibility Policy (Required Before Phase 6D)
+
+This phase follows the recurring roster work and keeps the current teacher experience unchanged while making dashboard visibility configurable per gym. Roster membership controls assignment and attribution; this policy separately controls whether roster membership limits teacher visibility.
+
+#### 6C.7.1 Gym-level policy
+
+- Add a gym-scoped setting such as `teacher_dashboard_visibility` with `all_gym_teachers` as the default for all existing and new gyms.
+- Support the initial `all_gym_teachers` mode, where an active Teacher can view students and attendance for every class in the active gym.
+- Reserve `rostered_teachers_only` as the future restricted mode, where a Teacher can view only classes assigned through the recurring roster or dated occurrence override.
+- Keep dashboard visibility separate from attendance actions. A future policy may allow broad viewing while limiting who can mark, confirm, cancel, or edit attendance.
+- Store this as gym configuration, preferably in a settings/configuration table rather than adding unrelated columns directly to `gym_locations`.
+
+#### 6C.7.2 Admin Console and API
+
+- Add the setting to the gym administration area, separate from the branding/theme creator.
+- Allow Gym Admins to manage only their gym's policy and Platform Admins to manage all gyms.
+- Add authenticated read/update endpoints for the active gym policy and validate the setting against an approved enum; do not accept arbitrary permission rules from the client.
+- Display the effective policy and its impact in the Admin Console before saving changes.
+- Audit policy changes with the actor, gym, previous value, new value, and timestamp.
+
+#### 6C.7.3 Enforcement and verification
+
+- Enforce the policy server-side on Teacher Dashboard schedule, roster, and attendance-read endpoints; frontend filtering alone is insufficient.
+- In `all_gym_teachers` mode, preserve the current behavior: active-gym Teachers can see attendance for all gym classes, regardless of roster assignment.
+- In `rostered_teachers_only` mode, resolve access using the dated occurrence override first and the recurring roster second, with the active gym as a mandatory boundary.
+- Test default behavior for existing gyms, policy changes, cross-gym isolation, pending/suspended memberships, unrostered Teachers, and historical dates.
+- Add frontend tests for policy-aware class lists, loading/error states, and the unchanged all-teachers default.
+- Keep the initial release on `all_gym_teachers`; do not enable restricted mode until the policy has been reviewed and tested against real gym workflows.
 
 ### Phase 6D: Account Lifecycle, Sessions, and Family Access (Required Before Onboarding)
 
@@ -733,7 +837,7 @@ The current admin list is an operational pending-invite view, but the backend cu
 
 ### Phase 6H: Full Mobile Functionality Test (Required Before Store Accounts)
 
-After bulk onboarding is validated, complete a full end-to-end functionality test on the mobile app. This is a release gate, not a visual-only check: every core student, check-in, and teacher workflow must work with real deployed data on a physical iPhone and Android phone. Test the installed PWA and the Capacitor wrapper where available, using a clearly labelled test account and identified test records.
+After bulk onboarding and Phases 6C.6-6C.7 are validated, complete a full end-to-end functionality test on the mobile app. This is a release gate, not a visual-only check: every core student, check-in, and teacher workflow must work with real deployed data on a physical iPhone and Android phone. Test the installed PWA and the Capacitor wrapper where available, using a clearly labelled test account and identified test records.
 
 #### 6H.1 Student Portal mobile test
 
@@ -770,7 +874,7 @@ After bulk onboarding is validated, complete a full end-to-end functionality tes
 
 - Repeat the three workflow groups on a physical iPhone Safari/PWA and Android Chrome/PWA; repeat the native Capacitor build when the device build is available.
 - Test portrait and landscape at representative small and large phone widths, including 320px, 375px, 390px, and 430px-equivalent layouts where possible.
-- Test touch targets, keyboard opening and dismissal, scrolling, camera permissions, slow network, temporary offline/reconnected network, fixed dark-theme rendering, and session expiry.
+- Test touch targets, keyboard opening and dismissal, scrolling, camera permissions, slow network, temporary offline/reconnected network, gym-specific branding with CKB fallback, and session expiry.
 - Record the device model, OS/browser or app build, deployment versions, test account label, tested workflow, result, and sanitized failure evidence. Never record credentials, tokens, PINs, or unnecessary student data.
 - Re-test every failed workflow after its fix and run backend tests, frontend tests, lint, production build, and relevant Playwright tests before sign-off.
 
@@ -780,11 +884,11 @@ After bulk onboarding is validated, complete a full end-to-end functionality tes
 - No core workflow loses authentication unexpectedly, silently hides API failures, creates duplicate attendance, or leaves the user stuck after an error.
 - Responsive layout, navigation, safe-area spacing, touch interaction, keyboard behavior, camera handling, and recovery behavior pass in both browser/PWA and native wrapper contexts where applicable.
 - The mobile test matrix and any remaining limitations are recorded in the readiness checklist.
-- Phase 6H is signed off before creating store accounts, configuring store signing, or starting Phase 7 release distribution work.
+- Phase 6H is signed off only after Phases 6C.6-6C.7 are complete, and before creating store accounts, configuring store signing, or starting Phase 7 release distribution work.
 
 ## Phase 7: Device Testing and Release
 
-Begin Phase 7 only after Phases 6B through 6H are signed off. Store account creation, signing, release builds, and broad distribution must not start while tenant isolation, account lifecycle, attendance correctness, onboarding, or mobile workflow validation remains open.
+Begin Phase 7 only after Phases 6B through 6H and Phases 6C.6-6C.7 are signed off. Store account creation, signing, release builds, and broad distribution must not start while tenant isolation, gym branding/media storage, teacher dashboard policy, account lifecycle, attendance correctness, onboarding, or mobile workflow validation remains open.
 
 Test on real devices:
 

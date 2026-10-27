@@ -14,31 +14,34 @@ def override_deps(client, db_session):
     app.dependency_overrides.clear()
 
 
-def test_list_class_instances(client):
-    resp = client.get("/class-instances/")
+def test_list_class_instances(client, headers):
+    resp = client.get("/class-instances/", headers=headers)
     assert resp.status_code == 200
     assert resp.json() == []
 
 
-def test_list_class_instances_by_date(client):
+def test_list_class_instances_by_date(client, headers):
     client.post(
         "/class-instances/",
         json={"class_id": 1, "class_date": "2026-06-05"},
+        headers=headers,
     )
 
     resp = client.get(
         "/class-instances/by-date/",
         params={"class_id": 1, "date": "2026-06-05"},
+        headers=headers,
     )
     assert resp.status_code == 200
     data = resp.json()
     assert data["class_id"] == 1
 
 
-def test_create_class_instance(client):
+def test_create_class_instance(client, headers):
     resp = client.post(
         "/class-instances/",
         json={"class_id": 1, "class_date": "2026-06-05"},
+        headers=headers,
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -46,6 +49,6 @@ def test_create_class_instance(client):
     assert "id" in data
 
 
-def test_create_class_instance_invalid(client):
-    resp = client.post("/class-instances/", json={"class_id": 1})
+def test_create_class_instance_invalid(client, headers):
+    resp = client.post("/class-instances/", json={"class_id": 1}, headers=headers)
     assert resp.status_code == 422

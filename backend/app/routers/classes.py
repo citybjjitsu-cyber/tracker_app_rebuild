@@ -7,6 +7,7 @@ from typing import List, Optional
 from app.auth.limiter import limiter, READ_LIMIT, WRITE_LIMIT
 from app.routers.auth import get_current_user
 from app.services.authorization import has_gym_role, has_platform_role, resolve_active_membership
+from app.routers.rosters import resolve_effective_teacher
 
 router = APIRouter()
 
@@ -129,6 +130,19 @@ def get_weekly_schedule(
         day_index = day_indexes[normalized_day]
         class_data = schemas.ClassScheduleResponse.model_validate(cls).model_dump()
         class_data["scheduled_date"] = week_dates[day_index]
+        instance = (
+            db.query(models.ClassInstance)
+            .filter(
+                models.ClassInstance.class_id == cls.id,
+                models.ClassInstance.class_date == week_dates[day_index],
+            )
+            .first()
+        )
+        class_data["effective_teacher_uuid"] = (
+            instance.teacher_uuid
+            if instance and instance.teacher_uuid
+            else resolve_effective_teacher(db, cls.id, int(membership.gym_id), week_dates[day_index])
+        )
         days[day_index]["classes"].append(class_data)
 
     for day in days:

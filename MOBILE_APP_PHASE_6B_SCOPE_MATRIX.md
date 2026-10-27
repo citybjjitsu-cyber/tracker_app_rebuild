@@ -1,8 +1,8 @@
 # Phase 6B Scope and Privacy Matrix
 
-Status: Approved policy baseline; Phase 6C design in progress
+Status: Approved policy baseline; Phase 6C authorization baseline deployed
 Owner: Product and engineering
-Gate: Approve before Phase 6C membership migrations or bulk onboarding
+Gate: Complete roster/occurrence design before Phase 6C sign-off or bulk onboarding
 
 ## Purpose
 

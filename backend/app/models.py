@@ -181,6 +181,7 @@ class ClassSchedule(Base):
     class_type = relationship("ClassType")
     attendance = relationship("Attendance", back_populates="class_schedule")
     curriculum = relationship("Curriculum", back_populates="class_schedule", uselist=False)
+    teacher_rosters = relationship("ClassTeacherRoster", back_populates="class_schedule")
 
 
 class RankTier(Base):
@@ -291,6 +292,36 @@ class ClassInstance(Base):
     feedback = relationship("ClassFeedback", back_populates="class_instance")
     class_schedule = relationship("ClassSchedule", foreign_keys=[class_id])
     lesson = relationship("Lesson", foreign_keys=[lesson_id])
+
+
+class ClassTeacherRoster(Base):
+    __tablename__ = "class_teacher_rosters"
+    __table_args__ = (
+        UniqueConstraint(
+            "gym_id",
+            "class_id",
+            "teacher_uuid",
+            "start_date",
+            name="uq_class_teacher_roster_assignment",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    gym_id = Column(Integer, ForeignKey("gym_locations.id"), nullable=False, index=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False, index=True)
+    teacher_uuid = Column(String, ForeignKey("users.user_uuid"), nullable=False, index=True)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    assignment_role = Column(String, nullable=False, default="primary")
+    priority = Column(Integer, nullable=False, default=0)
+    is_current = Column(Boolean, nullable=False, default=True, index=True)
+    created_by = Column(String, ForeignKey("users.user_uuid"), nullable=True)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    gym = relationship("GymLocation")
+    class_schedule = relationship("ClassSchedule", back_populates="teacher_rosters")
+    teacher = relationship("User", foreign_keys=[teacher_uuid])
 
 
 class Attendance(Base):
