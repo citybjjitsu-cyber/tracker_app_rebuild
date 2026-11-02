@@ -293,6 +293,10 @@ export const usersApi = {
     const response = await api.get<User[]>('/users/', { params: includeInactive ? { include_inactive: true } : {} });
     return response.data;
   },
+  listTeachers: async () => {
+    const response = await api.get<User[]>('/users/teachers');
+    return response.data;
+  },
   get: async (uuid: string) => {
     const response = await api.get<User>(`/users/${uuid}`);
     return response.data;

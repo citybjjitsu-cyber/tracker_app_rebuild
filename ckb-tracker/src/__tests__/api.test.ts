@@ -886,6 +886,17 @@ describe('usersApi (additional)', () => {
     expect(result).toHaveLength(1)
   })
 
+  it('listTeachers calls the gym-scoped teacher endpoint', async () => {
+    const axios = await import('axios')
+    const apiModule = await import('@/lib/api')
+
+    vi.mocked(axios.default.get).mockResolvedValue({ data: [{ user_uuid: 'teacher-1', first_name: 'Coach' }] })
+    const result = await apiModule.usersApi.listTeachers()
+
+    expect(axios.default.get).toHaveBeenCalledWith('/users/teachers')
+    expect(result[0].user_uuid).toBe('teacher-1')
+  })
+
   it('get calls GET /users/{uuid}', async () => {
     const axios = await import('axios')
     const apiModule = await import('@/lib/api')

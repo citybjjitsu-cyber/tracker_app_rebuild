@@ -862,8 +862,7 @@ export default function AdminPage() {
 
   async function loadTeachers() {
     try {
-      const allUsers = await usersApi.list();
-      setTeachers(allUsers.filter(u => u.rank === 'Black' || u.rank === 'Brown'));
+      setTeachers(await usersApi.listTeachers());
     } catch (error) {
       console.error('Error loading teachers:', error);
     }
