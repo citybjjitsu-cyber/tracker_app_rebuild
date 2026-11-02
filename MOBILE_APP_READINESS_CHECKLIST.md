@@ -189,6 +189,8 @@ This checklist tracks low-risk preparation before the CKB Tracker mobile app is 
 - [x] Verify portal, Check In, Teacher Dashboard, attendance history, and kiosk flows after the migration.
 - [x] Implement gym-scoped recurring teacher rosters and occurrence-level assignment resolution with migration `c4d5e6f7a8`.
 - [x] Add Admin Console recurring roster management and backend/frontend roster contract coverage.
+- [x] Add a gym-scoped teacher directory endpoint based on active membership and scoped Teacher/Admin roles.
+- [x] Make the weekly schedule return the resolved effective teacher details for each dated class.
 - [ ] Deploy and verify the roster migration, consume effective teacher assignments in the Teacher Dashboard, and complete historical teacher attribution tests.
 
 ## Phase 5F Implementation Checkpoint (2026-10-05)

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
 from app import models, schemas
 from datetime import date, timedelta
@@ -138,11 +138,21 @@ def get_weekly_schedule(
             )
             .first()
         )
-        class_data["effective_teacher_uuid"] = (
+        effective_teacher_uuid = (
             instance.teacher_uuid
             if instance and instance.teacher_uuid
             else resolve_effective_teacher(db, cls.id, int(membership.gym_id), week_dates[day_index])
         )
+        class_data["effective_teacher_uuid"] = effective_teacher_uuid
+        if effective_teacher_uuid:
+            effective_teacher = (
+                db.query(models.User)
+                .options(joinedload(models.User.rank_tier))
+                .filter(models.User.user_uuid == effective_teacher_uuid, models.User.is_current.is_(True))
+                .first()
+            )
+            if effective_teacher:
+                class_data["effective_teacher"] = schemas.UserResponse.model_validate(effective_teacher).model_dump()
         days[day_index]["classes"].append(class_data)
 
     for day in days:

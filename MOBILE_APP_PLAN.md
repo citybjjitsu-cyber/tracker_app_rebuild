@@ -674,6 +674,100 @@ This phase follows the recurring roster work and keeps the current teacher exper
 - Add frontend tests for policy-aware class lists, loading/error states, and the unchanged all-teachers default.
 - Keep the initial release on `all_gym_teachers`; do not enable restricted mode until the policy has been reviewed and tested against real gym workflows.
 
+### Phase 6C.8: Gym-Scoped Teacher Directory and Cross-Gym Teacher Dashboard (Required Before Phase 6D)
+
+This phase fixes teacher selection and defines how a teacher's gym relationships and scheduled work are represented. A user account must not have a single global teacher flag: the same person may be a Teacher at one gym, a student at another gym, or a Teacher at multiple gyms.
+
+#### 6C.8.1 Teacher eligibility and many-to-many gym membership
+
+- Treat the existing `gym_memberships` plus active gym-scoped `Teacher` role assignments as the many-to-many relationship between users and gyms.
+- Do not use rank, belt level, or a global `UserRole` as the source of truth for teacher eligibility.
+- Add a dedicated active-gym endpoint such as `GET /users/teachers` that returns only current users with an active membership and an active `Teacher` role in the resolved `X-Gym-Id` context.
+- Decide explicitly whether `Gym Admin` and `Admin` are eligible for teacher assignment; if they are, include them through scoped roles rather than rank.
+- Use the dedicated endpoint for recurring roster creation, dated occurrence assignments, and all other teacher selectors. Remove the existing Black/Brown rank filter from the Admin Console.
+- Ensure a teacher can be selected at Gym A without becoming a teacher at Gym B, while the same account can be independently assigned at both gyms.
+- Return enough gym-scoped context for the UI to show the gym and role without exposing memberships from unrelated gyms.
+
+#### 6C.8.2 Cross-gym teacher dashboard
+
+- Add a teacher schedule view that aggregates scheduled classes across every gym where the signed-in user has an active Teacher role.
+- Label each class with its gym and preserve the active gym context for attendance, student, lesson, and other gym-scoped actions.
+- Keep the current per-gym Teacher Dashboard behavior intact while adding an explicit `All my gyms` view; do not silently merge gyms into an unlabeled class list.
+- Define how gym switching, attendance permissions, roster visibility policy, recurring assignments, occurrence overrides, substitutions, and historical classes work in the aggregated view.
+- Enforce cross-gym access server-side by resolving the user's active Teacher memberships; the frontend must not submit an arbitrary list of gym IDs to expand access.
+- Add tests for a teacher assigned to multiple gyms, a user who is Teacher at one gym and Student at another, suspended memberships, cross-gym class-name collisions, and gym-labelled schedule results.
+
+#### 6C.8.3 Exit criteria
+
+- The teacher selector is role-based and gym-scoped, independent of rank.
+- A Teacher at multiple gyms can see their scheduled classes across those gyms without seeing classes from gyms where they lack an active Teacher role.
+- Existing `all_gym_teachers` visibility remains the default within each gym until Phase 6C.7 changes it.
+- API, frontend, authorization, and cross-gym privacy tests pass before Phase 6C sign-off.
+
+### Phase 6C.9: Multi-Teacher Rosters, Gym Selection, and Primary Feedback Ownership (Required Before Phase 6D)
+
+This phase extends the many-to-many gym/teacher model to support one required primary teacher and any number of secondary teachers per class. A user may teach at multiple gyms, and teacher assignment must remain independently scoped to each gym.
+
+#### 6C.9.1 Gym selection and teacher eligibility
+
+- Add a visible gym selector to the Admin Console recurring roster tab.
+- Load available gyms from the authenticated user's active memberships; automatically use the sole gym and require explicit selection when multiple gyms exist.
+- Filter classes, teachers, and rosters by the selected gym and send the selected context through `X-Gym-Id`.
+- Clear roster and class data when the selected gym changes.
+- Allow Platform Admins to select among authorized gyms, while Gym Admins remain limited to their own gym.
+- Add a dedicated gym-scoped teacher endpoint such as `GET /users/teachers`.
+- Determine teacher eligibility from active gym membership plus active scoped `Teacher` role, never from belt/rank or a global role alone.
+- Decide explicitly whether scoped `Gym Admin` and `Admin` roles may also be assigned as teachers; if so, include them by role.
+- Ensure a user may be a Teacher at multiple gyms, a Teacher at one gym and Student at another, or independently assigned to different classes at each gym.
+
+#### 6C.9.2 Primary and secondary recurring assignments
+
+- Constrain `ClassTeacherRoster.assignment_role` to `primary` or `secondary`; remove the current free-form role semantics.
+- Require exactly one active primary teacher to cover each class occurrence.
+- Allow zero or more secondary teachers with no fixed maximum.
+- Reject overlapping active primary assignments for the same class/date range.
+- Ensure secondary assignments can never become the effective primary through priority ordering.
+- Keep priority only for deterministic ordering of secondary teachers or future scheduling rules, not for selecting the primary.
+- Add Admin UI controls with one required primary selector and a multi-select secondary-teacher control.
+- Prevent duplicate teachers between primary and secondary selections.
+
+#### 6C.9.3 Occurrence-level assignments
+
+- Add a `class_instance_teachers` table containing `class_instance_id`, `teacher_uuid`, `assignment_role`, audit fields, and timestamps.
+- Enforce one primary assignment per class instance and unlimited secondary assignments.
+- Validate every assigned teacher against the class instance's gym-scoped membership and role.
+- Use occurrence assignments for substitutions, leave, cancellations, reschedules, and multiple instructors.
+- Retain `class_instances.teacher_uuid` temporarily as the compatibility/snapshot primary-teacher field while consumers migrate to the assignment table.
+- Derive the primary from the recurring roster when an occurrence override is not supplied.
+- Reject attendance or feedback finalization for an occurrence with no primary teacher unless an explicit administrative exception is approved.
+
+#### 6C.9.4 Feedback ownership and privacy
+
+- Base teacher feedback access on the primary teacher assignment for the class occurrence.
+- Do not grant secondary teachers access to class feedback by virtue of teaching the class.
+- Keep student self-access and explicitly authorized Gym Admin/Platform Admin access separate from teacher access.
+- Prevent teachers from changing a path or query UUID to request another teacher's feedback.
+- Snapshot the primary teacher on feedback creation, such as `class_feedback.primary_teacher_uuid`, so later roster changes do not rewrite historical ownership.
+- Add server-side authorization tests for primary teachers, secondary teachers, cross-gym teachers, suspended memberships, and administrative access.
+
+#### 6C.9.5 Teacher Dashboard and lesson links
+
+- Add a `My Scheduled Classes` view that aggregates classes across every gym where the user has an active Teacher role.
+- Label every aggregated class with its gym and preserve the gym context before attendance, student, or lesson actions.
+- Keep the existing per-gym dashboard and `all_gym_teachers` visibility behavior unchanged by default.
+- Display primary and secondary assignment roles in the schedule without implying that secondary teachers can access feedback.
+- Link each scheduled occurrence to its assigned lesson when one exists.
+- Keep lesson-material access independent from feedback access so secondary teachers can consume approved lesson resources without receiving class feedback.
+
+#### 6C.9.6 Migration and exit criteria
+
+- Normalize existing roster roles to `primary` or `secondary` after resolving unknown or blank values.
+- Identify and repair classes/date ranges with multiple primaries or no primary before enforcing the new rules.
+- Create occurrence teacher assignments and backfill existing `class_instances.teacher_uuid` values as primary assignments.
+- Derive missing occurrence primaries from applicable recurring primary rosters where possible; surface unresolved records for Admin repair.
+- Add indexes for gym/class/date/role lookups and teacher assignment queries, plus a partial unique index for one active primary where supported.
+- Verify multi-gym teacher selection, primary/secondary scheduling, feedback isolation, gym switching, and historical attribution before Phase 6C sign-off.
+
 ### Phase 6D: Account Lifecycle, Sessions, and Family Access (Required Before Onboarding)
 
 Implement the approved identity and lifecycle rules before inviting users. Keep the person’s identity global, but make memberships, roles, account status, sessions, and family access explicit and gym-aware.
@@ -743,13 +837,25 @@ Make schedules and attendance reliable across multiple gyms, devices, time zones
 - Model progress conversations separately from class feedback, with explicit participants, gym scope, context, reply permissions, lifecycle state, and deletion/retention rules.
 - Preserve the historical teacher, lesson, points policy, rank target, and gym context used when feedback or progress records were created.
 
-#### 6E.4 Exit criteria
+#### 6E.4 Curriculum, lesson libraries, and teacher resources (Design conversation required)
+
+- Decide whether curricula and lesson libraries are global platform content, gym-owned content, shared content with gym overrides, or a combination of these scopes.
+- Define how a class selects its curriculum and how a dated occurrence selects the lesson for that day, including substitutions, reschedules, cancelled classes, and historical lesson attribution.
+- Add a Teacher Dashboard link from each scheduled class to the applicable lesson when a lesson has been assigned; preserve the gym and class context in that link.
+- Decide whether teachers can view, create, edit, or only consume curriculum and lesson materials, and how those permissions vary by gym role.
+- Define the resource model for lesson plans, videos, documents, images, and external links. Uploaded resources must use durable object storage rather than the application filesystem.
+- Compare hosting options for lesson resources, including object storage with signed URLs, a managed video provider, or approved external links. Record ownership, access control, file-size limits, malware/content checks, retention, and replacement rules before implementation.
+- Design the Admin Console workflow for curriculum creation, lesson authoring, lesson-to-date assignment, resource upload, preview, replacement, and archival.
+- Add a discovery/prototype checkpoint with representative teacher workflows before committing to a full lesson-resource implementation.
+
+#### 6E.5 Exit criteria
 
 - Concurrent kiosk, teacher, and mobile requests cannot create duplicate attendance.
 - Timezone, daylight-saving, cancellation, reschedule, and date-boundary tests pass for every supported gym.
 - Reports correctly distinguish pending, confirmed, corrected, cancelled, and historical attendance.
 - Feedback reaches the correct authorized teachers for each occurrence, including substitute and multi-teacher cases.
 - Feedback and conversation records cannot cross gym or participant boundaries, and historical progress remains stable after roster or target changes.
+- Curriculum and lesson scope, teacher access, daily lesson linking, and resource-hosting decisions are documented and approved, or explicitly deferred with a dated follow-up phase.
 
 ### Phase 6F: Audit, Reporting, Notifications, and Retention (Required Before Public Rollout)
 
@@ -837,7 +943,7 @@ The current admin list is an operational pending-invite view, but the backend cu
 
 ### Phase 6H: Full Mobile Functionality Test (Required Before Store Accounts)
 
-After bulk onboarding and Phases 6C.6-6C.7 are validated, complete a full end-to-end functionality test on the mobile app. This is a release gate, not a visual-only check: every core student, check-in, and teacher workflow must work with real deployed data on a physical iPhone and Android phone. Test the installed PWA and the Capacitor wrapper where available, using a clearly labelled test account and identified test records.
+After bulk onboarding and Phases 6C.6-6C.9 are validated, complete a full end-to-end functionality test on the mobile app. This is a release gate, not a visual-only check: every core student, check-in, and teacher workflow must work with real deployed data on a physical iPhone and Android phone. Test the installed PWA and the Capacitor wrapper where available, using a clearly labelled test account and identified test records.
 
 #### 6H.1 Student Portal mobile test
 
@@ -884,11 +990,11 @@ After bulk onboarding and Phases 6C.6-6C.7 are validated, complete a full end-to
 - No core workflow loses authentication unexpectedly, silently hides API failures, creates duplicate attendance, or leaves the user stuck after an error.
 - Responsive layout, navigation, safe-area spacing, touch interaction, keyboard behavior, camera handling, and recovery behavior pass in both browser/PWA and native wrapper contexts where applicable.
 - The mobile test matrix and any remaining limitations are recorded in the readiness checklist.
-- Phase 6H is signed off only after Phases 6C.6-6C.7 are complete, and before creating store accounts, configuring store signing, or starting Phase 7 release distribution work.
+- Phase 6H is signed off only after Phases 6C.6-6C.9 are complete, and before creating store accounts, configuring store signing, or starting Phase 7 release distribution work.
 
 ## Phase 7: Device Testing and Release
 
-Begin Phase 7 only after Phases 6B through 6H and Phases 6C.6-6C.7 are signed off. Store account creation, signing, release builds, and broad distribution must not start while tenant isolation, gym branding/media storage, teacher dashboard policy, account lifecycle, attendance correctness, onboarding, or mobile workflow validation remains open.
+Begin Phase 7 only after Phases 6B through 6H and Phases 6C.6-6C.9 are signed off. Store account creation, signing, release builds, and broad distribution must not start while tenant isolation, gym branding/media storage, multi-teacher assignments, feedback ownership, teacher directory/dashboard behavior, lesson-resource decisions, account lifecycle, attendance correctness, onboarding, or mobile workflow validation remains open.
 
 Test on real devices:
 

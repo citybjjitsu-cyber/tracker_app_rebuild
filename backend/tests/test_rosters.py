@@ -70,6 +70,18 @@ def test_roster_rejects_teacher_without_active_role(client, headers, db_session)
     assert "Teacher role" in response.json()["detail"]
 
 
+def test_teacher_directory_uses_active_scoped_role_not_rank(client, headers, db_session):
+    teacher_uuid = _add_teacher(db_session)
+    teacher = db_session.query(models.User).filter(models.User.user_uuid == teacher_uuid).first()
+    teacher.rank = "White"
+    db_session.commit()
+
+    response = client.get("/users/teachers", headers=headers)
+
+    assert response.status_code == 200
+    assert [item["user_uuid"] for item in response.json()] == [teacher_uuid]
+
+
 def test_weekly_schedule_resolves_roster_teacher(client, headers, db_session):
     teacher_uuid = _add_teacher(db_session)
     db_session.add(
@@ -90,6 +102,7 @@ def test_weekly_schedule_resolves_roster_teacher(client, headers, db_session):
     assert response.status_code == 200
     monday_class = response.json()["days"][0]["classes"][0]
     assert monday_class["effective_teacher_uuid"] == teacher_uuid
+    assert monday_class["effective_teacher"]["first_name"] == "Roster"
 
 
 def test_roster_remove_is_scoped_to_active_gym(client, headers, db_session):

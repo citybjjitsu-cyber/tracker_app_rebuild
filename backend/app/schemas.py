@@ -285,6 +285,7 @@ class ClassScheduleResponse(ClassScheduleBase):
 class WeeklyScheduleClassResponse(ClassScheduleResponse):
     scheduled_date: date
     effective_teacher_uuid: Optional[str] = None
+    effective_teacher: Optional[UserResponse] = None
 
 
 class WeeklyScheduleDayResponse(BaseModel):

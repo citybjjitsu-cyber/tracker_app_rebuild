@@ -99,6 +99,7 @@ export interface ClassSchedule {
 export interface WeeklyScheduleClass extends ClassSchedule {
   scheduled_date: string;
   effective_teacher_uuid?: string;
+  effective_teacher?: User;
 }
 
 export interface WeeklyScheduleDay {

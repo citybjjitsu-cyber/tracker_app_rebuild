@@ -553,6 +553,11 @@ export default function TeacherPage() {
                       <span className="mt-1 block font-headline font-bold text-sm break-words text-on-surface">
                         {cls.class_name}
                       </span>
+                      {cls.effective_teacher && (
+                        <span className="mt-1 block text-xs text-on-surface-variant">
+                          Teacher: {cls.effective_teacher.first_name} {cls.effective_teacher.last_name}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

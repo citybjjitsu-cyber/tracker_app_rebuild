@@ -235,6 +235,34 @@ def list_users(
     return query.all()
 
 
+@router.get("/teachers", response_model=List[schemas.UserResponse])
+@limiter.limit(READ_LIMIT)
+def list_active_gym_teachers(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    membership: models.GymMembership = Depends(get_active_user_membership),
+):
+    """Return assignable teachers from the validated active gym only."""
+    return (
+        db.query(models.User)
+        .options(joinedload(models.User.rank_tier))
+        .join(models.GymMembership, models.GymMembership.user_uuid == models.User.user_uuid)
+        .join(models.GymRoleAssignment, models.GymRoleAssignment.membership_id == models.GymMembership.id)
+        .join(models.Role, models.Role.id == models.GymRoleAssignment.role_id)
+        .filter(
+            models.User.is_current.is_(True),
+            models.GymMembership.gym_id == membership.gym_id,
+            models.GymMembership.status == "active",
+            models.GymRoleAssignment.status == "active",
+            models.Role.name.in_(("Teacher", "Gym Admin", "Admin")),
+        )
+        .distinct()
+        .order_by(models.User.last_name, models.User.first_name)
+        .all()
+    )
+
+
 @router.get("/search", response_model=List[schemas.UserResponse], dependencies=[])
 @limiter.limit(READ_LIMIT)
 def search_users(
